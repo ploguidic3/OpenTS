@@ -2407,7 +2407,9 @@ void DisplayClass::Mouse_Left_Release(Coord const & coord, Cell const & cell, Ob
 				**	process, is necessary since multiple objects could be selected and each
 				**	might perform a different action when the click occurs.
 				*/
-				Active_Click(object, cell, action);
+				if (!(Options.ModernControls && action == ACTION_ENTER_WAYPOINT_MODE)) {
+					Active_Click(object, cell, action);
+				}
 				TechnoClass::Reset_Action_Line_Timer();
 
 				if (action == ACTION_TOGGLE_POWER) {

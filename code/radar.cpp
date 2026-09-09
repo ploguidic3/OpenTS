@@ -612,7 +612,7 @@ int RadarClass::RTacticalClass::Action(unsigned flags, KeyNumType & key)
 
 			if (flags & RIGHTRELEASE) {
 				if (modern) {
-					Map.Mouse_Left_Release(Coord(cell), cell, object, action, true);
+					Map.Mouse_Right_Command(Coord(cell), cell, object, action);
 				} else {
 					Map.Mouse_Right_Release(Point2D(0,0));
 				}
