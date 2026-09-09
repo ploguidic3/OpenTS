@@ -100,7 +100,7 @@ class ScrollClass: public TabClass
 
 		bool Resolve_Point(Point2D const & point, Cell & cell, Coord & coord, ObjectClass * & object, bool & fog, bool & shadow);
 
-		ActionType What_Action(Cell const & cell, ObjectClass * object, bool check_fog);
+		ActionType What_Action(Cell const & cell, ObjectClass * object, bool check_fog, bool ignore_selection = false);
 
 		void Message_Handler(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 

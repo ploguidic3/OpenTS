@@ -1876,6 +1876,32 @@ void DisplayClass::Mouse_Right_Release(Point2D const & point)
 }
 
 
+/// <summary>
+/// Is a placement, repair, sell, power, targetting or waypoint mode armed?
+/// Under modern controls these modes keep the classic buttons: the left button applies the
+/// mode and the right button cancels it.
+/// </summary>
+bool DisplayClass::Is_Mode_Active(void) const
+{
+	return PendingObjectPtr != NULL || IsRepairMode || IsSellMode || IsPowerMode || IsWaypointMode || IsTargettingMode != SUPER_NONE;
+}
+
+
+/// <summary>
+/// Gives the selection an order from a right click under modern controls.
+/// The order goes through the same path a classic left click takes, so every action the
+/// selected objects can perform is available. Selection actions are not orders and are
+/// dropped, as is a click that lands while a rubber band is being drawn.
+/// </summary>
+void DisplayClass::Mouse_Right_Command(Coord const & coord, Cell const & cell, ObjectClass * object, ActionType action)
+{
+	if (action == ACTION_NONE || action == ACTION_SELECT || action == ACTION_TOGGLE_SELECT || IsRubberBand) {
+		return;
+	}
+	Mouse_Left_Release(coord, cell, object, action);
+}
+
+
 /***********************************************************************************************
  * DisplayClass::Mouse_Left_Up -- Handles the left mouse "cruising" over the map.              *
  *                                                                                             *
@@ -2344,6 +2370,15 @@ void DisplayClass::Mouse_Left_Release(Coord const & coord, Cell const & cell, Ob
 					} else {
 						object->Select();
 					}
+				}
+			}
+
+			/*
+			**	Under modern controls a left click that selects nothing clears the selection.
+			*/
+			if (Options.ModernControls && action == ACTION_NONE && !Is_Mode_Active() && (object == NULL || !object->Class_Of()->IsSelectable)) {
+				if (!Keyboard->Down(Options.KeySelect1) && !Keyboard->Down(Options.KeySelect2)) {
+					Unselect_All();
 				}
 			}
 

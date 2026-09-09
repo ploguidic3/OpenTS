@@ -51,6 +51,9 @@ own messages and `MainWindow`'s procedure never sees them. For `MainWindow`,
 re-targets a mouse message to the visible child under the scaled cursor, then
 `Map.Message_Handler`, then its own switch, then `Keyboard->Message_Handler`,
 which packs keys and mouse buttons with their position into the `KN_` queue.
+`Map.Message_Handler` is where `Options.ModernControls` decides whether the
+left or the right button carries an order; the queue and the gadgets never see
+that choice.
 Gadgets poll that queue in `GadgetClass::Input`; `WWKeyboardClass::Down`
 reads `GetAsyncKeyState`, so withholding a queued key does not hide a held
 key from polling code. `Windows_Message_Handler` runs `IsDialogMessage` for

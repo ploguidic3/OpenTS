@@ -204,6 +204,12 @@ class DisplayClass: public MapClass
 		virtual void Mouse_Left_Held(Point2D const & point);
 		virtual void Mouse_Left_Release(Coord const & coord, Cell const & cell, ObjectClass * object, ActionType action, bool wsmall = false);
 		virtual void Mouse_Right_Release(Point2D const & point = Point2D());
+		void Mouse_Right_Command(Coord const & coord, Cell const & cell, ObjectClass * object, ActionType action);
+
+	public:
+		bool Is_Mode_Active(void) const;
+
+	protected:
 
 	public:
 		/*

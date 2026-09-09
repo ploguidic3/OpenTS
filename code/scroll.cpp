@@ -247,8 +247,11 @@ bool ScrollClass::Resolve_Point(Point2D const & point, Cell & cell, Coord & coor
 /// <param name="cell">The cell the mouse is currently over.</param>
 /// <param name="object">The object the mouse is over, or NULL if there is none.</param>
 /// <param name="check_fog">Should the action be limited by what the fog of war hides?</param>
+/// <param name="ignore_selection">Resolve the action as though nothing were selected, which is
+/// what the left button does under modern controls. A selected object still turns Shift into
+/// a toggle so the click adds to the selection.</param>
 /// <returns>Returns with the action that a left click would perform.</returns>
-ActionType ScrollClass::What_Action(Cell const & cell, ObjectClass * object, bool check_fog)
+ActionType ScrollClass::What_Action(Cell const & cell, ObjectClass * object, bool check_fog, bool ignore_selection)
 {
 	ActionType action = ACTION_NONE;
 
@@ -256,7 +259,7 @@ ActionType ScrollClass::What_Action(Cell const & cell, ObjectClass * object, boo
 	**	If there is a currently selected object, then the action to perform if
 	**	the left mouse button were clicked must be determined.
 	*/
-	if (CurrentObject.Count()) {
+	if (CurrentObject.Count() && !ignore_selection) {
 		if (object != NULL) {
 			action = Best_Selected_Object()->What_Action(object);
 		} else {
@@ -288,6 +291,9 @@ ActionType ScrollClass::What_Action(Cell const & cell, ObjectClass * object, boo
 
 		if (visible && object != NULL && object->Class_Of() != NULL && object->Class_Of()->IsSelectable && (object->RTTI != RTTI_BUILDING || !((BuildingClass *)object)->IsFogged) && (techno == NULL || !techno->IsALoaner)) {
 			action = ACTION_SELECT;
+			if (ignore_selection && CurrentObject.Count() && (Keyboard->Down(Options.KeySelect1) || Keyboard->Down(Options.KeySelect2))) {
+				action = ACTION_TOGGLE_SELECT;
+			}
 		}
 
 		if (Map.IsRepairMode) {
@@ -667,7 +673,7 @@ void ScrollClass::Message_Handler(HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				point.Y = pts.y - TacticalRect.Y;
 
 				Resolve_Point(point, cell, coord, object, fog, shadow);
-				Map.Mouse_Left_Release(coord, cell, object, What_Action(cell, object, false));
+				Map.Mouse_Left_Release(coord, cell, object, What_Action(cell, object, false, Options.ModernControls && !Map.Is_Mode_Active()));
 				IsMouseDown = false;
 				ReleaseCapture();
 			}
@@ -690,7 +696,18 @@ void ScrollClass::Message_Handler(HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 		case WM_RBUTTONUP:
 			if (IsMouseDown == true) {
-				Map.Mouse_Right_Release(point);
+				if (Options.ModernControls && !IsDragOperation && !Map.Is_Mode_Active()) {
+
+					POINTS pts = MAKEPOINTS(lParam);
+					point.X = pts.x - TacticalRect.X;
+					point.Y = pts.y - TacticalRect.Y;
+
+					if (Resolve_Point(point, cell, coord, object, fog, shadow) && CurrentObject.Count()) {
+						Map.Mouse_Right_Command(coord, cell, object, What_Action(cell, object, false));
+					}
+				} else {
+					Map.Mouse_Right_Release(point);
+				}
 				BASECLASS::Abort_Drag_Select();
 				IsMouseDown = false;
 				ReleaseCapture();

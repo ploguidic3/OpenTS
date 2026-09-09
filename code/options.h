@@ -92,6 +92,13 @@ class OptionsClass {
 		bool AutoScroll;				// Does map autoscroll?
 
 		/*
+		 * If the left mouse button only selects and the right button gives orders, then this
+		 * flag will be true. Off, the classic scheme applies: the left button both selects and
+		 * orders, and the right button cancels or deselects.
+		 */
+		bool ModernControls;
+
+		/*
 		 * This is how much detail the renderer is allowed to draw (0 - 2). Animations, particle
 		 * systems and translucency carry a detail level of their own and are skipped when it
 		 * exceeds this one, so a lower setting buys frame rate at the cost of eye candy.

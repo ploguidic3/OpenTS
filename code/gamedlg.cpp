@@ -212,6 +212,11 @@ void GameControlsClass::Set(void)
 		Options.AutoScroll = Button_GetCheck(handle) == TRUE;
 	}
 
+	handle = GetDlgItem(_Dialog, IDC_MODERN_CONTROLS);
+	if (handle) {
+		Options.ModernControls = Button_GetCheck(handle) == TRUE;
+	}
+
 	if (GameActive == false) {
 		handle = GetDlgItem(_Dialog, IDC_DIFFICULTY_SLIDER);
 		if (handle) {
@@ -283,6 +288,11 @@ INT_PTR CALLBACK Game_Controls_Dialog_Proc(HWND window, UINT message, WPARAM wpa
 				handle = GetDlgItem(window, IDC_EDGE_SCROLL);
 				if (handle) {
 					Button_SetCheck(handle, Options.AutoScroll != false);
+				}
+
+				handle = GetDlgItem(window, IDC_MODERN_CONTROLS);
+				if (handle) {
+					Button_SetCheck(handle, Options.ModernControls != false);
 				}
 
 				if (GameActive == true) {

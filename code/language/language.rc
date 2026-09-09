@@ -258,6 +258,8 @@ BEGIN
                     BS_AUTOCHECKBOX | BS_FLAT,147,112,127,10
     CONTROL         "Edge Scrolling",IDC_EDGE_SCROLL,"Button",
                     BS_AUTOCHECKBOX | BS_FLAT,22,130,119,10
+    CONTROL         "Modern Controls",IDC_MODERN_CONTROLS,"Button",
+                    BS_AUTOCHECKBOX | BS_FLAT,147,130,127,10
 END
 
 IDD_OPT_CTRL_GAME_SP DIALOG DISCARDABLE  0, 0, 292, 179
@@ -299,6 +301,8 @@ BEGIN
                     BS_AUTOCHECKBOX | BS_FLAT,146,119,128,10
     CONTROL         "Edge Scrolling",IDC_EDGE_SCROLL,"Button",
                     BS_AUTOCHECKBOX | BS_FLAT,22,135,124,10
+    CONTROL         "Modern Controls",IDC_MODERN_CONTROLS,"Button",
+                    BS_AUTOCHECKBOX | BS_FLAT,146,135,128,10
 END
 
 IDD_GAME_SETTINGS_FLAGS DIALOG DISCARDABLE  0, 0, 220, 77
@@ -1600,6 +1604,8 @@ BEGIN
                     BS_AUTOCHECKBOX | BS_FLAT,147,81,129,10
     CONTROL         "Edge Scrolling",IDC_EDGE_SCROLL,"Button",
                     BS_AUTOCHECKBOX | BS_FLAT,22,99,119,10
+    CONTROL         "Modern Controls",IDC_MODERN_CONTROLS,"Button",
+                    BS_AUTOCHECKBOX | BS_FLAT,147,99,129,10
 END
 
 

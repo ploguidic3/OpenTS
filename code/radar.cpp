@@ -585,7 +585,13 @@ int RadarClass::RTacticalClass::Action(unsigned flags, KeyNumType & key)
 			}
 		}
 
-		if (action != ACTION_NONE) {
+		/*
+		**	Under modern controls the left button only moves the view, so a left press is
+		**	handed to the recentring branch below and the order waits for the right button.
+		*/
+		bool modern = Options.ModernControls && !Map.Is_Mode_Active();
+
+		if (action != ACTION_NONE && !(modern && (flags & LEFTPRESS))) {
 
 			/*
 			**	When the mouse buttons aren't pressed, only the mouse cursor shape is processed.
@@ -600,12 +606,16 @@ int RadarClass::RTacticalClass::Action(unsigned flags, KeyNumType & key)
 				**	Normal actions occur when the mouse button is released. The press event is
 				**	intercepted and possible rubber-band mode is flagged.
 				*/
-				if (flags & LEFTRELEASE && !drag_select_aborted) {
+				if (flags & LEFTRELEASE && !drag_select_aborted && !modern) {
 					Map.Mouse_Left_Release(Coord(cell), cell, object, action, true);
 				}
 
 			if (flags & RIGHTRELEASE) {
-				Map.Mouse_Right_Release(Point2D(0,0));
+				if (modern) {
+					Map.Mouse_Left_Release(Coord(cell), cell, object, action, true);
+				} else {
+					Map.Mouse_Right_Release(Point2D(0,0));
+				}
 			}
 
 		} else {

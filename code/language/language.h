@@ -1165,6 +1165,7 @@
 #define IDC_DESYNC_CONTINUE             1712
 #define IDC_DESYNC_QUIT                 1713
 #define IDC_EDGE_SCROLL                 1714
+#define IDC_MODERN_CONTROLS             1715
 
 // Next default values for new objects
 //
@@ -1172,7 +1173,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        3007
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1715
+#define _APS_NEXT_CONTROL_VALUE         1716
 #define _APS_NEXT_SYMED_VALUE           3105
 #endif
 #endif

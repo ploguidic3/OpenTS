@@ -116,6 +116,7 @@ OptionsClass::OptionsClass(void) :
 	VoiceVolume(1.0f),
 	ScoreVolume(.5f),
 	AutoScroll(true),
+	ModernControls(false),
 	IsScoreRepeat(false),
 	IsScoreShuffle(false),
 	IsSidebarOnRight(true),
@@ -398,6 +399,9 @@ void OptionsClass::Load_Settings(void)
 	ToolTips = ConfigINI.Get_Bool("Options", "ToolTips", ToolTips);
 	DebugString("ToolTips are %s\n", ToolTips == true ? "ON" : "OFF");
 
+	ModernControls = ConfigINI.Get_Bool("Options", "ModernControls", ModernControls);
+	DebugString("ModernControls are %s\n", ModernControls == true ? "ON" : "OFF");
+
 	TextBackgroundColor = ConfigINI.Get_Int("Options", "TextBackgroundColor", TextBackgroundColor);
 	DebugString("TextBackgroundColor = %d\n", TextBackgroundColor);
 
@@ -473,6 +477,7 @@ void OptionsClass::Save_Settings (void)
 	ConfigINI.Put_Bool("Options", "SidebarSorting", SidebarSorting);
 	ConfigINI.Put_Bool("Options", "UnitActionLines", ActionLines);
 	ConfigINI.Put_Bool("Options", "ToolTips", ToolTips);
+	ConfigINI.Put_Bool("Options", "ModernControls", ModernControls);
 	ConfigINI.Put_Int("Options", "TextBackgroundColor", TextBackgroundColor);
 	ConfigINI.Put_Int("Options", "AutoSaveInterval", AutoSaveInterval);
 	ConfigINI.Put_Int("Video", "ScreenWidth", ScreenWidth);

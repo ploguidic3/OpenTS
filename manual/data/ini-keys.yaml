@@ -14139,6 +14139,24 @@ MissileSpeedVar:
       source: code/rules.cpp
       guard: null
     level: RulesClass
+ModernControls:
+  key: ModernControls
+  scopes:
+  - applies_to:
+    - client settings
+    file: sun.ini
+    section:
+      kind: literal
+      name: Options
+    value_type: boolean
+    status: generated
+    _provenance:
+      default_candidate: 'no'
+      declared_in: OptionsClass
+      member: ModernControls
+      source: code/options.cpp
+      guard: null
+    level: OptionsClass
 Money:
   key: Money
   scopes:
