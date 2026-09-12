@@ -51,7 +51,6 @@
 #include "isotype.h"
 #include "mixfile.h"
 #include "overtype.h"
-#include "rawfile.h"
 #include "savestream.h"
 #include "scenario.h"
 #include "shapeload.h"

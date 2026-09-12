@@ -562,6 +562,9 @@ void BuildingTypeClass::Fetch_Z_Data(void)
 	}
 
 	ShapeSource const source = Fetch_Shape_Source("BUILDNGZ.SHP");
+	if (source.Shape == NULL) {
+		return;
+	}
 	int size = source.Size;
 	BuildingZShape = new char[size];
 	memcpy((void *)BuildingZShape, source.Shape, size);

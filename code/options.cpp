@@ -426,7 +426,7 @@ void OptionsClass::Load_Settings(void)
 
 	CursorScale = ConfigINI.Get_Int("Video", "CursorScale", CursorScale);
 
-	DebugString("AssetOverrides are %s, %u loose bytes held\n", AssetOverrides == true ? "ON" : "OFF", Shape_Override_Bytes());
+	DebugString("AssetOverrides are %s, %u loose bytes held\n", AssetOverrides ? "ON" : "OFF", Shape_Override_Bytes());
 
 	Set_Sound_Volume(ConfigINI.Get_Float("Audio", "SoundVolume", SoundVolume), false);
 	Set_Voice_Volume(ConfigINI.Get_Float("Audio", "VoiceVolume", VoiceVolume), false);

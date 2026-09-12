@@ -65,7 +65,7 @@ The game data directory is what [`-DATADIR`](/using/command-line/data-directory/
 3. the game data directory, when [`-DATADIR`](/using/command-line/data-directory/) names one;
 4. the folders `SearchPaths` lists, in the order written.
 
-Everything the game opens as a file follows that order: archives, rules, scenarios, launch files, terrain tiles, voxels and movies alike, and a copy found in any of these folders is used ahead of an archived copy of the same name. [Shape files](/formats/shp/#loose-files) are found the same way while [`AssetOverrides`](/keys/assetoverrides/) is on. Fonts, sound samples and the palettes the game keeps resident are the exception: they are handed out from the cached archives directly and no loose copy is looked for.
+Everything the game opens as a file follows that order: archives, rules, scenarios, launch files, terrain tiles, voxels and movies alike, and a copy found in any of these folders is used ahead of an archived copy of the same name. [Shape files](/formats/shp/#loose-files) are found the same way while [`AssetOverrides`](/keys/assetoverrides/) is on. The `.FNT` text fonts, sound samples and the palettes the game keeps resident are the exception: they are handed out from the cached archives directly and no loose copy is looked for.
 
 A player's own copy is therefore the one the game reads, whatever a deployment ships under the same name. In a shared installation the settings and hotkeys a player has are theirs, and the rest is read from the copy everyone shares.
 

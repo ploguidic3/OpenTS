@@ -16,6 +16,7 @@
 
 #include <cctype>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <map>
 #include <string>
@@ -171,6 +172,10 @@ bool Make_Root(void)
 	Make_Directory(Root);
 	Make_Directory(Root + "\\HD");
 
+	// The pack file is read once per folder, on the first loose file found there, so it is
+	// in place before any test fetches.
+	Write_Text(Root + "\\HD\\HDPACK.INI", "[Scale]\npacked.shp=2\nPACKED3.SHP=3\nOTHER.SHP=2\n");
+
 	if (SetCurrentDirectory(Root.c_str()) == 0) {
 		return(false);
 	}
@@ -235,8 +240,6 @@ void Test_Twice_The_Size_Is_Two_Times_Art(void)
 
 void Test_The_Pack_File_States_The_Scale(void)
 {
-	Write_Text(Root + "\\HD\\HDPACK.INI", "[Scale]\npacked.shp=2\nPACKED3.SHP=3\nOTHER.SHP=2\n");
-
 	Write_Bytes(Root + "\\HD\\PACKED.SHP", Make_Shape(48, 48, 6));
 	Check(Fetch_Shape_Source("PACKED.SHP").Scale == 2, "HDPACK.INI in the file's folder assigns a scale");
 

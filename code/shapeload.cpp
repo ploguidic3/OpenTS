@@ -19,7 +19,6 @@
 #include "shapeset.h"
 
 #include <cctype>
-#include <cstring>
 #include <memory>
 #include <string>
 #include <unordered_map>

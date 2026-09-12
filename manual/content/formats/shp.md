@@ -28,7 +28,7 @@ Whichever name is arrived at is fetched the same way as the fixed names: a loose
 
 ## Loose files
 
-While [`AssetOverrides`](/keys/assetoverrides/) is on, a shape name is first looked for as a file in the user data directory, the game's own directory and the folders [`OPENTS.INI`](/formats/opents-ini/) lists, in that order, and the first copy found is read and kept for the rest of the run. The archives answer only when no folder holds the name. A file too short to hold its header and frame records is passed over as though it were not there. Nothing checks the frame data beyond that, so a loose file is drawn as it is written.
+While [`AssetOverrides`](/keys/assetoverrides/) is on, a shape name is first looked for as a file in [the order files are searched for in](/formats/opents-ini/#the-order-files-are-searched-for-in), and the first copy found is read and kept for the rest of the run. The archives answer only when no folder holds the name. A file too short to hold its header and frame records is passed over as though it were not there. Nothing checks the frame data beyond that, so a loose file is drawn as it is written.
 
 A loose file is given a scale, which is 1 unless one of the following applies, in this order:
 
