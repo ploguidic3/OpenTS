@@ -359,7 +359,7 @@ void PowerClass::Draw_It(bool complete)
 
 			Rect rect = SidebarSurface->Get_Rect();
 			int x = POWER_X;
-			int y = SidebarClass::SIDE_Y + POWER_Y;
+			int y = int(SidebarClass::SIDE_Y) + POWER_Y;
 
 			int num = Max_Power_Height() - RedPipCount - YellowPipCount - GreenPipCount;
 
@@ -584,7 +584,7 @@ void PowerClass::Reposition_Sidebar(void)
 		ToolTip tt;
 		tt.Text = TXT_NONE;
 		tt.ID = GADGET_POWER;
-		tt.Region = Sidebar_To_Frame(Rect(POWER_X, SidebarClass::SIDE_Y + POWER_Y, POWER_WIDTH, (SidebarClass::StripClass::SideBarGeneralEnums::OBJECT_HEIGHT) * Map.Max_Visible()));
+		tt.Region = Sidebar_To_Frame(Rect(POWER_X, int(SidebarClass::SIDE_Y) + POWER_Y, POWER_WIDTH, (SidebarClass::StripClass::SideBarGeneralEnums::OBJECT_HEIGHT) * Map.Max_Visible()));
 
 		ToolTips->Remove(tt.ID);
 		ToolTips->Add(&tt);

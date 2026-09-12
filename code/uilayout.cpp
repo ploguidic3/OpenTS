@@ -128,15 +128,27 @@ Surface * UI_Tab_Surface(void)
 void UI_Present_Tab_Strip(void)
 {
 	Surface * tab = UI_Tab_Surface();
+	if (tab != nullptr) {
+		UI_Present_Tab_Strip(tab->Get_Rect());
+	}
+}
+
+
+void UI_Present_Tab_Strip(Rect const & region)
+{
+	Surface * tab = UI_Tab_Surface();
 	if (tab == nullptr) {
 		return;
 	}
 
-	Rect source = tab->Get_Rect();
-	Rect dest(0, 0, source.Width * _Scale, source.Height * _Scale);
+	Rect source = Intersect(region, tab->Get_Rect());
+	if (!source.Is_Valid()) {
+		return;
+	}
+	Rect dest(source.X * _Scale, source.Y * _Scale, source.Width * _Scale, source.Height * _Scale);
 
 	// The remainder the scale leaves at the right edge is never covered by the strip.
-	Rect remainder(dest.Width, 0, CompositeSurface->Get_Width() - dest.Width, dest.Height);
+	Rect remainder(tab->Get_Width() * _Scale, 0, CompositeSurface->Get_Width() - tab->Get_Width() * _Scale, UI_TAB_HEIGHT * _Scale);
 
 	Surface * targets[2] = {CompositeSurface, TileSurface};
 	for (Surface * target : targets) {
@@ -153,7 +165,7 @@ Surface * UI_Scratch_Surface(int width, int height)
 {
 	DSurface * scratch = Sized_Surface(_Scratch, width, height, false);
 	if (scratch != nullptr) {
-		scratch->Fill_Rect(Rect(0, 0, width, height), 0);
+		scratch->Fill_Rect(Rect(0, 0, width, height), UI_SCRATCH_KEY);
 	}
 	return(scratch);
 }
@@ -190,7 +202,7 @@ void UI_Scratch_Present(Surface & dest, Point2D const & at, int width, int heigh
 
 		for (int x = target.X; x < target.X + target.Width; x++, out++) {
 			unsigned short pixel = row[(x - at.X) / _Scale];
-			if (!transparent || pixel != 0) {
+			if (!transparent || pixel != UI_SCRATCH_KEY) {
 				*out = pixel;
 			}
 		}

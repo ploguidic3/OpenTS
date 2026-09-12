@@ -14,7 +14,7 @@
 #include "surface.h"
 
 
-// The HUD scale in force. One until UI_Scale_Update has run, so menus never see it.
+// The HUD scale in force. One until UI_Scale_Update has run.
 int UI_Scale(void);
 
 // Resolves the HUD scale from the video settings. Call it before the surfaces are
@@ -40,15 +40,20 @@ Point2D Frame_To_Sidebar(Point2D const & point);
 // The surface the tab strip is drawn into at its own size, sized to the composite surface.
 Surface * UI_Tab_Surface(void);
 
-// Copies the tab strip, magnified, into the composite and tile surfaces.
+// Copies the tab strip, or one region of it, magnified into the composite and tile surfaces.
 void UI_Present_Tab_Strip(void);
+void UI_Present_Tab_Strip(Rect const & region);
 
 // Scratch surface of at least the given size for drawing at the HUD's own scale. The
-// contents are cleared to the transparent pixel; the surface belongs to this module.
+// contents are cleared to UI_SCRATCH_KEY; the surface belongs to this module.
 Surface * UI_Scratch_Surface(int width, int height);
 
+// Pixels the scratch is cleared to. Fonts never produce this pure magenta, so it can stand
+// for an untouched pixel where zero cannot: black is a real pixel in a text shadow.
+constexpr unsigned short UI_SCRATCH_KEY = 0xF81F;
+
 // Copies a scratch drawing of the given size into the destination, each pixel grown to a
-// square of the HUD scale. Pixels of value zero are skipped when transparent is set.
+// square of the HUD scale. Pixels still holding UI_SCRATCH_KEY are skipped when transparent is set.
 void UI_Scratch_Present(Surface & dest, Point2D const & at, int width, int height, bool transparent);
 
 

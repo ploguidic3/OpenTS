@@ -16,4 +16,4 @@ The multiple is lowered until the layout fits: the sidebar must keep at least 40
 
 The sidebar shows as many build cameo rows as fit its magnified height, so a larger multiple shows fewer rows on the same screen; scrolling covers the rest. Where the screen height is not a whole multiple of the setting, the few rows left under the sidebar stay black, and the tab strip may leave a strip of the same size at its right edge.
 
-The setting is read when the game starts and again when the display resolution is changed in the options dialog. [`CursorScale`](/keys/cursorscale/) at `0` never draws the pointer smaller than this multiple. The menus and the Windows dialogs keep their own size whatever the value.
+The setting is read when the game starts and again when the display resolution is changed in the options dialog. [`CursorScale`](/keys/cursorscale/) at `0` never draws the pointer smaller than this multiple, in the menus as well as in play. The menus and the Windows dialogs themselves keep their own size whatever the value.

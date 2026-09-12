@@ -195,7 +195,7 @@ void TabClass::Draw_Credits_Tab(void)
 				Point2D(tab->Get_Width() - TabShape->Get_Width() / 2, 0), ColorSchemes[0], TBLACK,
 				TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL), minutes, seconds);
 		}
-		UI_Present_Tab_Strip();
+		UI_Present_Tab_Strip(Rect(tab->Get_Width() - TabShape->Get_Width(), 0, TabShape->Get_Width(), tab->Get_Height()));
 	}
 	BASECLASS::IsToBlitSidebar = true;
 }
