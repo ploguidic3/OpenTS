@@ -221,16 +221,16 @@ void TabClass::Hilite_Tab(int tab)
 		//textx = (320-(EVA_WIDTH/2)) * 2;
 	}
 
-	Surface * tab = UI_Tab_Surface();
-	if (tab == NULL) {
+	Surface * strip = UI_Tab_Surface();
+	if (strip == NULL) {
 		return;
 	}
 	if (!tab_selected) {
-		xpos = Options.IsSidebarOnRight ? 0 : tab->Get_Width() - textx*2;
+		xpos = Options.IsSidebarOnRight ? 0 : strip->Get_Width() - textx*2;
 	}
 
-	Draw_Shape(*tab, *SidebarDrawer, TabShape, 1, Point2D(xpos, 0), tab->Get_Rect());
-	Fancy_Text_Print(text, *tab, tab->Get_Rect(), Point2D(xpos + textx, 0), ColorSchemes[0], TBLACK, TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL));
+	Draw_Shape(*strip, *SidebarDrawer, TabShape, 1, Point2D(xpos, 0), strip->Get_Rect());
+	Fancy_Text_Print(text, *strip, strip->Get_Rect(), Point2D(xpos + textx, 0), ColorSchemes[0], TBLACK, TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL));
 	UI_Present_Tab_Strip();
 }
 
@@ -282,7 +282,7 @@ void TabClass::AI(KeyNumType &input, Point2D const & xy)
 					if (Options.IsSidebarOnRight) {
 						if (xy.X >= (EVA_WIDTH * 2/*RESFACTOR*/ * scale)) sel = -1;
 					} else {
-						if (xy.X < tabx || xy.X >= VisibleRect.Width) sel = -1;
+						if (xy.X <= tabx || xy.X >= VisibleRect.Width) sel = -1;
 					}
 					if (sel >= 0) {
 						Set_Active(sel);

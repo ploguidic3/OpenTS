@@ -1040,7 +1040,10 @@ void SidebarClass::Blit_Sidebar(bool complete)
 			VisibleSurface->Blit_From(Sidebar_To_Frame(credits), *SidebarSurface, credits);
 			VisibleSurface->Blit_From(Sidebar_To_Frame(body), *SidebarSurface, body);
 		} else if (!IsToBlitSidebar) {
-			VisibleSurface->Blit_From(Sidebar_To_Frame(Map.LastDrawRect), *SidebarSurface, Map.LastDrawRect);
+			Rect part = Intersect(Map.LastDrawRect, SidebarSurface->Get_Rect());
+			if (part.Is_Valid()) {
+				VisibleSurface->Blit_From(Sidebar_To_Frame(part), *SidebarSurface, part);
+			}
 		} else {
 			Rect sb_rect = SidebarSurface->Get_Rect();
 			Rect frame = Sidebar_To_Frame(sb_rect);

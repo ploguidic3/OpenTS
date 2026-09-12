@@ -11,8 +11,7 @@
 
 #include "point.h"
 #include "rect.h"
-
-class Surface;
+#include "surface.h"
 
 
 // The HUD scale in force. One until UI_Scale_Update has run, so menus never see it.
