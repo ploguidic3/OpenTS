@@ -41,6 +41,7 @@
 #include "scenario.h"
 #include "scheme.h"
 #include "shapebtn.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "stimer.h"
 #include "techtype.h"
@@ -419,9 +420,9 @@ void Dropship_Screen(void)
 		green_shapes[i] = (ShapeSet *)shape_buf;
 	}
 
-	ShapeSet *loadout_shape = (ShapeSet *)MFCD::Retrieve("LOADOUT.SHP");
-	ShapeSet *pilotlight_shape = (ShapeSet *)MFCD::Retrieve("PILOTLIT.SHP");
-	ShapeSet *no_cameo_shape = (ShapeSet *)MFCD::Retrieve("XXICON.SHP");
+	ShapeSet *loadout_shape = (ShapeSet *)Fetch_Shape("LOADOUT.SHP");
+	ShapeSet *pilotlight_shape = (ShapeSet *)Fetch_Shape("PILOTLIT.SHP");
+	ShapeSet *no_cameo_shape = (ShapeSet *)Fetch_Shape("XXICON.SHP");
 
 	CCFileClass drop_shape_file(_drop_btn_names[dropship_count - 1]);
 	unsigned char *drop_shape_buf = new unsigned char[drop_shape_file.Size()];
@@ -517,14 +518,14 @@ void Dropship_Screen(void)
 		++id;
 	}
 
-	ShapeButtonClass *up_button = new ShapeButtonClass(id, (ShapeSet *)MFCD::Retrieve("DROPUP.SHP"), x + _up_x, y + _up_y, 0, 0, false);
+	ShapeButtonClass *up_button = new ShapeButtonClass(id, (ShapeSet *)Fetch_Shape("DROPUP.SHP"), x + _up_x, y + _up_y, 0, 0, false);
 	up_button->ShapeDrawer = drawer_dropship;
 	up_button->IsSticky = true;
 	buttons[_up_index] = up_button;
 	up_button->Add(*button_list);
 	++id;
 
-	ShapeButtonClass *down_button = new ShapeButtonClass(id, (ShapeSet *)MFCD::Retrieve("DROPDOWN.SHP"), x + _down_x, y + _down_y, 0, 0, false);
+	ShapeButtonClass *down_button = new ShapeButtonClass(id, (ShapeSet *)Fetch_Shape("DROPDOWN.SHP"), x + _down_x, y + _down_y, 0, 0, false);
 	down_button->ShapeDrawer = drawer_dropship;
 	down_button->IsSticky = true;
 	buttons[_down_index] = down_button;

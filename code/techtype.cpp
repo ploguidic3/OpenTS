@@ -35,6 +35,7 @@
 #include "savestream.h"
 #include "scenario.h"
 #include "session.h"
+#include "shapeload.h"
 #include "tracker.h"
 #include "unittype.h"
 #include "vanimtype.h"
@@ -674,7 +675,7 @@ bool TechnoTypeClass::Read_INI(CCINIClass const & ini)
 
 		char filename[512];
 		_makepath(filename, NULL, NULL, Graphic_Name(), ".SHP");
-		ImageData = MFCD::Retrieve(filename);
+		ImageData = Fetch_Shape(filename);
 
 		FireAngle = ArtINI.Get_Angle(Graphic_Name(), "FireAngle", FireAngle);
 		TurretOffset = ArtINI.Get_Int(Graphic_Name(), "TurretOffset", TurretOffset);
@@ -688,10 +689,10 @@ bool TechnoTypeClass::Read_INI(CCINIClass const & ini)
 		if (ArtINI.Get_String(Graphic_Name(), "Cameo", "", cameo) > 0) {
 			CameoFilename = cameo;
 			_makepath(filename, NULL, NULL, CameoFilename, ".SHP");
-			CameoData = (ShapeSet const *)MFCD::Retrieve(filename);
+			CameoData = Fetch_Shape(filename);
 		}
 		if (CameoData == NULL) {
-			CameoData = (ShapeSet const *)MFCD::Retrieve("XXICON.SHP");
+			CameoData = Fetch_Shape("XXICON.SHP");
 		}
 
 		Weapons[0].FireFLH = ArtINI.Get_Point(Graphic_Name(), "PrimaryFireFLH", Weapons[0].FireFLH);
@@ -917,14 +918,14 @@ void TechnoTypeClass::Post_Load(void)
 		char fname[_MAX_PATH];
 
 		_makepath(fname, NULL, NULL, (const char *)GraphicName, ".SHP");
-		ImageData = MFCD::Retrieve(fname);
+		ImageData = Fetch_Shape(fname);
 
 		ArtINI.Get_String((const char *)GraphicName, "Cameo", "XXICON", buffer, sizeof(buffer));
 		if (stricmp(buffer, "XXICON") == 0) {
 			ArtINI.Get_String((const char *)IniName, "Cameo", "XXICON", buffer, sizeof(buffer));
 		}
 		_makepath(fname, NULL, NULL, buffer, ".SHP");
-		CameoData = (const ShapeSet *)MFCD::Retrieve(fname);
+		CameoData = Fetch_Shape(fname);
 }
 
 

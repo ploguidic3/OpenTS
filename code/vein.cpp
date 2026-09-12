@@ -39,6 +39,7 @@
 #include "savestream.h"
 #include "scenario.h"
 #include "scheme.h"
+#include "shapeload.h"
 #include "stimer.h"
 #include "sun.h"
 #include "swizzle.h"
@@ -392,7 +393,7 @@ void VeinholeMonsterClass::Init(TheaterType theater)
 {
 	char buffer[32];
 	sprintf(buffer, "VEINHOLE.%s", TheaterClass::As_Reference(theater).Suffix.c_str());
-	MonsterShape = (ShapeSet *)MixFileClass::Retrieve(buffer);
+	MonsterShape = (ShapeSet *)Fetch_Shape(buffer);
 }
 
 

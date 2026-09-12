@@ -205,6 +205,9 @@ class OptionsClass {
 		 */
 		int CursorScale;
 
+		// Whether a loose shape file in the searched folders stands in for the archived one.
+		bool AssetOverrides;
+
 		float SoundVolume;				// Volume for sound effects.
 		float VoiceVolume;				/// Volume for voices.
 		float ScoreVolume;				// Volume for scores.

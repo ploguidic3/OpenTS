@@ -26,6 +26,7 @@
 #include "ownrdraw.h"
 #include "scheme.h"
 #include "session.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "surface.h"
 #include "voc.h"
@@ -136,7 +137,7 @@ void ProgressScreenClass::Set_Graphic_Data(const char * progbar, const char * ba
 	}
 
 	if (progbar != NULL) {
-		Shape = (ShapeSet *)MFCD::Retrieve(progbar);
+		Shape = (ShapeSet *)Fetch_Shape(progbar);
 		if (Shape != NULL) {
 			for (int i = 0; i < PlayerCount; i++) {
 				rect = Shape->Get_Rect(0);

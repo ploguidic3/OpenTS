@@ -57,6 +57,7 @@
 #include "savestream.h"
 #include "scheme.h"
 #include "session.h"
+#include "shapeload.h"
 #include "stimer.h"
 #include "sun.h"
 #include "terrain.h"
@@ -3509,7 +3510,7 @@ void Tactical::Draw_Waypoints(bool inshroud)
 	int dashsave2 = dashtable[2];
 	int dashsave3 = dashtable[3];
 
-	ShapeSet const * mouseshapes = (ShapeSet const *)MixFileClass::Retrieve("MOUSE.SHP");
+	ShapeSet const * mouseshapes = Fetch_Shape("MOUSE.SHP");
 	int coloridx = TheaterClass::As_Reference(Scen->Theater).IsArctic ? BLACK : LTGREY;
 
 	for (PathType path = PATH_FIRST; path < PATH_COUNT; path++) {

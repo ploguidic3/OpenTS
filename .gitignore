@@ -3,6 +3,7 @@
 [Rr]elease/
 /Run/*
 !/Run/place_steam_build_here
+/HD/
 *.obj
 *.exe
 *.dll

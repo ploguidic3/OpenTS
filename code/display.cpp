@@ -133,6 +133,7 @@
 #include "rules.h"
 #include "savestream.h"
 #include "session.h"
+#include "shapeload.h"
 #include "smudtype.h"
 #include "sidebar.h"
 #include "suprtype.h"
@@ -247,8 +248,8 @@ void DisplayClass::One_Time(void)
 {
 	BASECLASS::One_Time();
 
-	PlacementShapes = MFCD::Retrieve("PLACE.SHP");
-	ShadowShapes = MFCD::Retrieve("SHADOW.SHP");
+	PlacementShapes = Fetch_Shape("PLACE.SHP");
+	ShadowShapes = Fetch_Shape("SHADOW.SHP");
 
 	Rect rect = VisibleRect;
 	if (Options.IsSidebarOnRight || Debug_Map) {

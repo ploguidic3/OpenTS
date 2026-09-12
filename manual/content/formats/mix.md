@@ -31,7 +31,7 @@ An archive can be cached, which reads all of its member data into memory in one 
 
 Whether an archive is cached decides how its members can be reached:
 
-- A member of a cached archive can be handed out as a pointer straight into the memory the archive is already holding. Nothing is allocated for the member and nothing is copied. Shapes, fonts, palettes and sound samples are fetched this way, so those files have to live in an archive that was cached — a loose file, or a member of an archive that was mounted without being cached, is not found by that path at all.
+- A member of a cached archive can be handed out as a pointer straight into the memory the archive is already holding. Nothing is allocated for the member and nothing is copied. Fonts, palettes and sound samples are fetched this way, so those files have to live in an archive that was cached — a loose file, or a member of an archive that was mounted without being cached, is not found by that path at all. [Shapes](/formats/shp/#loose-files) are fetched this way too, but only after the searched folders have been checked for a loose copy.
 - Opening a member as a file works either way. From a cached archive the file object becomes a window onto that same memory and a read copies out of it; from an archive that is not cached the archive file itself is opened and every read is biased to the member's position within it.
 
 Direct pointers belong to the archive, remain valid only while it is cached and mounted, and must not be freed by their users. Demand-loaded structure, animation, overlay and construction shapes release only their file-layer copies.

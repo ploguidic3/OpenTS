@@ -82,6 +82,7 @@
 #include "rules.h"
 #include "savestream.h"
 #include "scenario.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "sun.h"
 #include "swizzle.h"
@@ -560,9 +561,10 @@ void BuildingTypeClass::Fetch_Z_Data(void)
 		BuildingZShape = NULL;
 	}
 
-	int size = CCFileClass("BUILDNGZ.SHP").Size();
+	ShapeSource const source = Fetch_Shape_Source("BUILDNGZ.SHP");
+	int size = source.Size;
 	BuildingZShape = new char[size];
-	memcpy((void *)BuildingZShape, MFCD::Retrieve("BUILDNGZ.SHP"), size);
+	memcpy((void *)BuildingZShape, source.Shape, size);
 
 	ShapeSet * zshape = (ShapeSet *)BuildingZShape;
 	char * data = (char *)zshape->Get_Data(0);
@@ -598,8 +600,8 @@ void BuildingTypeClass::Fetch_Z_Data(void)
 void BuildingTypeClass::Init(TheaterType theater)
 {
 	Fetch_Z_Data();
-	PowerOffShapes = MFCD::Retrieve("POWEROFF.SHP");
-	WrenchShapes = MFCD::Retrieve("WRENCH.SHP");
+	PowerOffShapes = Fetch_Shape("POWEROFF.SHP");
+	WrenchShapes = Fetch_Shape("WRENCH.SHP");
 
 	char fullname[_MAX_FNAME+_MAX_EXT];
 
@@ -614,7 +616,7 @@ void BuildingTypeClass::Init(TheaterType theater)
 
 			if (!classptr->IsDemandLoad) {
 				_makepath(fullname, NULL, NULL, classptr->Graphic_Name(), TheaterClass::As_Reference(theater).Suffix);
-				classptr->ImageData = MFCD::Retrieve(fullname);
+				classptr->ImageData = Fetch_Shape(fullname);
 			} else {
 				if (classptr->ImageData != NULL) {
 					Free_Demand_Loaded_Shape(classptr->ImageData);
@@ -627,7 +629,7 @@ void BuildingTypeClass::Init(TheaterType theater)
 			*/
 			if (!classptr->IsDemandLoadBuildup) {
 				_makepath(fullname, NULL, NULL, classptr->BuildupFilename, TheaterClass::As_Reference(theater).Suffix);
-				classptr->BuildupData = MFCD::Retrieve(fullname);
+				classptr->BuildupData = Fetch_Shape(fullname);
 			} else {
 				if (classptr->BuildupData != NULL) {
 					Free_Demand_Loaded_Shape(classptr->BuildupData);
@@ -993,7 +995,7 @@ void BuildingTypeClass::Fetch_Building_Normal_Image(TheaterType theater)
 			*/
 			_makepath(fullname, NULL, NULL, BuildupFilename, ".SHP");
 			Theater_Naming_Convention(fullname, theater);
-			BuildupData = MFCD::Retrieve(fullname);
+			BuildupData = Fetch_Shape(fullname);
 			if (BuildupData != NULL) {
 				int timedelay = 1;
 				int count = ((ShapeSet const *)BuildupData)->Get_Count()/2;
@@ -1012,35 +1014,35 @@ void BuildingTypeClass::Fetch_Building_Normal_Image(TheaterType theater)
 	if (strlen(buffer) != 0) {
 		_makepath(fullname, NULL, NULL, buffer, ".SHP");
 		ObjectTypeClass::Theater_Naming_Convention(fullname, theater);
-		DeployingAnim = (ShapeSet const *)MFCD::Retrieve(fullname);
+		DeployingAnim = Fetch_Shape(fullname);
 	}
 
 	ArtINI.Get_String(Graphic_Name(), "DoorAnim", "", buffer, sizeof(buffer));
 	if (strlen(buffer) != 0) {
 		_makepath(fullname, NULL, NULL, buffer, ".SHP");
 		ObjectTypeClass::Theater_Naming_Convention(fullname, theater);
-		DoorAnim = (ShapeSet const *)MFCD::Retrieve(fullname);
+		DoorAnim = Fetch_Shape(fullname);
 	}
 
 	ArtINI.Get_String(Graphic_Name(), "UnderDoorAnim", "", buffer, sizeof(buffer));
 	if (strlen(buffer) != 0) {
 		_makepath(fullname, NULL, NULL, buffer, ".SHP");
 		ObjectTypeClass::Theater_Naming_Convention(fullname, theater);
-		UnderDoorAnim = (ShapeSet const *)MFCD::Retrieve(fullname);
+		UnderDoorAnim = Fetch_Shape(fullname);
 	}
 
 	ArtINI.Get_String(Graphic_Name(), "SpecialZOverlay", "", buffer, sizeof(buffer));
 	if (strlen(buffer) != 0) {
 		_makepath(fullname, NULL, NULL, buffer, ".SHP");
 		ObjectTypeClass::Theater_Naming_Convention(fullname, theater);
-		SpecialZOverlay = (ShapeSet const *)MFCD::Retrieve(fullname);
+		SpecialZOverlay = Fetch_Shape(fullname);
 	}
 
 	ArtINI.Get_String(Graphic_Name(), "BibShape", "", buffer, sizeof(buffer));
 	if (strlen(buffer) != 0) {
 		_makepath(fullname, NULL, NULL, buffer, ".SHP");
 		ObjectTypeClass::Theater_Naming_Convention(fullname, theater);
-		BibShape = (ShapeSet const *)MFCD::Retrieve(fullname);
+		BibShape = Fetch_Shape(fullname);
 	}
 
 	char ext[16];
@@ -1064,7 +1066,7 @@ void BuildingTypeClass::Fetch_Building_Normal_Image(TheaterType theater)
 	**	Fetch the normal game shape for this building.
 	*/
 	if (!IsDemandLoad) {
-		ImageData = MFCD::Retrieve(fullname);
+		ImageData = Fetch_Shape(fullname);
 	}
 
 	Fetch_Building_Voxel_Image();

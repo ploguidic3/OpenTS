@@ -68,6 +68,7 @@
 #include "msgloop.h"
 #include "scenario.h"
 #include "session.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "surface.h"
 #include "theme.h"
@@ -1360,7 +1361,7 @@ ScoreFullFontClass::ScoreFullFontClass(ConvertClass * drawer) :
 	ScoreFontClass()
 {
 	IsShapeAllocated = false;
-	ShapePtr = (const ShapeSet *)MFCD::Retrieve("FULLFNT3.SHP");
+	ShapePtr = Fetch_Shape("FULLFNT3.SHP");
 	if (ShapePtr == NULL) {
 		CCFileClass file("FULLFNT3.SHP");
 		ShapePtr = (ShapeSet const *)Load_Alloc_Data(file);
@@ -1384,7 +1385,7 @@ ScoreBigFontClass::ScoreBigFontClass(ConvertClass * drawer) :
 	ScoreFontClass()
 {
 	IsShapeAllocated = false;
-	ShapePtr = (const ShapeSet *)MFCD::Retrieve("BIGFONT.SHP");
+	ShapePtr = Fetch_Shape("BIGFONT.SHP");
 	if (ShapePtr == NULL) {
 		CCFileClass file("BIGFONT.SHP");
 		ShapePtr = (ShapeSet const *)Load_Alloc_Data(file);

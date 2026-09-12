@@ -146,6 +146,7 @@
 #include "savestream.h"
 #include "scheme.h"
 #include "session.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "sun.h"
 #include "swizzle.h"
@@ -2910,7 +2911,7 @@ void UnitClass::Unit_Draw_Shape(Point2D xdrawpoint, Rect xcliprect, int brightne
  *=============================================================================================*/
 void UnitClass::Draw_It(Point2D const & point, Rect const & cliprect) const
 {
-	static ShapeSet const * harvesting_shape = (ShapeSet const *)MFCD::Retrieve("HARVESTR.SHP");
+	static ShapeSet const * harvesting_shape = Fetch_Shape("HARVESTR.SHP");
 
 	Point2D adjusted_point = point;
 	adjusted_point.Y -= IonBlastYDrawOffset;
@@ -2982,7 +2983,7 @@ void UnitClass::Draw_It(Point2D const & point, Rect const & cliprect) const
 		**	If this unit is carrying the flag, then draw that on top of everything else.
 		*/
 		if (Flagged != HOUSE_NONE) {
-			Draw_Shape(*LogicalSurface, *ColorSchemes[Houses[Flagged]->Scheme]->Converter, (ShapeSet const *)MFCD::Retrieve("FLAGFLY.SHP"), Frame % 14, raw_point, cliprect, ShapeFlags_Type(SHAPE_CENTER|SHAPE_ALPHA), NULL, 0, ZGRAD_GROUND, brightness);
+			Draw_Shape(*LogicalSurface, *ColorSchemes[Houses[Flagged]->Scheme]->Converter, Fetch_Shape("FLAGFLY.SHP"), Frame % 14, raw_point, cliprect, ShapeFlags_Type(SHAPE_CENTER|SHAPE_ALPHA), NULL, 0, ZGRAD_GROUND, brightness);
 		}
 
 		BASECLASS::Draw_It(raw_point, cliprect);

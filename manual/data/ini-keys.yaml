@@ -2326,6 +2326,24 @@ Artillary:
       source: code/builtype.cpp
       guard: null
     level: BuildingTypeClass
+AssetOverrides:
+  key: AssetOverrides
+  scopes:
+  - applies_to:
+    - client settings
+    file: sun.ini
+    section:
+      kind: literal
+      name: Video
+    value_type: boolean
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: Startup
+      member: Options
+      source: code/startup.cpp
+      guard: null
+    level: Startup
 AtmosphereEntry:
   key: AtmosphereEntry
   scopes:

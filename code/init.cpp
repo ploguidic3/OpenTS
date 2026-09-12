@@ -160,6 +160,7 @@
 #include "scheme.h"
 #include "script.h"
 #include "session.h"
+#include "shapeload.h"
 #include "spawner.h"
 #include "side.h"
 #include "skirmish.h"
@@ -2741,7 +2742,7 @@ void Init_Mouse(void)
 
 	/// The menus run on the Windows cursor. The real game cursor is not loaded and assigned
 	/// until play begins -- see MouseClass::One_Time, where these shapes are loaded again.
-	ShapeSet const * temp_mouse_shapes = (ShapeSet const *)MFCD::Retrieve("MOUSE.SHP");
+	ShapeSet const * temp_mouse_shapes = Fetch_Shape("MOUSE.SHP");
 
 	if (temp_mouse_shapes) {
 		Hide_Mouse();

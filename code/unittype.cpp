@@ -64,6 +64,7 @@
 #include "mouse.h"
 #include "rules.h"
 #include "savestream.h"
+#include "shapeload.h"
 #include "sun.h"
 #include "tracker.h"
 #include "unit.h"
@@ -221,8 +222,8 @@ void UnitTypeClass::One_Time(void)
 	/*
 	**	Load any custom shapes at this time.
 	*/
-	SmallVisceroidShapes = MFCD::Retrieve("VISC_SML.SHP");
-	LargeVisceroidShapes = MFCD::Retrieve("VISC_LRG.SHP");
+	SmallVisceroidShapes = Fetch_Shape("VISC_SML.SHP");
+	LargeVisceroidShapes = Fetch_Shape("VISC_LRG.SHP");
 }
 
 
@@ -461,7 +462,7 @@ bool UnitTypeClass::Read_INI(CCINIClass const & ini)
 
 		char filename[_MAX_PATH];
 		_makepath(filename, NULL, NULL, AltImageFile, ".SHP");
-		AltImageData = (ShapeSet const *)MFCD::Retrieve(filename);
+		AltImageData = Fetch_Shape(filename);
 		return(true);
 	}
 	return(false);
@@ -544,7 +545,7 @@ void UnitTypeClass::Post_Load(void)
 	if (!AltImageFile.empty()) {
 		char filename[_MAX_PATH];
 		_makepath(filename, NULL, NULL, AltImageFile, ".SHP");
-		AltImageData = (ShapeSet const *)MFCD::Retrieve(filename);
+		AltImageData = Fetch_Shape(filename);
 	}
 }
 

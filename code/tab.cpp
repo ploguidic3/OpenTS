@@ -54,6 +54,7 @@
 #include "savestream.h"
 #include "scenario.h"
 #include "scheme.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "surface.h"
 
@@ -349,7 +350,7 @@ void TabClass::One_Time(void)
 void TabClass::Init_For_House(void)
 {
 	BASECLASS::Init_For_House();
-	TabShape = (ShapeSet const *)MixFileClass::Retrieve("TABS.SHP");
+	TabShape = Fetch_Shape("TABS.SHP");
 	Credits.Current = 0;
 }
 

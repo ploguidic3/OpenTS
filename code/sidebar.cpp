@@ -110,6 +110,7 @@
 #include "savestream.h"
 #include "scheme.h"
 #include "session.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "super.h"
 #include "suprtype.h"
@@ -365,8 +366,8 @@ void SidebarClass::One_Time(void)
 	Column[0].One_Time(0);
 	Column[1].One_Time(1);
 
-	StripClass::RechargeClockShapes = (ShapeSet const *)MFCD::Retrieve("RCLOCK2.SHP");
-	StripClass::ClockShapes = (ShapeSet const *)MFCD::Retrieve("GCLOCK2.SHP");
+	StripClass::RechargeClockShapes = Fetch_Shape("RCLOCK2.SHP");
+	StripClass::ClockShapes = Fetch_Shape("GCLOCK2.SHP");
 }
 
 
@@ -522,24 +523,24 @@ void SidebarClass::Init_For_House(void)
 
 	SidebarDrawer = new ConvertClass(pal, pal, *VisibleSurface, 1, false);
 
-	Upgrade.Set_Shape((ShapeSet *)MFCD::Retrieve("SELL.SHP"));
+	Upgrade.Set_Shape((ShapeSet *)Fetch_Shape("SELL.SHP"));
 	Upgrade.ShapeDrawer = SidebarDrawer;
-	Power.Set_Shape((ShapeSet *)MFCD::Retrieve("POWER.SHP"));
+	Power.Set_Shape((ShapeSet *)Fetch_Shape("POWER.SHP"));
 	Power.ShapeDrawer = SidebarDrawer;
-	Waypoint.Set_Shape((ShapeSet *)MFCD::Retrieve("WAYP.SHP"));
+	Waypoint.Set_Shape((ShapeSet *)Fetch_Shape("WAYP.SHP"));
 	Waypoint.ShapeDrawer = SidebarDrawer;
-	Repair.Set_Shape((ShapeSet *)MFCD::Retrieve("REPAIR.SHP"));
+	Repair.Set_Shape((ShapeSet *)Fetch_Shape("REPAIR.SHP"));
 	Repair.ShapeDrawer = SidebarDrawer;
 
-	SidebarShape = (ShapeSet *)MFCD::Retrieve("SIDE1.SHP");
-	SidebarMiddleShape = (ShapeSet *)MFCD::Retrieve("SIDE2.SHP");
-	SidebarBottomShape = (ShapeSet *)MFCD::Retrieve("SIDE3.SHP");
-	SidebarAddonShape = (ShapeSet *)MFCD::Retrieve("ADDON.SHP");
+	SidebarShape = (ShapeSet *)Fetch_Shape("SIDE1.SHP");
+	SidebarMiddleShape = (ShapeSet *)Fetch_Shape("SIDE2.SHP");
+	SidebarBottomShape = (ShapeSet *)Fetch_Shape("SIDE3.SHP");
+	SidebarAddonShape = (ShapeSet *)Fetch_Shape("ADDON.SHP");
 
 	for (i = 0; i < COLUMNS; i++) {
-		StripClass::UpButton[i].Set_Shape((ShapeSet *)MFCD::Retrieve("R-UP.SHP"));
+		StripClass::UpButton[i].Set_Shape((ShapeSet *)Fetch_Shape("R-UP.SHP"));
 		StripClass::UpButton[i].ShapeDrawer = SidebarDrawer;
-		StripClass::DownButton[i].Set_Shape((ShapeSet *)MFCD::Retrieve("R-DN.SHP"));
+		StripClass::DownButton[i].Set_Shape((ShapeSet *)Fetch_Shape("R-DN.SHP"));
 		StripClass::DownButton[i].ShapeDrawer = SidebarDrawer;
 	}
 }
@@ -1320,7 +1321,7 @@ SidebarClass::StripClass::StripClass(InitClass const &) :
  *=============================================================================================*/
 void SidebarClass::StripClass::One_Time(int )
 {
-	DarkenShapes = (ShapeSet*)MFCD::Retrieve("DARKEN.SHP");
+	DarkenShapes = (ShapeSet*)Fetch_Shape("DARKEN.SHP");
 }
 
 
@@ -2717,9 +2718,9 @@ void SidebarClass::Reposition_Sidebar(void)
 	BASECLASS::Reposition_Sidebar();
 
 	if (!SidebarShape) {
-		SidebarShape = (ShapeSet const *)MFCD::Retrieve("SIDEGDI1.SHP");
-		SidebarMiddleShape = (ShapeSet const *)MFCD::Retrieve("SIDEGDI2.SHP");
-		SidebarBottomShape = (ShapeSet const *)MFCD::Retrieve("SIDEGDI3.SHP");
+		SidebarShape = Fetch_Shape("SIDEGDI1.SHP");
+		SidebarMiddleShape = Fetch_Shape("SIDEGDI2.SHP");
+		SidebarBottomShape = Fetch_Shape("SIDEGDI3.SHP");
 	}
 
 	/*

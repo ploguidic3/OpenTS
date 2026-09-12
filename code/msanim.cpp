@@ -27,6 +27,7 @@
 #include "msfont.h"
 #include "ownrdraw.h"
 #include "pcx.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "srfcache.h"
 #include "utf8.h"
@@ -111,7 +112,7 @@ MSShapeAnim::MSShapeAnim(char const * name, int x, int y, ConvertClass * drawer,
 	ShapeFlags(flags),
 	AllocLoaded(false)
 {
-	Shape = (ShapeSet *)MFCD::Retrieve(name);
+	Shape = (ShapeSet *)Fetch_Shape(name);
 	if (Shape == NULL) {
 		CCFileClass file(name);
 		Shape = (ShapeSet *)Load_Alloc_Data(file);

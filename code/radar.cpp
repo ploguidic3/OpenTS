@@ -100,6 +100,7 @@
 #include "rules.h"
 #include "savestream.h"
 #include "scheme.h"
+#include "shapeload.h"
 #include "tactical.h"
 #include "voc.h"
 #include "vox.h"
@@ -273,7 +274,7 @@ void RadarClass::Init_Clear(void)
 void RadarClass::Init_For_House(void)
 {
 	DebugString("RadarClass::Init_For_House()\n");
-	RadarAnim = MFCD::Retrieve("RADAR.SHP");
+	RadarAnim = Fetch_Shape("RADAR.SHP");
 }
 
 

@@ -117,6 +117,7 @@
 #include "savestream.h"
 #include "scheme.h"
 #include "session.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "smudtype.h"
 #include "sun.h"
@@ -2016,8 +2017,8 @@ void CellClass::Draw_Shroud_Or_Fog_Shape(Point2D const & drawpoint, Rect const &
 
 	if (!shapes_loaded) {
 		shapes_loaded = true;
-		shadow_shapes = (ShapeSet const *)MFCD::Retrieve("SHROUD.SHP");
-		fog_shapes = (ShapeSet const *)MFCD::Retrieve("FOG.SHP");
+		shadow_shapes = Fetch_Shape("SHROUD.SHP");
+		fog_shapes = Fetch_Shape("FOG.SHP");
 	}
 
 	ShapeSet const * shapes;
@@ -2095,7 +2096,7 @@ void CellClass::Draw_Fog_Shape(Point2D const & drawpoint, Rect const & cliprect,
 
 	if (!shapes_loaded) {
 		shapes_loaded = true;
-		shapes = (ShapeSet const *)MFCD::Retrieve("FOG.SHP");
+		shapes = Fetch_Shape("FOG.SHP");
 	}
 
 	Rect shaperect = shapes->Get_Rect(shapenum);

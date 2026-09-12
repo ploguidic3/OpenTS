@@ -25,6 +25,7 @@
 #include "goptions.h"
 #include "mixfile.h"
 #include "palette.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "utf8.h"
 
@@ -155,7 +156,7 @@ bool MSFont::Init(char const * file_name, char const * palette_name)
 	CCFileClass file;
 
 	AllocLoaded = false;
-	FontFile = (ShapeSet *)MFCD::Retrieve(file_name);
+	FontFile = (ShapeSet *)Fetch_Shape(file_name);
 
 	if (FontFile == NULL) {
 		file.Set_Name(file_name);

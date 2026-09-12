@@ -112,6 +112,7 @@
 #include "scheme.h"
 #include "script.h"
 #include "session.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "side.h"
 #include "sidebar.h"
@@ -586,6 +587,10 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		Options.WindowHeight = ConfigINI.Get_Int("Video", "WindowHeight", Options.WindowHeight);
 		Options.VSync = ConfigINI.Get_Bool("Video", "VSync", Options.VSync);
 		Options.Renderer = ConfigINI.Get_Int("Video", "Renderer", Options.Renderer);
+
+		// Wanted before the first shape is fetched, which is well before the rest of the settings are read.
+		Options.AssetOverrides = ConfigINI.Get_Bool("Video", "AssetOverrides", Options.AssetOverrides);
+		Enable_Shape_Overrides(Options.AssetOverrides);
 
 		/*
 		 * The command line asks for a window regardless of what the settings say.

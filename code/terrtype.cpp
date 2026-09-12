@@ -59,6 +59,7 @@
 #include "mixfile.h"
 #include "rules.h"
 #include "savestream.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "sun.h"
 #include "terrain.h"
@@ -187,7 +188,7 @@ void TerrainTypeClass::Init(TheaterType theater)
 				**	Load in the appropriate object shape data.
 				*/
 				_makepath(fullname, NULL, NULL, terrain->Name(), TheaterClass::As_Reference(theater).Suffix);
-				terrain->ImageData = (ShapeSet const *)MFCD::Retrieve(fullname);
+				terrain->ImageData = Fetch_Shape(fullname);
 
 			}
 		}
@@ -331,7 +332,7 @@ bool TerrainTypeClass::Read_INI(CCINIClass const & ini)
 		if (!IsTheater) {
 			char filename[512];
 			_makepath(filename, 0, 0, Graphic_Name(), ".SHP");
-			ImageData = (ShapeSet const *)MFCD::Retrieve(filename);
+			ImageData = Fetch_Shape(filename);
 		}
 
 		ShapeSet const * image = (ShapeSet const *)Get_Image_Data();

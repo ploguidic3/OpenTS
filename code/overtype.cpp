@@ -71,6 +71,7 @@
 #include "resource.h"
 #include "savestream.h"
 #include "scenario.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "sun.h"
 #include "swizzle.h"
@@ -300,12 +301,12 @@ void OverlayTypeClass::Init(TheaterType theater)
 		if (!overlay.DemandLoad) {
 			if (overlay.IsTheater) {
 				_makepath(fullname, NULL, NULL, overlay.GraphicName, TheaterClass::As_Reference(theater).Suffix);
-				overlay.ImageData = MFCD::Retrieve(fullname);
+				overlay.ImageData = Fetch_Shape(fullname);
 
 			} else if (overlay.IsNewTheater) {
 				_makepath(fullname, NULL, NULL, overlay.GraphicName, ".SHP");
 				overlay.Theater_Naming_Convention(fullname, theater);
-				overlay.ImageData = MFCD::Retrieve(fullname);
+				overlay.ImageData = Fetch_Shape(fullname);
 			}
 		} else {
 			if (overlay.IsTheater || overlay.IsNewTheater) {
@@ -365,7 +366,7 @@ bool OverlayTypeClass::Read_INI(CCINIClass const & ini)
 
 		if (!IsTheater && !DemandLoad) {
 			_makepath(fullname, NULL, NULL, GraphicName, ".SHP");
-			ImageData = MFCD::Retrieve(fullname);
+			ImageData = Fetch_Shape(fullname);
 		}
 
 		IsNoUseTileLandType = ini.Get_Bool(IniName, "NoUseTileLandType", IsNoUseTileLandType);
@@ -447,7 +448,7 @@ void OverlayTypeClass::Post_Load(void)
 			Theater_Naming_Convention(fullname, Scen->Theater);
 		}
 
-		ImageData = MFCD::Retrieve(fullname);
+		ImageData = Fetch_Shape(fullname);
 	}
 }
 

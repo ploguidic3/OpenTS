@@ -59,6 +59,7 @@
 #include "mixfile.h"
 #include "rules.h"
 #include "savestream.h"
+#include "shapeload.h"
 #include "sun.h"
 #include "tracker.h"
 
@@ -157,8 +158,8 @@ AircraftType AircraftTypeClass::From_Name(char const * name)
  *=============================================================================================*/
 void AircraftTypeClass::One_Time(void)
 {
-	LRotorData = MFCD::Retrieve("LROTOR.SHP");
-	RRotorData = MFCD::Retrieve("RROTOR.SHP");
+	LRotorData = Fetch_Shape("LROTOR.SHP");
+	RRotorData = Fetch_Shape("RROTOR.SHP");
 }
 
 

@@ -40,6 +40,7 @@
 #include "scenario.h"
 #include "scheme.h"
 #include "session.h"
+#include "shapeload.h"
 #include "sun.h"
 #include "theme.h"
 #include "vox.h"
@@ -128,7 +129,7 @@ void IonStormClass::Do_Screen_Static(int shapenum)
 {
 	if (!ScenarioInit) {
 		if (StaticShape == NULL) {
-			StaticShape = (ShapeSet const *)MFCD::Retrieve(STATIC_SHAPE_NAME);
+			StaticShape = Fetch_Shape(STATIC_SHAPE_NAME);
 		}
 		for (int x = 0; x < TacticalRect.Width; x += STATIC_SHAPE_WIDTH) {
 			for (int y = TacticalRect.Y; y < TacticalRect.Y + TacticalRect.Height; y += STATIC_SHAPE_HEIGHT) {

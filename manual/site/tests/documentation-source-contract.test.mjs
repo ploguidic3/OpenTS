@@ -78,7 +78,7 @@ test('Drop pod directions retain their hard-coded airborne and landing-art mappi
 	);
 	assert.match(drawingCode, /Direction\s*%\s*2/);
 	assertOrdered(infantry, [
-		'MFCD::Retrieve("POD.SHP")',
+		'Fetch_Shape("POD.SHP")',
 		'Locomotion->Drawing_Code()',
 	], 'Drop pod airborne shape selection');
 

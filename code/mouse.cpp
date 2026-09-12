@@ -54,6 +54,7 @@
 #include "rawfile.h"
 #include "savestream.h"
 #include "scenario.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "smudtype.h"
 #include "terrtype.h"
@@ -345,20 +346,7 @@ void MouseClass::One_Time(void)
 {
 	BASECLASS::One_Time();
 
-	/*
-	**	Override the mouse shape file with the one in the current directory, but only if there
-	**	is an override file available.
-	*/
-	#ifdef _DEBUG
-		RawFileClass file("MOUSE.SHP");
-		if (file.Is_Available()) {
-			MouseShapes = (ShapeSet const *)Load_Alloc_Data(file);
-		} else {
-			MouseShapes = (ShapeSet const *)MFCD::Retrieve("MOUSE.SHP");
-		}
-	#else
-		MouseShapes = (ShapeSet const *)MFCD::Retrieve("MOUSE.SHP");
-	#endif
+	MouseShapes = Fetch_Shape("MOUSE.SHP");
 }
 
 

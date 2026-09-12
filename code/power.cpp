@@ -59,6 +59,7 @@
 #include "language/language.h"
 #include "mixfile.h"
 #include "savestream.h"
+#include "shapeload.h"
 #include "surface.h"
 
 #include "bench.hh"
@@ -184,7 +185,7 @@ void PowerClass::One_Time(void)
 void PowerClass::Init_For_House(void)
 {
 	BASECLASS::Init_For_House();
-	PowerPipShape = MFCD::Retrieve("POWERP.SHP");
+	PowerPipShape = Fetch_Shape("POWERP.SHP");
 }
 
 

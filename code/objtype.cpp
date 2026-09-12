@@ -31,6 +31,7 @@
 #include "rules.h"
 #include "savestream.h"
 #include "scenario.h"
+#include "shapeload.h"
 #include "shapeset.h"
 #include "unittype.h"
 #include "vector.h"
@@ -287,10 +288,10 @@ Cell const * ObjectTypeClass::Occupy_List(bool) const
  *=============================================================================================*/
 void ObjectTypeClass::One_Time(void)
 {
-	SelectShapes = MFCD::Retrieve("SELECT.SHP");
-	PipShapes = MFCD::Retrieve("PIPS.SHP");
-	Pip2Shapes = MFCD::Retrieve("PIPS2.SHP");
-	TalkBubbleShapes = MFCD::Retrieve("TALKBUBL.SHP");
+	SelectShapes = Fetch_Shape("SELECT.SHP");
+	PipShapes = Fetch_Shape("PIPS.SHP");
+	Pip2Shapes = Fetch_Shape("PIPS2.SHP");
+	TalkBubbleShapes = Fetch_Shape("TALKBUBL.SHP");
 }
 
 
@@ -592,7 +593,7 @@ void ObjectTypeClass::Fetch_Normal_Image(void)
 		Theater_Naming_Convention(fullname, Scen->Theater);
 	}
 
-	ShapeSet const * image = (ShapeSet const *)MFCD::Retrieve(fullname);
+	ShapeSet const * image = Fetch_Shape(fullname);
 	if (image) {
 		ImageData = image;
 		int maxsize = std::max(image->Get_Width(), image->Get_Height());
@@ -648,7 +649,7 @@ bool ObjectTypeClass::Read_INI(CCINIClass const & ini)
 
 		if (!AlphaGraphicName.empty()) {
 			_makepath(path, NULL, NULL, AlphaGraphicName, ".SHP");
-			AlphaImageData = MixFileClass::Retrieve(path);
+			AlphaImageData = Fetch_Shape(path);
 		}
 
 		return(true);
@@ -753,7 +754,7 @@ void ObjectTypeClass::Post_Load(void)
 	if (!AlphaGraphicName.empty()) {
 		char filename[_MAX_FNAME + _MAX_EXT];
 		_makepath(filename, NULL, NULL, AlphaGraphicName, ".SHP");
-		AlphaImageData = MFCD::Retrieve(filename);
+		AlphaImageData = Fetch_Shape(filename);
 	}
 }
 

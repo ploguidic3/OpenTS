@@ -50,6 +50,7 @@
 #include "gauge.h"
 #include "mixfile.h"
 #include "shapebtn.h"
+#include "shapeload.h"
 #include "xmouse.h"
 
 #include "dialog.hh"
@@ -79,8 +80,8 @@ SliderClass::SliderClass(unsigned id, int x, int y, int w, int h, int belong_to_
 	PlusGadget = 0;
 	MinusGadget = 0;
 	if (!BelongToList) {
-		PlusGadget  = new ShapeButtonClass(id, (const ShapeSet *)MFCD::Retrieve("BTN-PLUS.SHP"), X+Width+2, Y);
-		MinusGadget = new ShapeButtonClass(id, (const ShapeSet *)MFCD::Retrieve("BTN-MINS.SHP"), X-6, Y);
+		PlusGadget  = new ShapeButtonClass(id, Fetch_Shape("BTN-PLUS.SHP"), X+Width+2, Y);
+		MinusGadget = new ShapeButtonClass(id, Fetch_Shape("BTN-MINS.SHP"), X-6, Y);
 
 		if (PlusGadget) {
 			PlusGadget->Make_Peer(*this);

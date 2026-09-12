@@ -66,6 +66,7 @@
 #include "mouse.h"
 #include "savestream.h"
 #include "scenario.h"
+#include "shapeload.h"
 #include "smudge.h"
 #include "sun.h"
 #include "tactical.h"
@@ -173,7 +174,7 @@ void SmudgeTypeClass::Init(TheaterType theater)
 			char fullname[_MAX_FNAME+_MAX_EXT];	// Fully constructed smudge data set name.
 			if (smudge->IsTheater) {
 				_makepath(fullname, NULL, NULL, smudge->Name(), TheaterClass::As_Reference(theater).Suffix);
-				smudge->ImageData = (ShapeSet const *)MFCD::Retrieve(fullname);
+				smudge->ImageData = Fetch_Shape(fullname);
 			}
 		}
 	}
@@ -280,10 +281,10 @@ bool SmudgeTypeClass::Read_INI(CCINIClass const & ini)
 		char fullname[_MAX_FNAME+_MAX_EXT];
 		if (!IsTheater) {
 			_makepath(fullname, NULL, NULL, (char const *)Graphic_Name(), ".SHP");
-			ImageData = (ShapeSet const *)MFCD::Retrieve(fullname);
+			ImageData = Fetch_Shape(fullname);
 		} else {
 			_makepath(fullname, NULL, NULL, (char const *)Graphic_Name(), TheaterClass::As_Reference(Scen->Theater).Suffix);
-			ImageData = (ShapeSet const *)MFCD::Retrieve(fullname);
+			ImageData = Fetch_Shape(fullname);
 		}
 		return(true);
 	}

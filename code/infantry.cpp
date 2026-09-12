@@ -124,6 +124,7 @@
 #include "savestream.h"
 #include "scheme.h"
 #include "session.h"
+#include "shapeload.h"
 #include "sun.h"
 #include "swizzle.h"
 #include "syncrechook.h"
@@ -637,7 +638,7 @@ void InfantryClass::Draw_It(Point2D const & xpoint, Rect const & cliprect) const
 		persist->GetClassID(&clsid);
 
 		if (HeightAGL > 0 && clsid == CLSID_BallisticLocomotion) {
-			ShapeSet const * shapefile = (ShapeSet const *)MFCD::Retrieve("POD.SHP");
+			ShapeSet const * shapefile = Fetch_Shape("POD.SHP");
 			Point2D spoint = xpoint + Point2D(Locomotion->Shadow_Point());
 			Draw_Shape(
 				*LogicalSurface,

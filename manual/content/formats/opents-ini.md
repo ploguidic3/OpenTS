@@ -30,6 +30,15 @@ Without the file, and without the key, the game behaves as though `SearchPaths=I
 
 The game's own directory is examined before any listed folder, so naming it adds nothing. Naming only it, as `SearchPaths=.`, is how a deployment asks for no other folder to be searched. An empty `SearchPaths=` does not do this: the file reader passes over an entry with nothing after the equals sign, leaving the default in force.
 
+A folder of replacement artwork goes at the front of the list, so that its files are found before any copy the default folders hold:
+
+```ini title="OPENTS.INI"
+[Paths]
+SearchPaths=HD,INI,MIX,Maps
+```
+
+A loose [shape file](/formats/shp/#loose-files) in `HD` then stands in for the archived one while [`AssetOverrides`](/keys/assetoverrides/) is on.
+
 ## What a save carries
 
 ```ini title="OPENTS.INI"
@@ -56,7 +65,7 @@ The game data directory is what [`-DATADIR`](/using/command-line/data-directory/
 3. the game data directory, when [`-DATADIR`](/using/command-line/data-directory/) names one;
 4. the folders `SearchPaths` lists, in the order written.
 
-Everything the game opens follows that order: archives, rules, artwork, scenarios and launch files alike. A loose file still stands in for an archived one, so a copy found in any of these folders is used ahead of an archived copy of the same name.
+Everything the game opens as a file follows that order: archives, rules, scenarios, launch files, terrain tiles, voxels and movies alike, and a copy found in any of these folders is used ahead of an archived copy of the same name. [Shape files](/formats/shp/#loose-files) are found the same way while [`AssetOverrides`](/keys/assetoverrides/) is on. Fonts, sound samples and the palettes the game keeps resident are the exception: they are handed out from the cached archives directly and no loose copy is looked for.
 
 A player's own copy is therefore the one the game reads, whatever a deployment ships under the same name. In a shared installation the settings and hotkeys a player has are theirs, and the rest is read from the copy everyone shares.
 

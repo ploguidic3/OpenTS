@@ -22,6 +22,7 @@
 #include "mixfile.h"
 #include "mouse.h"
 #include "savestream.h"
+#include "shapeload.h"
 #include "sun.h"
 #include "swizzle.h"
 #include "weapon.h"
@@ -122,9 +123,9 @@ void SuperWeaponTypeClass::Post_Load(void)
 
 	char fullname[_MAX_FNAME+_MAX_EXT];
 	_makepath(fullname, NULL, NULL, SidebarImage, ".SHP");
-	CameoData = (ShapeSet *)MFCD::Retrieve(fullname);
+	CameoData = (ShapeSet *)Fetch_Shape(fullname);
 	if (CameoData == NULL) {
-		CameoData = (ShapeSet *)MFCD::Retrieve("XXICON.SHP");
+		CameoData = (ShapeSet *)Fetch_Shape("XXICON.SHP");
 	}
 }
 
@@ -240,9 +241,9 @@ bool SuperWeaponTypeClass::Read_INI(CCINIClass const & ini)
 
 		char fullname[_MAX_FNAME+_MAX_EXT];
 		_makepath(fullname, NULL, NULL, SidebarImage, ".SHP");
-		CameoData = (ShapeSet *)MFCD::Retrieve(fullname);
+		CameoData = (ShapeSet *)Fetch_Shape(fullname);
 		if (CameoData == NULL) {
-			CameoData = (ShapeSet *)MFCD::Retrieve("XXICON.SHP");
+			CameoData = (ShapeSet *)Fetch_Shape("XXICON.SHP");
 		}
 
 		return(true);
