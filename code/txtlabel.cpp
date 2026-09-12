@@ -39,9 +39,11 @@
 #include "_surface.h"
 #include "dialog.h"
 #include "dsurface.h"
+#include "font.h"
 #include "globals.h"
 #include "goptions.h"
 #include "scheme.h"
+#include "uilayout.h"
 #include "vector.h"
 
 
@@ -71,7 +73,8 @@ TextLabelClass::TextLabelClass(char *txt, int x, int y, int color, TextPrintType
 	Style(style),
 	UserData1(0),
 	UserData2(0),
-	PixWidth(-1)
+	PixWidth(-1),
+	DrawScale(1)
 {
 
 }
@@ -95,11 +98,21 @@ TextLabelClass::TextLabelClass(char *txt, int x, int y, int color, TextPrintType
 int TextLabelClass::Draw_Me(int forced)
 {
 	if (BASECLASS::Draw_Me(forced)) {
-		if (PixWidth == -1) {
-			Simple_Text_Print(Text, *LogicalSurface, LogicalSurface->Get_Rect(), Point2D(X, Y), ColorSchemes[Color], Options.TextBackgroundColor, Style, 1);
-//			Fancy_Text_Print(Text, X, Y, Color, TBLACK, Style);
+		auto print = [this](Surface & surface, Point2D const & at) {
+			if (PixWidth == -1) {
+				Simple_Text_Print(Text, surface, surface.Get_Rect(), at, ColorSchemes[Color], Options.TextBackgroundColor, Style, 1);
+//				Fancy_Text_Print(Text, X, Y, Color, TBLACK, Style);
+			} else {
+				Conquer_Clip_Text_Print(Text, surface, surface.Get_Rect(), at, ColorSchemes[Color], Options.TextBackgroundColor, Style, PixWidth);
+			}
+		};
+
+		if (DrawScale > 1) {
+			FontClass * font = Font_From_TPF(Style);
+			int width = (PixWidth == -1 ? font->String_Pixel_Width(Text) : PixWidth) + 2;
+			UI_Draw_Scaled(*LogicalSurface, Point2D(X, Y), width, font->Get_Height() + 2, true, print);
 		} else {
-			Conquer_Clip_Text_Print(Text, *LogicalSurface, LogicalSurface->Get_Rect(), Point2D(X, Y), ColorSchemes[Color], Options.TextBackgroundColor, Style, PixWidth);
+			print(*LogicalSurface, Point2D(X, Y));
 		}
 		return(true);
 	}

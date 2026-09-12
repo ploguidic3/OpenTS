@@ -126,6 +126,7 @@
 #include "trigtype.h"
 #include "tube.h"
 #include "tutorial.h"
+#include "uilayout.h"
 #include "unit.h"
 #include "unittype.h"
 #include "vanim.h"
@@ -654,12 +655,12 @@ static bool Get_All(IStream *stream, bool save_net)
 	}
 
 	Rect temp = VisibleRect;
-	temp.X = ((Options.IsSidebarOnRight || Debug_Map) ? 0 : SidebarClass::SIDE_WIDTH);
-	temp.Y = 16;
-	temp.Width -= SidebarClass::SIDE_WIDTH;
-	temp.Height -= 16;
+	temp.X = ((Options.IsSidebarOnRight || Debug_Map) ? 0 : UI_Sidebar_Frame_Width());
+	temp.Y = UI_Tab_Frame_Height();
+	temp.Width -= UI_Sidebar_Frame_Width();
+	temp.Height -= UI_Tab_Frame_Height();
 
-	Allocate_Surfaces(VisibleRect, Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, SidebarClass::SIDE_WIDTH, VisibleRect.Height));
+	Allocate_Surfaces(VisibleRect, Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, temp.Width, VisibleRect.Height), UI_Sidebar_Surface_Rect());
 
 	Map.Set_View_Dimensions(temp);
 

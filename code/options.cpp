@@ -140,6 +140,7 @@ OptionsClass::OptionsClass(void) :
 	VSync(false),
 	Renderer(0),
 	CursorScale(0),
+	UIScale(0),
 	AssetOverrides(true),
 	SoundLatency(9),
 	KeyForceMove1(KN_LALT),
@@ -495,6 +496,7 @@ void OptionsClass::Save_Settings (void)
 	ConfigINI.Put_Bool("Video", "VSync", VSync);
 	ConfigINI.Put_Int("Video", "Renderer", Renderer);
 	ConfigINI.Put_Int("Video", "CursorScale", CursorScale);
+	ConfigINI.Put_Int("Video", "UIScale", UIScale);
 	ConfigINI.Put_Bool("Video", "AssetOverrides", AssetOverrides);
 	ConfigINI.Put_Float("Audio", "SoundVolume", SoundVolume);
 	ConfigINI.Put_Float("Audio", "VoiceVolume", VoiceVolume);

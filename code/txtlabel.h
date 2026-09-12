@@ -65,4 +65,7 @@ class TextLabelClass : public GadgetClass
 		char *Text;
 		int Color;
 		int PixWidth;
+
+		// The whole number the text is magnified by when drawn; the position stays in frame pixels.
+		int DrawScale;
 };

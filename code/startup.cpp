@@ -142,6 +142,7 @@
 #include "tube.h"
 #include "tunnel.h"
 #include "tutorial.h"
+#include "uilayout.h"
 #include "unit.h"
 #include "unittype.h"
 #include "vanim.h"
@@ -592,6 +593,9 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		Options.AssetOverrides = ConfigINI.Get_Bool("Video", "AssetOverrides", Options.AssetOverrides);
 		Enable_Shape_Overrides(Options.AssetOverrides);
 
+		// Wanted before the surfaces are allocated; the settings dialog never edits it, so it is read once.
+		Options.UIScale = ConfigINI.Get_Int("Video", "UIScale", Options.UIScale);
+
 		/*
 		 * The command line asks for a window regardless of what the settings say.
 		 */
@@ -626,6 +630,7 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		VisibleRect = Rect(0, 0, Options.ScreenWidth, Options.ScreenHeight);
 		VideoModeWidth = Options.ScreenWidth;
 		VideoModeHeight = Options.ScreenHeight;
+		UI_Scale_Update();
 
 		Create_Main_Window(instance, command_show, Options.ScreenWidth, Options.ScreenHeight);
 
@@ -656,9 +661,9 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 
 		VisibleSurface->Fill(0);
 
-		Rect sidebar_rect(0,0,SidebarClass::SIDE_WIDTH,VisibleRect.Height);
-		Rect tile_rect(0,0,VisibleRect.Width-sidebar_rect.Width, sidebar_rect.Height);
-		Rect composite_rect(0,0,VisibleRect.Width-sidebar_rect.Width, sidebar_rect.Height);
+		Rect sidebar_rect = UI_Sidebar_Surface_Rect();
+		Rect tile_rect(0,0,VisibleRect.Width-UI_Sidebar_Frame_Width(), VisibleRect.Height);
+		Rect composite_rect(0,0,VisibleRect.Width-UI_Sidebar_Frame_Width(), VisibleRect.Height);
 
 		Allocate_Surfaces(VisibleRect, composite_rect, tile_rect, sidebar_rect, false);
 		LogicalSurface = HiddenSurface;

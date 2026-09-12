@@ -63,6 +63,7 @@ ShapeButtonClass::ShapeButtonClass(void) :
 	ReflectButtonState(false),
 	DrawOffsetX(0),
 	DrawOffsetY(0),
+	DrawScale(1),
 	DrawOnSidebar(0),
 	DrawFaded(0),
 	ShapeDrawer(NormalDrawer)
@@ -98,6 +99,7 @@ ShapeButtonClass::ShapeButtonClass(unsigned id, ShapeSet const * shape, int x, i
 	ReflectButtonState(false),
 	DrawOffsetX(0),
 	DrawOffsetY(0),
+	DrawScale(1),
 	DrawOnSidebar(0),
 	ShapeDrawer(NormalDrawer),
 	DrawFaded(faded)
@@ -124,8 +126,9 @@ void ShapeButtonClass::Set_Shape(ShapeSet const * data, int override_width, int 
 {
 	ShapeData = data;
 	if (ShapeData) {
-		Width = ShapeData->Get_Width();
-		Height = ShapeData->Get_Height();
+		int scale = DrawScale > 1 ? DrawScale : 1;
+		Width = ShapeData->Get_Width() * scale;
+		Height = ShapeData->Get_Height() * scale;
 	}
 	if (override_width != 0) {
 		Width = override_width;
@@ -179,7 +182,8 @@ int ShapeButtonClass::Draw_Me(int forced)
 			surf = LogicalSurface;
 		}
 
-		Draw_Shape(*surf, *ShapeDrawer, ShapeData, shapenum, Point2D(DrawOffsetX + X, DrawOffsetY + Y), VisibleRect, DrawFaded != 0 ? SHAPE_ALPHA : SHAPE_NORMAL);
+		int scale = DrawScale > 1 ? DrawScale : 1;
+		Draw_Shape(*surf, *ShapeDrawer, ShapeData, shapenum, Point2D((DrawOffsetX + X) / scale, (DrawOffsetY + Y) / scale), VisibleRect, DrawFaded != 0 ? SHAPE_ALPHA : SHAPE_NORMAL);
 		IsDrawn = true;
 		return(true);
 	}

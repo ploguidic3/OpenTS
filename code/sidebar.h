@@ -71,6 +71,7 @@ class SidebarClass : public PowerClass
 			BUTTON_ONE_X=31,				// Left button X coordinate.
 			BUTTON_ONE_Y=-9,				// Left button Y coordinate.
 			BUTTON_SPACING=27,				/// Spacing between the top row buttons (in pixels).
+			BUTTON_DRAW_Y=3,				// Pixels the top row buttons are drawn below their hit rectangles.
 
 			GADGET_CAMEO=1000,				/// Tooltip ID of the first cameo slot.
 

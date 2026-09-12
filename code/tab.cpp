@@ -57,6 +57,7 @@
 #include "shapeload.h"
 #include "shapeset.h"
 #include "surface.h"
+#include "uilayout.h"
 
 ShapeSet const * TabClass::TabShape = NULL;
 
@@ -128,26 +129,26 @@ void TabClass::Draw_It(bool complete)
 		**	Redraw the top bar imagery if flagged to do so or if the entire display needs
 		**	to be redrawn.
 		*/
-		if (complete || IsToRedraw) {
+		Surface * tab = UI_Tab_Surface();
 
-			int width  = CompositeSurface->Get_Width() + SidebarSurface->Get_Width();
+		if ((complete || IsToRedraw) && tab != NULL) {
+
+			int width  = tab->Get_Width() + SidebarClass::SIDE_WIDTH;
 			int rightx = width - 1;
 			int tab_height = TAB_HEIGHT * 2/*RESFACTOR*/;
 
-			for (int x = TabShape->Get_Width(); x < CompositeSurface->Get_Width(); x += TabShape->Get_Width()) {
-				Draw_Shape(*CompositeSurface, *SidebarDrawer, TabShape, 1, Point2D(x, 0), CompositeSurface->Get_Rect());
+			for (int x = TabShape->Get_Width(); x < tab->Get_Width(); x += TabShape->Get_Width()) {
+				Draw_Shape(*tab, *SidebarDrawer, TabShape, 1, Point2D(x, 0), tab->Get_Rect());
 			}
 
-			int sidex = Options.IsSidebarOnRight ? 0 : LogicalSurface->Get_Width() - EVA_WIDTH * 2/*RESFACTOR*/;
+			int sidex = Options.IsSidebarOnRight ? 0 : tab->Get_Width() - EVA_WIDTH * 2/*RESFACTOR*/;
 
-			Draw_Shape(*LogicalSurface, *SidebarDrawer, TabShape, 0, Point2D(sidex, 0), VisibleRect);
+			Draw_Shape(*tab, *SidebarDrawer, TabShape, 0, Point2D(sidex, 0), tab->Get_Rect());
 			Draw_Credits_Tab();
-			LogicalSurface->Draw_Line(Point2D(0, tab_height-(1* 2)), Point2D(rightx, tab_height-(1 * 2/*RESFACTOR*/)), TBLACK);
-			Fancy_Text_Print(TXT_TAB_BUTTON_CONTROLS, *LogicalSurface, LogicalSurface->Get_Rect(), Point2D(sidex + (EVA_WIDTH/2) * 2/*RESFACTOR*/, 0), ColorSchemes[0], TBLACK, TextPrintType(TPF_USE_GRAD_PAL | TPF_CENTER | TPF_METAL12));
+			tab->Draw_Line(Point2D(0, tab_height-(1* 2)), Point2D(rightx, tab_height-(1 * 2/*RESFACTOR*/)), TBLACK);
+			Fancy_Text_Print(TXT_TAB_BUTTON_CONTROLS, *tab, tab->Get_Rect(), Point2D(sidex + (EVA_WIDTH/2) * 2/*RESFACTOR*/, 0), ColorSchemes[0], TBLACK, TextPrintType(TPF_USE_GRAD_PAL | TPF_CENTER | TPF_METAL12));
 
-			if (LogicalSurface != TileSurface) {
-				TileSurface->Blit_From(Rect(0, 0, TileSurface->Get_Width(), tab_height), *LogicalSurface, Rect(0, 0, TileSurface->Get_Width(), tab_height));
-			}
+			UI_Present_Tab_Strip();
 		}
 	}
 
@@ -170,9 +171,11 @@ void TabClass::Draw_Credits_Tab(void)
 {
 	Draw_Shape(*SidebarSurface, *SidebarDrawer, TabShape, 2, Point2D(0, 0), SidebarSurface->Get_Rect());
 
-	if (Scen->MissionTimer.Is_Active()) {
+	Surface * tab = UI_Tab_Surface();
+
+	if (Scen->MissionTimer.Is_Active() && tab != NULL) {
 		bool light = ((int)Scen->MissionTimer < TICKS_PER_MINUTE * Rule->TimerWarning) || Map.FlasherTimer > 0;
-		Draw_Shape(*CompositeSurface, *SidebarDrawer, TabShape, /*light ? 4 :*/ 2, Point2D(TacticalRect.Width - TabShape->Get_Width(), 0), VisibleRect);
+		Draw_Shape(*tab, *SidebarDrawer, TabShape, /*light ? 4 :*/ 2, Point2D(tab->Get_Width() - TabShape->Get_Width(), 0), tab->Get_Rect());
 
 		int time = Scen->MissionTimer;
 
@@ -184,14 +187,15 @@ void TabClass::Draw_Credits_Tab(void)
 		minutes = minutes % 60;
 
 		if (hours != 0) {
-			Fancy_Text_Print(TXT_TIME_FORMAT_HOURS, *CompositeSurface, CompositeSurface->Get_Rect(),
-				Point2D(TacticalRect.Width - TabShape->Get_Width() / 2, 0), ColorSchemes[0], TBLACK,
+			Fancy_Text_Print(TXT_TIME_FORMAT_HOURS, *tab, tab->Get_Rect(),
+				Point2D(tab->Get_Width() - TabShape->Get_Width() / 2, 0), ColorSchemes[0], TBLACK,
 				TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL), hours, minutes, seconds);
 		} else {
-			Fancy_Text_Print(TXT_TIME_FORMAT_NO_HOURS, *CompositeSurface, CompositeSurface->Get_Rect(),
-				Point2D(TacticalRect.Width - TabShape->Get_Width() / 2, 0), ColorSchemes[0], TBLACK,
+			Fancy_Text_Print(TXT_TIME_FORMAT_NO_HOURS, *tab, tab->Get_Rect(),
+				Point2D(tab->Get_Width() - TabShape->Get_Width() / 2, 0), ColorSchemes[0], TBLACK,
 				TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL), minutes, seconds);
 		}
+		UI_Present_Tab_Strip();
 	}
 	BASECLASS::IsToBlitSidebar = true;
 }
@@ -210,16 +214,24 @@ void TabClass::Hilite_Tab(int tab)
 	int text = TXT_TAB_BUTTON_CONTROLS;
 	int textx = (EVA_WIDTH/2) * 2;
 
-	if (tab) {
+	bool tab_selected = tab != 0;
+	if (tab_selected) {
 		xpos = (320-EVA_WIDTH) * 2;
 		//text = TXT_TAB_SIDEBAR;
 		//textx = (320-(EVA_WIDTH/2)) * 2;
-	} else {
-		xpos = Options.IsSidebarOnRight ? 0 : LogicalSurface->Get_Rect().Width - textx*2;
 	}
 
-	Draw_Shape(*LogicalSurface, *SidebarDrawer, TabShape, 1, Point2D(xpos, 0), VisibleRect);
-	Fancy_Text_Print(text, *LogicalSurface, LogicalSurface->Get_Rect(), Point2D(xpos + textx, 0), ColorSchemes[0], TBLACK, TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL));
+	Surface * tab = UI_Tab_Surface();
+	if (tab == NULL) {
+		return;
+	}
+	if (!tab_selected) {
+		xpos = Options.IsSidebarOnRight ? 0 : tab->Get_Width() - textx*2;
+	}
+
+	Draw_Shape(*tab, *SidebarDrawer, TabShape, 1, Point2D(xpos, 0), tab->Get_Rect());
+	Fancy_Text_Print(text, *tab, tab->Get_Rect(), Point2D(xpos + textx, 0), ColorSchemes[0], TBLACK, TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL));
+	UI_Present_Tab_Strip();
 }
 
 
@@ -247,7 +259,9 @@ void TabClass::AI(KeyNumType &input, Point2D const & xy)
 {
 	if (!Map.IsRubberBand) {
 
-		if (xy.Y >= 0 && xy.Y < (TAB_HEIGHT * 2/*RESFACTOR*/) && xy.X < (VisibleSurface->Get_Width() - 1) && xy.X > 0) {
+		int scale = UI_Scale();
+
+		if (xy.Y >= 0 && xy.Y < (TAB_HEIGHT * 2/*RESFACTOR*/ * scale) && xy.X < (VisibleSurface->Get_Width() - 1) && xy.X > 0) {
 
 			bool 	ok = false;
 
@@ -263,10 +277,12 @@ void TabClass::AI(KeyNumType &input, Point2D const & xy)
 			if (ok) {
 				if (input == KN_LMOUSE) {
 					int sel = 0;
+					Surface * tab = UI_Tab_Surface();
+					int tabx = TacticalRect.X + (tab != NULL ? tab->Get_Width() - EVA_WIDTH * 2/*RESFACTOR*/ : 0) * scale;
 					if (Options.IsSidebarOnRight) {
-						if (xy.X >= (EVA_WIDTH * 2/*RESFACTOR*/)) sel = -1;
+						if (xy.X >= (EVA_WIDTH * 2/*RESFACTOR*/ * scale)) sel = -1;
 					} else {
-						if (xy.X <= VisibleRect.Width - (EVA_WIDTH * 2/*RESFACTOR*/) || xy.X >= VisibleRect.Width) sel = -1;
+						if (xy.X < tabx || xy.X >= VisibleRect.Width) sel = -1;
 					}
 					if (sel >= 0) {
 						Set_Active(sel);

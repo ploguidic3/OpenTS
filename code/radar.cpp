@@ -102,6 +102,7 @@
 #include "scheme.h"
 #include "shapeload.h"
 #include "tactical.h"
+#include "uilayout.h"
 #include "voc.h"
 #include "vox.h"
 #include "vqa.h"
@@ -528,7 +529,9 @@ int RadarClass::RTacticalClass::Action(unsigned flags, KeyNumType & key)
 	}
 
 
-	x -= Options.IsSidebarOnRight ? TacticalRect.Width : 0;
+	Point2D pane = Frame_To_Sidebar(Point2D(x, y));
+	x = pane.X;
+	y = pane.Y;
 
 	/*
 	**	See if the mouse is over the radar general area, but not yet
@@ -848,7 +851,9 @@ void RadarClass::Draw_Names(void)
 void RadarClass::Reposition_Sidebar(void)
 {
 	BASECLASS::Reposition_Sidebar();
-	RadarButton.Set_Position(RadX + (Options.IsSidebarOnRight ? TacticalRect.Width : 0), RadY);
+	Rect pane = Sidebar_To_Frame(Rect(RadX, RadY, RadWidth, RadHeight));
+	RadarButton.Set_Position(pane.X, pane.Y);
+	RadarButton.Set_Size(pane.Width, pane.Height);
 	RadarButton.Flag_To_Redraw();
 	FullRedraw = true;
 }

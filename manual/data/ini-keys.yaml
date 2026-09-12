@@ -24289,6 +24289,24 @@ TypeImmune:
       source: code/techtype.cpp
       guard: null
     level: TechnoTypeClass
+UIScale:
+  key: UIScale
+  scopes:
+  - applies_to:
+    - client settings
+    file: sun.ini
+    section:
+      kind: literal
+      name: Video
+    value_type: integer
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: Startup
+      member: Options
+      source: code/startup.cpp
+      guard: null
+    level: Startup
 URepairRate:
   key: URepairRate
   scopes:

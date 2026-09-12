@@ -205,6 +205,9 @@ class OptionsClass {
 		 */
 		int CursorScale;
 
+		// How many times larger than its artwork the HUD is drawn; zero follows the frame height.
+		int UIScale;
+
 		// Whether a loose shape file in the searched folders stands in for the archived one.
 		bool AssetOverrides;
 

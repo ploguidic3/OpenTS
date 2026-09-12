@@ -19,6 +19,7 @@
 #include "dsurface.h"
 #include "goptions.h"
 #include "scheme.h"
+#include "uilayout.h"
 #include "wwfont.h"
 
 #include "color.hh"
@@ -63,8 +64,12 @@ bool CCToolTip::Update(ToolTipText * text)
 		}
 
 		if (trect != NULL) {
-			if (text->TextWidth >= trect->Width) {
-				Format_Window_String(string, font, trect->Width - 4, text->TextWidth, text->TextHeight);
+
+			// The box is measured in HUD pixels and placed in frame pixels.
+			int scale = UI_Scale();
+
+			if (text->TextWidth * scale >= trect->Width) {
+				Format_Window_String(string, font, trect->Width / scale - 4, text->TextWidth, text->TextHeight);
 				font->String_Pixel_Bounds(text->Text, rect);
 				rect.Width += 4;
 				rect.Height += 3;
@@ -72,14 +77,14 @@ bool CCToolTip::Update(ToolTipText * text)
 				text->TextHeight = std::max(rect.Height, text->TextHeight);
 			}
 
-			int x = text->Pos.x + text->TextWidth - trect->Width - trect->X;
+			int x = text->Pos.x + text->TextWidth * scale - trect->Width - trect->X;
 			if (x > 0) {
 				text->Pos.x -= x;
 			}
 
-			text->Pos.y += 16;
-			if (text->Pos.y + text->TextHeight - trect->Height - trect->Y > 0) {
-				text->Pos.y = text->Pos.y - text->TextHeight - 16;
+			text->Pos.y += 16 * scale;
+			if (text->Pos.y + text->TextHeight * scale - trect->Height - trect->Y > 0) {
+				text->Pos.y = text->Pos.y - text->TextHeight * scale - 16 * scale;
 			}
 			if (text->Pos.y < trect->Y) {
 				text->Pos.y = trect->Y;
@@ -145,17 +150,17 @@ void CCToolTip::Draw_Current(bool sidebar)
 /// </summary>
 void CCToolTip::Draw(const ToolTipText * text)
 {
-	Rect drawrect;
 	Point2D point = Point2D(text->Pos.x, text->Pos.y);
 	Surface * surface = NULL;
+	int framewidth = text->TextWidth * UI_Scale();
 
 	if (Options.IsSidebarOnRight == true) {
 		int offset = TacticalRect.X + TacticalRect.Width;
-		if (point.X + text->TextWidth <= offset) {
+		if (point.X + framewidth <= offset) {
 			surface = CompositeSurface;
 		} else if (UseSidebarSurface == true && point.X >= offset) {
 			surface = SidebarSurface;
-			point.X -= offset;
+			point = Frame_To_Sidebar(point);
 			Map.IsToBlitSidebar = true;
 		}
 	} else {
@@ -163,19 +168,27 @@ void CCToolTip::Draw(const ToolTipText * text)
 		if (point.X >= offset) {
 			surface = CompositeSurface;
 			point.X -= offset;
-		} else if (UseSidebarSurface == true && point.X + text->TextWidth <= offset) {
+		} else if (UseSidebarSurface == true && point.X + framewidth <= offset) {
 			surface = SidebarSurface;
+			point = Frame_To_Sidebar(point);
 			Map.IsToBlitSidebar = true;
 		}
 	}
 
 	if (surface != NULL) {
-		drawrect.Set(point.X, point.Y, text->TextWidth, text->TextHeight);
-		surface->Fill_Rect(drawrect, TBLACK);
-		surface->Draw_Rect(drawrect, DSurface::Build_Hicolor_Pixel(0, 255, 0));
-		point.X = 2;
-		point.Y = 1;
-		Fancy_Text_Print(text->Text, *surface, drawrect, point, Fetch_Scheme_By_Name("Green"), TBLACK, Style);
+		auto paint = [text, this](Surface & target, Point2D const & at) {
+			Rect drawrect(at.X, at.Y, text->TextWidth, text->TextHeight);
+			target.Fill_Rect(drawrect, TBLACK);
+			target.Draw_Rect(drawrect, DSurface::Build_Hicolor_Pixel(0, 255, 0));
+			Fancy_Text_Print(text->Text, target, drawrect, Point2D(2, 1), Fetch_Scheme_By_Name("Green"), TBLACK, Style);
+		};
+
+		// The sidebar is magnified as a whole; the composite is not, so its box is drawn scaled.
+		if (surface == SidebarSurface) {
+			paint(*surface, point);
+		} else {
+			UI_Draw_Scaled(*surface, point, text->TextWidth, text->TextHeight, false, paint);
+		}
 	}
 }
 

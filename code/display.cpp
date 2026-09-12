@@ -142,6 +142,7 @@
 #include "tag.h"
 #include "tagtype.h"
 #include "terrtype.h"
+#include "uilayout.h"
 #include "unittype.h"
 #include "vein.h"
 #include "vector3.h"
@@ -255,11 +256,11 @@ void DisplayClass::One_Time(void)
 	if (Options.IsSidebarOnRight || Debug_Map) {
 		rect.X = 0;
 	} else {
-		rect.X = SidebarClass::SIDE_WIDTH;
+		rect.X = UI_Sidebar_Frame_Width();
 	}
-	rect.Y = 16;
-	rect.Width = rect.Width - SidebarClass::SIDE_WIDTH;
-	rect.Height = rect.Height - 16;
+	rect.Y = UI_Tab_Frame_Height();
+	rect.Width = rect.Width - UI_Sidebar_Frame_Width();
+	rect.Height = rect.Height - UI_Tab_Frame_Height();
 	Set_View_Dimensions(rect);
 }
 
@@ -417,14 +418,14 @@ void DisplayClass::Set_View_Dimensions(Rect const & dimensions)
 		TacticalRect.X, TacticalRect.Y,     // x,y for messages
 		6,                                  // max # msgs
 		MAX_MESSAGE_LENGTH-14,              // max msg length
-		7 * 2/*RESFACTOR*/,                 // font height in pixels
+		7 * 2/*RESFACTOR*/ * UI_Scale(),    // font height in pixels
 		-1, -1,                             // x,y for edit line (appears above msgs)
 		0,                                  /// enable edit overflow
 		20,                                 // min,
 		MAX_MESSAGE_LENGTH - 14,            // max for trimming overflow
-		TacticalRect.Width);                // Width in pixels of buffer
+		TacticalRect.Width / UI_Scale());   // Width in pixels of buffer
 
-	Session.Messages.Set_Width(TacticalRect.Width);
+	Session.Messages.Set_Width(TacticalRect.Width / UI_Scale());
 
 	DebugString("Set_View_Dimensions(exit)\n");
 }

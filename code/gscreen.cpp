@@ -63,6 +63,7 @@
 #include "session.h"
 #include "surface.h"
 #include "tactical.h"
+#include "uilayout.h"
 #include "video.h"
 
 #include "bench.hh"
@@ -511,7 +512,7 @@ void Update_Visible_Surface(Surface *surface, Rect *rect)
 
 	/// Adjust for sidebar position
 	if (!Options.IsSidebarOnRight && !Debug_Map) {
-		dest_rect.X += std::max(std::min(SidebarSurface->Get_Width(), VisibleRect.Width - dest_rect.Width), 0);
+		dest_rect.X += std::max(std::min(UI_Sidebar_Frame_Width(), VisibleRect.Width - dest_rect.Width), 0);
 	}
 
 	/*

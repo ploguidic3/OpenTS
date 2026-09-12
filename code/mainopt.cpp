@@ -25,6 +25,7 @@
 #include "init.h"
 #include "language/language.h"
 #include "misc.h"
+#include "uilayout.h"
 #include "video.h"
 #include "mixfile.h"
 #include "msgbox.h"
@@ -34,6 +35,7 @@
 #include "sounddlg.h"
 #include "stimer.h"
 #include "surface.h"
+#include "wincursor.h"
 #include "wwmouse.h"
 
 #include "color.hh"
@@ -202,6 +204,8 @@ bool Change_Display_Mode(int width, int height)
 
 	VisibleRect = Rect(0, 0, width, height);
 	DebugString("VisibleRect: %dx%d\n", width, height);
+	UI_Scale_Update();
+	Win_Cursor_Refresh();
 
 	if (VisibleSurface != NULL) {
 		delete VisibleSurface;
@@ -278,12 +282,12 @@ bool Change_Display_Mode(int width, int height)
 	}
 
 	Rect temp = VisibleRect;
-	temp.X = ((Options.IsSidebarOnRight || Debug_Map) ? 0 : SidebarClass::SIDE_WIDTH);
-	temp.Y = 16;
-	temp.Width -= SidebarClass::SIDE_WIDTH;
-	temp.Height -= 16;
+	temp.X = ((Options.IsSidebarOnRight || Debug_Map) ? 0 : UI_Sidebar_Frame_Width());
+	temp.Y = UI_Tab_Frame_Height();
+	temp.Width -= UI_Sidebar_Frame_Width();
+	temp.Height -= UI_Tab_Frame_Height();
 
-	Allocate_Surfaces(VisibleRect, Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, SidebarClass::SIDE_WIDTH, VisibleRect.Height));
+	Allocate_Surfaces(VisibleRect, Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, temp.Width, VisibleRect.Height), UI_Sidebar_Surface_Rect());
 	LogicalSurface = HiddenSurface;
 
 	if (MouseCursor != NULL) {

@@ -116,6 +116,7 @@
 #include "suprtype.h"
 #include "surface.h"
 #include "techtype.h"
+#include "uilayout.h"
 #include "voc.h"
 #include "utf8.h"
 #include "vox.h"
@@ -426,7 +427,7 @@ void SidebarClass::Init_IO(void)
 	*/
 	if (!Debug_Map) {
 		int xoff = -480;
-		int yoff = 3;
+		int yoff = BUTTON_DRAW_Y;
 
 		Repair.IsSticky = true;
 		Repair.ID = BUTTON_REPAIR;
@@ -944,7 +945,7 @@ void SidebarClass::Draw_It(bool complete)
 	if (IsSidebarActive && (IsToRedraw || complete) && !Debug_Map) {
 		if (complete || Column[0].IsToRedraw || Column[1].IsToRedraw) {
 
-			int y = SidebarRect.Y;
+			int y = SIDE_Y;
 
 			/*
 			**	The sidebar shape is too big in 640x400 so it needs to be drawn in three chunks.
@@ -1022,13 +1023,8 @@ void SidebarClass::Blit_Sidebar(bool complete)
 			IsToBlitSidebar = false;
 			if (Map.LastDrawRect == RECT_NONE) {
 				if (IsToRedrawCredits) {
-					VisibleSurface->Blit_From(
-						Rect((Options.IsSidebarOnRight ? TacticalRect.Width : 0), 0, SIDE_WIDTH, CREDITS_HEIGHT),
-						*SidebarSurface,
-						Rect(0, 0, SIDE_WIDTH, CREDITS_HEIGHT),
-						false,
-						true
-					);
+					Rect credits(0, 0, SIDE_WIDTH, CREDITS_HEIGHT);
+					VisibleSurface->Blit_From(Sidebar_To_Frame(credits), *SidebarSurface, credits, false, true);
 					IsToRedrawCredits = false;
 				}
 				IsToBlitSidebar = false;
@@ -1039,13 +1035,22 @@ void SidebarClass::Blit_Sidebar(bool complete)
 		}
 
 		if (Map.LastDrawRect == RECT_NONE && !complete) {
-			VisibleSurface->Blit_From(Rect((Options.IsSidebarOnRight ? TacticalRect.Width : 0), 0, SIDE_WIDTH, CREDITS_HEIGHT), *SidebarSurface, Rect(0, 0, SIDE_WIDTH, CREDITS_HEIGHT));
-			VisibleSurface->Blit_From(Rect((Options.IsSidebarOnRight ? TacticalRect.Width : 0), SIDE_BODY_Y, SIDE_WIDTH, SidebarSurface->Get_Height() - SIDE_BODY_Y), *SidebarSurface, Rect(0, SIDE_BODY_Y, SIDE_WIDTH, SidebarSurface->Get_Height() - SIDE_BODY_Y));
+			Rect credits(0, 0, SIDE_WIDTH, CREDITS_HEIGHT);
+			Rect body(0, SIDE_BODY_Y, SIDE_WIDTH, SidebarSurface->Get_Height() - SIDE_BODY_Y);
+			VisibleSurface->Blit_From(Sidebar_To_Frame(credits), *SidebarSurface, credits);
+			VisibleSurface->Blit_From(Sidebar_To_Frame(body), *SidebarSurface, body);
 		} else if (!IsToBlitSidebar) {
-			VisibleSurface->Blit_From(Rect(Map.LastDrawRect.X + (Options.IsSidebarOnRight ? TacticalRect.Width : 0), Map.LastDrawRect.Y, Map.LastDrawRect.Width, Map.LastDrawRect.Height), *SidebarSurface, Map.LastDrawRect);
+			VisibleSurface->Blit_From(Sidebar_To_Frame(Map.LastDrawRect), *SidebarSurface, Map.LastDrawRect);
 		} else {
 			Rect sb_rect = SidebarSurface->Get_Rect();
-			VisibleSurface->Blit_From(Rect((Options.IsSidebarOnRight ? TacticalRect.Width : 0), 0, sb_rect.Width, sb_rect.Height), *SidebarSurface, Rect(0, 0, sb_rect.Width, sb_rect.Height));
+			Rect frame = Sidebar_To_Frame(sb_rect);
+			VisibleSurface->Blit_From(frame, *SidebarSurface, sb_rect);
+
+			// The rows the scale leaves below the magnified sidebar belong to nothing else.
+			Rect remainder(frame.X, frame.Y + frame.Height, frame.Width, VisibleRect.Height - (frame.Y + frame.Height));
+			if (remainder.Is_Valid()) {
+				VisibleSurface->Fill_Rect(remainder, 0);
+			}
 		}
 	}
 	IsToBlitSidebar = false;
@@ -1849,8 +1854,7 @@ void SidebarClass::StripClass::Draw_It(bool complete)
 	if (IsToRedraw || complete) {
 		IsToRedraw = false;
 		IsToBlitSidebar = true;
-		Rect cliprect = SidebarRect;
-		cliprect.X = 0;
+		Rect cliprect(0, SIDE_Y, SIDE_WIDTH, SidebarSurface->Get_Height() - SIDE_Y);
 
 		/*
 		**	Redraw the scroll buttons.
@@ -2710,10 +2714,11 @@ void SidebarClass::Reposition_Sidebar(void)
 	/*
 	 * Position the sidebar.
 	 */
+	int scale = UI_Scale();
 	SidebarRect.X = Options.IsSidebarOnRight ? TacticalRect.X + TacticalRect.Width : 0;
-	SidebarRect.Y = SIDE_Y;
-	SidebarRect.Width = SIDE_WIDTH;
-	SidebarRect.Height = TacticalRect.Height + TacticalRect.Y - SIDE_Y;
+	SidebarRect.Y = SIDE_Y * scale;
+	SidebarRect.Width = SIDE_WIDTH * scale;
+	SidebarRect.Height = TacticalRect.Height + TacticalRect.Y - SidebarRect.Y;
 
 	BASECLASS::Reposition_Sidebar();
 
@@ -2729,21 +2734,31 @@ void SidebarClass::Reposition_Sidebar(void)
 	Background.Set_Position(SidebarRect.X + 16, TacticalRect.Y);
 	Background.Flag_To_Redraw();
 
-	Repair.Set_Position(SidebarRect.X + BUTTON_ONE_X, SidebarRect.Y + BUTTON_ONE_Y);
-	Repair.Flag_To_Redraw();
-	Repair.DrawOffsetX = -SidebarRect.X;
+	// The buttons are hit in frame pixels and drawn in sidebar pixels; the scale and the
+	// offsets relate the two, and a shape set later keeps the scale.
+	auto fit = [scale](ShapeButtonClass & button) {
+		button.DrawScale = scale;
+		button.DrawOffsetX = -SidebarRect.X;
+		button.Set_Shape(button.Get_Shape_Data());
+		button.Flag_To_Redraw();
+	};
 
-	Upgrade.Set_Position(Repair.X + BUTTON_SPACING, Power.Y);
-	Upgrade.Flag_To_Redraw();
-	Upgrade.DrawOffsetX = -SidebarRect.X;
+	Point2D first = Sidebar_To_Frame(Point2D(BUTTON_ONE_X, SIDE_Y + BUTTON_ONE_Y));
+	Repair.Set_Position(first.X, first.Y);
+	Repair.DrawOffsetY = BUTTON_DRAW_Y * scale;
+	fit(Repair);
 
-	Power.Set_Position(Upgrade.X + BUTTON_SPACING, Repair.Y);
-	Power.Flag_To_Redraw();
-	Power.DrawOffsetX = -SidebarRect.X;
+	Upgrade.Set_Position(Repair.X + BUTTON_SPACING * scale, Power.Y);
+	Upgrade.DrawOffsetY = BUTTON_DRAW_Y * scale;
+	fit(Upgrade);
 
-	Waypoint.Set_Position(Power.X + BUTTON_SPACING, Upgrade.Y);
-	Waypoint.Flag_To_Redraw();
-	Waypoint.DrawOffsetX = -SidebarRect.X;
+	Power.Set_Position(Upgrade.X + BUTTON_SPACING * scale, Repair.Y);
+	Power.DrawOffsetY = BUTTON_DRAW_Y * scale;
+	fit(Power);
+
+	Waypoint.Set_Position(Power.X + BUTTON_SPACING * scale, Upgrade.Y);
+	Waypoint.DrawOffsetY = BUTTON_DRAW_Y * scale;
+	fit(Waypoint);
 
 	/*
 	 * Create the tooltips for the sidebar.
@@ -2756,20 +2771,22 @@ void SidebarClass::Reposition_Sidebar(void)
 				ToolTips->Remove((j | (index << 8)) + GADGET_CAMEO);
 			}
 		}
-		int arrowy = SidebarRect.Y + Map.Max_Visible() * StripClass::OBJECT_HEIGHT + StripClass::UP_Y_OFFSET;
+		int arrowy = SIDE_Y + Map.Max_Visible() * StripClass::OBJECT_HEIGHT + StripClass::UP_Y_OFFSET;
 
 		for (int col = 0; col < COLUMNS; col++) {
 
-			StripClass::UpButton[col].Set_Position(SidebarRect.X + Column[col].X + StripClass::UP_X_OFFSET, arrowy);
-			StripClass::UpButton[col].Flag_To_Redraw();
-			StripClass::UpButton[col].DrawOffsetX = -SidebarRect.X;
+			Point2D up = Sidebar_To_Frame(Point2D(Column[col].X + StripClass::UP_X_OFFSET, arrowy));
+			StripClass::UpButton[col].Set_Position(up.X, up.Y);
+			fit(StripClass::UpButton[col]);
 
-			StripClass::DownButton[col].Set_Position(SidebarRect.X + Column[col].X + StripClass::DOWN_X_OFFSET, arrowy);
-			StripClass::DownButton[col].Flag_To_Redraw();
-			StripClass::DownButton[col].DrawOffsetX = -SidebarRect.X;
+			Point2D down = Sidebar_To_Frame(Point2D(Column[col].X + StripClass::DOWN_X_OFFSET, arrowy));
+			StripClass::DownButton[col].Set_Position(down.X, down.Y);
+			fit(StripClass::DownButton[col]);
 
 			for (int i = 0; i < Map.Max_Visible(); i++) {
-				StripClass::SelectButton[col][i].Set_Position(SidebarRect.X + Column[col].X, SidebarRect.Y + Column[col].Y + (StripClass::OBJECT_HEIGHT * i));
+				Rect slot = Sidebar_To_Frame(Rect(Column[col].X, SIDE_Y + Column[col].Y + (StripClass::OBJECT_HEIGHT * i), StripClass::OBJECT_WIDTH, StripClass::OBJECT_HEIGHT));
+				StripClass::SelectButton[col][i].Set_Position(slot.X, slot.Y);
+				StripClass::SelectButton[col][i].Set_Size(slot.Width, slot.Height);
 				StripClass::SelectButton[col][i].Flag_To_Redraw();
 				ToolTip tmp;
 				tmp.Text = TXT_NONE;
@@ -2813,7 +2830,7 @@ void SidebarClass::Reposition_Sidebar(void)
 	} else {
 		Background.Set_Position(x, y);
 	}
-	Background.Set_Size(SidebarSurface->Get_Width(), SidebarSurface->Get_Height() - y);
+	Background.Set_Size(SidebarRect.Width, VisibleRect.Height - y);
 }
 
 
@@ -2849,8 +2866,8 @@ const char * SidebarClass::Help_Text(int id)
 int SidebarClass::Max_Visible(void)
 {
 	if (SidebarSurface != NULL && SidebarShape != NULL) {
-		Rect r = SidebarRect;
-		int fits = (r.Height - SidebarBottomShape->Get_Height() - SidebarShape->Get_Height()) / SidebarMiddleShape->Get_Height();
+		int height = SidebarSurface->Get_Height() - SIDE_Y;
+		int fits = (height - SidebarBottomShape->Get_Height() - SidebarShape->Get_Height()) / SidebarMiddleShape->Get_Height();
 		return(std::min(fits, int(StripClass::MAX_SLOTS)));
 	}
 	return(StripClass::MAX_VISIBLE);

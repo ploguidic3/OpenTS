@@ -116,6 +116,7 @@
 #include "surface.h"
 #include "tactical.h"
 #include "theme.h"
+#include "uilayout.h"
 #include "voc.h"
 #include "vox.h"
 #include "wsproto.h"
@@ -973,15 +974,15 @@ bool Map_Edit_Loop(void)
 /// <param name="flag">Should the tactical view expand to fill the entire screen?</param>
 static void Resize_Tactical_View(bool flag)
 {
-	static int _tab_height = 16;
-	static int _sidebar_width = SidebarClass::SIDE_WIDTH;
+	int _tab_height = UI_Tab_Frame_Height();
+	int _sidebar_width = UI_Sidebar_Frame_Width();
 
 	if (flag) {
 
 		Rect hidden(0, 0, Options.ScreenWidth-_sidebar_width, Options.ScreenHeight);
 		Rect comp(0, 0, Options.ScreenWidth, Options.ScreenHeight);
 		Rect tile(0, 0, Options.ScreenWidth, Options.ScreenHeight);
-		Rect sidebar(0, 0, _sidebar_width, Options.ScreenHeight);
+		Rect sidebar = UI_Sidebar_Surface_Rect();
 		Allocate_Surfaces(hidden, comp, tile, sidebar);
 
 		Rect view(0, 0, Options.ScreenWidth, Options.ScreenHeight);
@@ -994,7 +995,7 @@ static void Resize_Tactical_View(bool flag)
 		Rect hidden(0, 0, Options.ScreenWidth-_sidebar_width, Options.ScreenHeight);
 		Rect comp(0, 0, Options.ScreenWidth-_sidebar_width, Options.ScreenHeight);
 		Rect tile(0, 0, Options.ScreenWidth-_sidebar_width, Options.ScreenHeight);
-		Rect sidebar(0, 0, _sidebar_width, Options.ScreenHeight);
+		Rect sidebar = UI_Sidebar_Surface_Rect();
 		Allocate_Surfaces(hidden, comp, tile, sidebar);
 
 		Rect view(0, _tab_height, Options.ScreenWidth-_sidebar_width, Options.ScreenHeight-_tab_height);

@@ -156,6 +156,7 @@
 #include "teamtype.h"
 #include "terrain.h"
 #include "theme.h"
+#include "uilayout.h"
 #include "voc.h"
 #include "tiberium.h"
 #include "tracker.h"
@@ -779,12 +780,12 @@ bool Read_Scenario(char const * fname)
 		TacticalRect.X, TacticalRect.Y,	// x,y for messages
 		6, 										// max # msgs
 		MAX_MESSAGE_LENGTH - 14,			// max msg length
-		7 * 2,									// font height in pixels
+		7 * 2 * UI_Scale(),					// font height in pixels
 		-1, -1, 									// x,y for edit line (appears above msgs)
 		0,//BG		1,							// enable edit overflow
 		20,										// min,
 		MAX_MESSAGE_LENGTH - 14,			// max for trimming overflow
-		TacticalRect.Width);					// Width in pixels of buffer
+		TacticalRect.Width / UI_Scale());	// Width in pixels of buffer
 
 	Fill_In_Data();
 

@@ -17,6 +17,7 @@
 #include "globals.h"
 #include "goptions.h"
 #include "shapeset.h"
+#include "uilayout.h"
 #include "video.h"
 #include "win.h"
 #include "xmouse.h"
@@ -65,6 +66,7 @@ static int Cursor_Scale(void)
 	float smaller = scale.ScaleX < scale.ScaleY ? scale.ScaleX : scale.ScaleY;
 
 	int result = (int)(smaller + 0.5f);
+	if (result < UI_Scale()) result = UI_Scale();
 	if (result < 1) result = 1;
 	if (result > 8) result = 8;
 	return(result);

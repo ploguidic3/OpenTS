@@ -64,6 +64,9 @@ class ShapeButtonClass : public ToggleClass
 		int DrawOffsetX;
 		int DrawOffsetY;
 
+		// The whole number the button's rectangle is larger than the shape it draws.
+		int DrawScale;
+
 		/*
 		 * If this button renders onto the sidebar surface rather than the logical surface,
 		 * then this flag will be true.

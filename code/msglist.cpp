@@ -64,6 +64,7 @@
 #include "scheme.h"
 #include "surface.h"
 #include "txtlabel.h"
+#include "uilayout.h"
 #include "utf8.h"
 #include "vector.h"
 
@@ -449,6 +450,7 @@ TextLabelClass * MessageListClass::Add_Message(char const * name, int id, char c
 	//------------------------------------------------------------------------
 	txtlabel = new TextLabelClass (message, MessageX, MessageY,
 		color, style);
+	txtlabel->DrawScale = UI_Scale();
 	if (timeout==-1) {
 		txtlabel->UserData1 = 0;
 	}
@@ -863,6 +865,7 @@ TextLabelClass * MessageListClass::Add_Edit(int color,
 	EditCurPos = EditInitPos = strlen(EditBuf);
 	EditLabel = new TextLabelClass (EditBuf, EditX, EditY,
 		color, style);
+	EditLabel->DrawScale = UI_Scale();
 
 	if (width > 0) {
 		Width = width;
@@ -1246,14 +1249,17 @@ void MessageListClass::Draw(void)
 		FontClass *font = Font_From_TPF(this->EditLabel->Style);
 		if (CursorChar && (EditCurPos - EditInitPos) < (MaxChars - 1) && EditLabel->Has_Focus()) {
 			txt[0] = CursorChar;
-			Fancy_Text_Print(txt,
-				*LogicalSurface,
-				LogicalSurface->Get_Rect(),
-				Point2D(EditLabel->X + font->String_Pixel_Width(EditLabel->Text),
-				EditLabel->Y),
-				ColorSchemes[EditLabel->Color],
-				TBLACK,
-				EditLabel->Style);
+			int scale = UI_Scale();
+			Point2D at(EditLabel->X + font->String_Pixel_Width(EditLabel->Text) * scale, EditLabel->Y);
+			UI_Draw_Scaled(*LogicalSurface, at, font->String_Pixel_Width(txt) + 2, font->Get_Height() + 2, true, [&](Surface & surface, Point2D const & point) {
+				Fancy_Text_Print(txt,
+					surface,
+					surface.Get_Rect(),
+					point,
+					ColorSchemes[EditLabel->Color],
+					TBLACK,
+					EditLabel->Style);
+			});
 		}
 
 		Show_Mouse();
