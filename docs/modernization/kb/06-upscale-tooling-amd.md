@@ -16,7 +16,8 @@ Start with ncnn/Vulkan. Move to ROCm only if a specific model is worth it.
 ffmpeg's `wsvqa` demuxer and `vqavideo` decoder handle Tiberian Sun's version-3
 hi-colour VQAs (the installed 6.1 build carries the "VQA3 shouldn't have a color palette"
 path; use ffmpeg ≥ 5.1). Movies live in `MOVIES01.MIX`/`MOVIES02.MIX`; extract them with
-XCC Mixer or the fork's own mix reader (prompt 04b writes one). Then:
+the fork's own mix reader in `tools/cutscenes/`, which decrypts the encrypted index
+these archives carry, or XCC Mixer. Then:
 
 ```powershell
 ffprobe GDI1.VQA                                   # expect 640x400, 15 fps, ws_vqa, ws_snd1/pcm
@@ -30,13 +31,17 @@ PNGs from `VQAClass`'s own decoder — prompt 04b includes it as an option.
 ### A2. Upscale
 
 `realesrgan-ncnn-vulkan -i frames -o up -n realesrgan-x4plus -s 4 -f png -g 0`
-- `realesrgan-x4plus` for live-action/CGI footage; `realesr-animevideov3` is wrong for TS.
+- `realesr-animevideov3` is what the fork settled on, after watching trial clips:
+  `realesrgan-x4plus` resolves the VQA's block and dither noise differently every frame
+  and crawls badly. x4plus is the sharper model on a still and the wrong one in motion.
+  See `docs/modernization/REVISIT-04b-cutscene-quality.md`.
 - `-g 0` selects the first Vulkan GPU; `-j 2:2:2` tunes load/proc/save threads.
 - 640×400 ×4 = 2560×1600. That is the honest ceiling of a single x4 pass; a second x4
   pass adds nothing real. Let ffmpeg lanczos it to the delivery size.
-- Frame-by-frame ESRGAN flickers slightly on film grain. Mitigations: `hqdn3d` or
-  `nlmeans` denoise *before* upscaling, and a light `tmix=frames=2` after. Try both on one
-  clip before committing hours.
+- Frame-by-frame ESRGAN flickers on VQA source, and not slightly. The codec quantises
+  4x4 blocks against a per-frame codebook, so `deblock=filter=strong:block=4` matched to
+  that block size, then `hqdn3d=4:3:6:6`, before upscaling is where most of the shimmer
+  goes. Judge it on a moving clip; a still cannot show it.
 - Optional: `rife-ncnn-vulkan` 15 → 30 fps. Do it after upscaling, on the PNGs, and only
   if you like the look; the engine path plays whatever frame rate the file carries.
 - Budget: ~90 minutes of cutscenes across TS+FS ≈ 80k frames at 640×400. Expect roughly
@@ -89,12 +94,17 @@ and the 96×48 diamond mask regenerated.
 ## C. Tool inventory
 
 - ffmpeg/ffprobe ≥ 5.1 (VQA3), libx264, libsvtav1.
-- `realesrgan-ncnn-vulkan` (Xintao's release zip) — models `realesrgan-x4plus`,
-  `realesr-general-x4v3`; `rife-ncnn-vulkan` optional.
+- `realesrgan-ncnn-vulkan` from the **`xinntao/Real-ESRGAN`** releases, tag `v0.2.5.0`,
+  `realesrgan-ncnn-vulkan-20220424-windows.zip` (~45 MB). The zip attached to the
+  `Real-ESRGAN-ncnn-vulkan` build repository's own releases is ~2 MB and carries the same
+  executable with no models, which the executable reports as a process fault. Models in
+  the real zip: `realesrgan-x4plus`, `realesrgan-x4plus-anime`, `realesr-animevideov3` at
+  x2, x3 and x4. `rife-ncnn-vulkan` optional.
 - chaiNNer (GUI, NCNN or PyTorch-ROCm backend) for experimenting with models before
   scripting.
 - Python 3.12 with `numpy`, `Pillow`, `scikit-image` (Lab conversion) for the SHP tool.
-- XCC Mixer or the fork's mix reader to pull assets out of `.MIX`; the fork's own
+- The fork's mix reader in `tools/cutscenes/`, or XCC Mixer, to pull assets out of
+  `.MIX`; the fork's own
   `ShapeSet`/`IsoTileSet` layout is the authoritative format reference
   (`code/shapeset.h`, `code/isotype.h`).
 - PyTorch ROCm (optional): install per AMD's "Use ROCm on Radeon" Windows guide, then

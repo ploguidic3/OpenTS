@@ -195,6 +195,9 @@ does not care which tool produced the frames.
 
 chaiNNer is the quicker way to compare models by eye before scripting one.
 
+`docs/modernization/REVISIT-04b-cutscene-quality.md` records why the shipped settings
+were chosen and what is worth trying next.
+
 ## Tests
 
 ```powershell
