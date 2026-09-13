@@ -56,7 +56,7 @@ this first if a movie plays as VQA unexpectedly, rather than guessing the file n
 - [ ] An in-mission EVA radar movie, the main menu animations and the world map clips still play as VQA with MP4 files of their names present.
 
 ## Picture
-- [ ] Borderless full screen on the 4K display with `ScreenWidth=1920 ScreenHeight=1080`: the 4K `INTR0.mp4` fills the whole window with no border and every pixel of the source is visible (a 1-pixel test pattern stays sharp; the game frame's own scaling does not apply).
+- [ ] Borderless full screen on the 4K display with `ScreenWidth=1920 ScreenHeight=1080`: the 4K `INTR0.mp4` fills the whole window with no border. It looks like one clean upscale of the 640x400 source, not the game's own frame buffer resampled a second time on top of ffmpeg's own scale — no visible pixel grid, no extra softness beyond what the `lanczos` filter itself put in. Burned-in text from the original video stays soft after a plain `lanczos` upscale; that is the source's native resolution showing, not a defect in this path, and is what prompt 04b's Real-ESRGAN pipeline exists to fix.
 - [ ] The same in a 1280x720 window: the movie shrinks to the window, centered, keeping its shape.
 - [ ] `StretchMovies=no`: a 1920x1080 MP4 in a 3840x2160 window shows at exactly twice its size (fills it); a 1280x720 MP4 shows at twice its size with a black border; the same files with `StretchMovies=yes` grow to the window's edge.
 - [ ] A 640x400 re-encode (no scale filter) shows at 5x in a 3840x2160 window with `StretchMovies=no` (3200x2000, bordered) and at 3456x2160 with `yes`.
