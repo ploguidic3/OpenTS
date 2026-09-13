@@ -1,0 +1,36 @@
+{
+  "work": "work",
+  "out": "out",
+
+  "target_width": 3840,
+  "target_height": 2400,
+
+  "upscale_model": "realesrgan-x4plus",
+  "upscale_factor": 4,
+  "gpu": "0",
+  "threads": "2:2:2",
+
+  "crf": 16,
+  "preset": "slow",
+  "audio_bitrate": "192k",
+  "audio_rate": 48000,
+  "audio_channels": 2,
+  "preview_frames": 300,
+
+  "denoise_filter": "hqdn3d=2:1:3:3",
+
+  "movie_mixes": ["MOVIES01.MIX", "MOVIES02.MIX"],
+
+  "optional_movies": [
+    "SIZZLE1",
+    "WWLOGO",
+    "STARTUP",
+    "GDI_LOGO",
+    "GDI_FLAG",
+    "N_LOGO_W",
+    "N_LOGO_L",
+    "NOD_FLAG",
+    "TS_TITLE",
+    "FS_TITLE"
+  ]
+}

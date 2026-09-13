@@ -53,3 +53,7 @@ The picture follows the sound: the frame shown is the newest one due by what the
 The movie keeps its shape and sits centered in the window with black around it. `StretchMovies=yes` grows it to the window's edge along whichever axis runs out first; `StretchMovies=no` grows it by a whole number instead, so a 1920 by 1080 movie in a 3840 by 2160 window fills it either way while a 1280 by 720 one shows at twice its size with a border. The window's size is what counts, not the resolution the game draws at, so a full screen window on a 4K display shows a 4K movie at 4K.
 
 ESC ends the movie, and in a game against other machines it casts the same vote a VQA takes; [multiplayer movies](/systems/multiplayer-movies/) covers the vote. The vote's status text is drawn over the movie as it is over a VQA, grown with the picture. While the window is out of focus the movie and its sound wait, unless the session is a network game, where the other machines are waiting on this one.
+
+## Making one
+
+Any encoder that produces what the decoder accepts will do. The repository's `tools/cutscenes/` holds a pipeline that produces these files from the VQAs of an installed game: it copies the movies out of the movie archives, decodes each one to frames and a sound track, enlarges the frames with a Real-ESRGAN model on the GPU, and encodes the result to a 3840 by 2400 H.264 file named for the movie it stands in for. Its `README.md` covers the tools it needs and how long a batch takes.

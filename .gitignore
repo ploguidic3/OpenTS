@@ -48,6 +48,10 @@ cmake_install.cmake
 /.clangd
 /compile_commands.json
 
+# Cutscene pipeline scratch and output (frames, extracted movies, encoded MP4s)
+/tools/cutscenes/work/
+/tools/cutscenes/out/
+
 # Python bytecode
 __pycache__/
 *.pyc
