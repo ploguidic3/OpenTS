@@ -14,6 +14,7 @@
 #include "audio/audiodefs.hh"
 #include "audio/audioengine.h"
 #include "dbgprint.h"
+#include "win.h"
 
 #include <algorithm>
 #include <cstring>
