@@ -79,7 +79,21 @@ python pipeline.py verify --rules ..\..\Run\rules.ini
 ```
 
 Every stage is resumable. A frame that already has an output is not run again, a
-movie whose MP4 is already in `out/` is skipped, and `--force` overrides both.
+movie whose MP4 is already in `out/` is skipped, and `--force` overrides both. The
+upscale writes each frame straight into `work/up/<NAME>`, so the count of files there
+is the live progress and an interrupted run resumes from it. A frame left half written
+is detected and redone rather than counted as finished.
+
+The upscale prints a line every few seconds once it is under way:
+
+```
+  upscale: 497 frame(s) through realesrgan -> work\up\GDI_M02
+    64/497 frames, 4.71 frames/s, about 1.5 min left
+```
+
+Under Vulkan the GPU load swings between full and idle rather than sitting at 100%:
+each frame is a short burst of inference between reading the PNG in and writing the
+larger one out. A card with a zero-RPM idle mode may never spin its fans up.
 
 `pipeline.py batch` writes `work/manifest.json` after every movie, recording each
 one's source geometry, the stage timings, the frames-per-second the upscale achieved,

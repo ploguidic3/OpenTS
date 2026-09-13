@@ -336,6 +336,39 @@ class ModelTests(unittest.TestCase):
             self.assertEqual(upscale_stage.model_directory(config), self.models)
 
 
+class CompleteImageTests(unittest.TestCase):
+    """A frame left half written by an interrupted run must not count as done."""
+
+    def setUp(self):
+        self.temp = TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.addCleanup(self.temp.cleanup)
+
+    def write(self, name, data):
+        path = self.root / name
+        path.write_bytes(data)
+        return path
+
+    def test_accepts_a_png_that_ends_with_its_terminator(self):
+        self.assertTrue(upscale_stage.is_complete(
+            self.write("a.png", b"\x89PNG" + b"x" * 40 + b"IEND\xae\x42\x60\x82")))
+
+    def test_rejects_a_truncated_png(self):
+        self.assertFalse(upscale_stage.is_complete(
+            self.write("b.png", b"\x89PNG" + b"x" * 40)))
+
+    def test_rejects_an_empty_file(self):
+        self.assertFalse(upscale_stage.is_complete(self.write("c.png", b"")))
+
+    def test_accepts_a_jpeg_that_ends_with_its_marker(self):
+        self.assertTrue(upscale_stage.is_complete(
+            self.write("d.jpg", b"\xff\xd8" + b"x" * 20 + b"\xff\xd9")))
+
+    def test_rejects_a_truncated_jpeg(self):
+        self.assertFalse(upscale_stage.is_complete(
+            self.write("e.jpg", b"\xff\xd8" + b"x" * 20)))
+
+
 class ExitCodeTests(unittest.TestCase):
     def test_windows_status_codes_carry_their_hex(self):
         self.assertEqual(common.exit_code_text(3221226505),
@@ -423,6 +456,26 @@ class StageTests(unittest.TestCase):
                                                     backend="lanczos")
         self.assertEqual(ran, SOURCE_FRAMES - SOURCE_FRAMES // 2)
         self.assertEqual(len(common.frame_files(target)), SOURCE_FRAMES)
+
+    def test_upscale_writes_into_the_target_directory_itself(self):
+        dump_frames.dump(self.config, "PROOF", self.clip)
+        target, _ran, _rate = upscale_stage.upscale(self.config, "PROOF",
+                                                    backend="lanczos")
+        self.assertEqual(target, self.config.upscaled_dir("PROOF"))
+        self.assertEqual(len(common.frame_files(target)), SOURCE_FRAMES)
+        leftovers = [p.name for p in target.parent.iterdir() if p.name.startswith(".")]
+        self.assertEqual(leftovers, [])
+
+    def test_upscale_redoes_a_frame_left_half_written(self):
+        dump_frames.dump(self.config, "PROOF", self.clip)
+        upscale_stage.upscale(self.config, "PROOF", backend="lanczos")
+        target = self.config.upscaled_dir("PROOF")
+        victim = common.frame_files(target)[3]
+        victim.write_bytes(victim.read_bytes()[:-20])
+        _target, ran, _rate = upscale_stage.upscale(self.config, "PROOF",
+                                                    backend="lanczos")
+        self.assertEqual(ran, 1)
+        self.assertTrue(upscale_stage.is_complete(victim))
 
     def test_upscale_does_no_work_when_everything_is_present(self):
         dump_frames.dump(self.config, "PROOF", self.clip)

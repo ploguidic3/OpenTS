@@ -13,6 +13,7 @@ from pathlib import Path
 import shutil
 import sys
 import tempfile
+import threading
 import time
 
 import common
@@ -49,12 +50,40 @@ def denoise(config: Config, name: str, force: bool = False) -> Path:
     return target
 
 
+# Trailing bytes of a complete file: a PNG ends with IEND and its CRC, a JPEG
+# with the end-of-image marker.
+_TERMINATORS = {".png": b"IEND\xae\x42\x60\x82", ".jpg": b"\xff\xd9", ".jpeg": b"\xff\xd9"}
+
+
+def is_complete(path: Path) -> bool:
+    """Reports whether an image file was written all the way through.
+
+    The upscaler writes into the output directory as it goes, so a run that is
+    interrupted can leave a frame half written. Such a frame has to be redone
+    rather than counted as done.
+    """
+    terminator = _TERMINATORS.get(path.suffix.lower())
+    if terminator is None:
+        return path.stat().st_size > 0
+    try:
+        with open(path, "rb") as handle:
+            if path.stat().st_size < len(terminator):
+                return False
+            handle.seek(-len(terminator), os.SEEK_END)
+            return handle.read() == terminator
+    except OSError:
+        return False
+
+
 def _stage_missing(source: Path, target: Path, suffix: str, staging: Path) -> list[Path]:
-    """Links the frames with no output yet into a staging directory."""
+    """Links the frames with no complete output yet into a staging directory."""
     pending = []
     for frame in common.frame_files(source):
-        if (target / f"{frame.stem}{suffix}").is_file():
-            continue
+        output = target / f"{frame.stem}{suffix}"
+        if output.is_file():
+            if is_complete(output):
+                continue
+            output.unlink()
         link = staging / frame.name
         try:
             link.hardlink_to(frame)
@@ -62,6 +91,41 @@ def _stage_missing(source: Path, target: Path, suffix: str, staging: Path) -> li
             shutil.copy2(frame, link)
         pending.append(frame)
     return pending
+
+
+class _Progress:
+    """Reports how far a long directory run has got, by counting its output."""
+
+    INTERVAL = 5.0
+
+    def __init__(self, directory: Path, done: int, total: int):
+        self.directory = directory
+        self.done = done
+        self.total = total
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._poll, daemon=True)
+
+    def __enter__(self) -> "_Progress":
+        self.started = time.monotonic()
+        self._thread.start()
+        return self
+
+    def __exit__(self, *_exc) -> None:
+        self._stop.set()
+        self._thread.join(timeout=1.0)
+
+    def _poll(self) -> None:
+        while not self._stop.wait(self.INTERVAL):
+            written = len(common.frame_files(self.directory)) - self.done
+            if written <= 0:
+                continue
+            elapsed = time.monotonic() - self.started
+            rate = written / elapsed
+            remaining = (self.total - written) / rate if rate > 0 else 0
+            common.log(
+                f"    {written}/{self.total} frames, {rate:.2f} frames/s, "
+                f"about {remaining / 60:.1f} min left"
+            )
 
 
 def model_directory(config: Config) -> Path:
@@ -170,27 +234,30 @@ def upscale(config: Config, name: str, backend: str = "realesrgan",
     common.ensure_dir(target)
 
     suffix = f".{fmt}"
-    with tempfile.TemporaryDirectory(prefix=f"upscale-{name}-") as temp:
-        staging = Path(temp) / "in"
-        staged_out = Path(temp) / "out"
-        staging.mkdir()
-        staged_out.mkdir()
+    # The staging directory sits beside the output so the frames can be linked
+    # rather than copied, and so nothing crosses a drive.
+    staging = common.ensure_dir(target.parent / f".staging-{name}")
+    try:
+        for stale in staging.iterdir():
+            stale.unlink()
+        already = len(common.frame_files(target))
         pending = _stage_missing(source, target, suffix, staging)
         if not pending:
-            total = len(common.frame_files(target))
-            common.log(f"  upscale: {total} frames already present")
+            common.log(f"  upscale: {already} frames already present")
             return target, 0, 0.0
-        common.log(f"  upscale: {len(pending)} frame(s) through {backend}")
+        already = len(common.frame_files(target))
+        common.log(f"  upscale: {len(pending)} frame(s) through {backend} -> {target}")
         started = time.monotonic()
-        run_backend(config, staging, staged_out, backend, fmt)
+        with _Progress(target, already, len(pending)):
+            run_backend(config, staging, target, backend, fmt)
         elapsed = max(time.monotonic() - started, 1e-6)
-        produced = sorted(staged_out.iterdir())
-        if len(produced) != len(pending):
+        produced = len(common.frame_files(target)) - already
+        if produced != len(pending):
             raise PipelineError(
-                f"{name}: {backend} produced {len(produced)} of {len(pending)} frames"
+                f"{name}: {backend} produced {produced} of {len(pending)} frames"
             )
-        for frame in produced:
-            shutil.move(str(frame), str(target / f"{frame.stem}{suffix}"))
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
 
     rate = len(pending) / elapsed
     common.log(f"  upscale: {len(pending)} frames in {elapsed:.1f}s ({rate:.2f} frames/s)")
