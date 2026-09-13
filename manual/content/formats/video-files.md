@@ -25,7 +25,7 @@ A container movie is a loose `.mp4` that plays in place of a full screen [VQA](/
 
 ## Naming and placement
 
-The file is named for the movie it replaces, without the `.VQA` extension: `GDI1.mp4` stands in for `GDI1`, and `EVA.mp4` for the `EVA.VQA` the startup sequence names outright. Whatever extension the movie name carries is dropped before `.mp4` is added.
+The file is named for the movie it replaces, without the `.VQA` extension: `GDI_M02.mp4` stands in for `GDI_M02`, and `WWLOGO.mp4` for the `WWLOGO.VQA` the startup sequence names outright. Case does not matter. Whatever extension the movie name carries is dropped before `.mp4` is added.
 
 The file is found the way any loose file is: the user directory, the current directory and then [the folders `SearchPaths` names](/formats/opents-ini/#the-order-files-are-searched-for-in), in that order. A deployment can keep its movies in a folder of their own by adding it to `SearchPaths`. A `.mp4` inside a MIX archive is never played.
 

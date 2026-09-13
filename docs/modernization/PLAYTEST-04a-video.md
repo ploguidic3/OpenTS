@@ -7,14 +7,16 @@ movie; `Video: "<path>" did not open; the VQA plays instead` appears when it fal
 
 No `SUN.INI` setting turns the path on. A movie plays through it when `<name>.mp4` exists in
 the user directory, the game directory, or a folder named in `OPENTS.INI [Paths] SearchPaths`
-(for example `SearchPaths=HD,INI,MIX,Maps` with the file at `Run\HD\GDI1.mp4`).
+(for example `SearchPaths=HD,INI,MIX,Maps` with the file at `Run\HD\GDI_M02.mp4`).
 
 ## Making a test file
 
-Extract `GDI1.VQA` from `MOVIES01.MIX` (any MIX tool, or XCC Mixer), then re-encode it:
+Extract `gdi_m02.vqa` from `MOVIES01.MIX` (XCC Mixer or any MIX tool), then re-encode it.
+The retail names are lower case with underscores: `intro.vqa`, `wwlogo.vqa`, `gdi_m02.vqa` through
+`gdi_m12a.vqa`, `nod_m02.vqa` and so on. The `*_sb.vqa` files are the 140x110 radar clips and stay VQA.
 
 ```
-ffmpeg -i GDI1.VQA -vsync 0 -c:v libx264 -pix_fmt yuv420p -profile:v high -crf 18 -c:a aac -ar 48000 -ac 2 -b:a 160k -movflags +faststart GDI1.mp4
+ffmpeg -i gdi_m02.vqa -vsync 0 -c:v libx264 -pix_fmt yuv420p -profile:v high -crf 18 -c:a aac -ar 48000 -ac 2 -b:a 160k -movflags +faststart GDI_M02.mp4
 ```
 
 `-ar 48000 -ac 2` is required, not optional: the VQA track is mono at 22050 Hz, and an AAC
@@ -22,15 +24,15 @@ track kept at that rate plays through Windows' decoder as choppy picture with br
 Resampled to 48 kHz stereo it plays cleanly (observed 13 Sep 2026 with `WWLOGO.mp4`).
 `-vsync 0` keeps the native frame count. For a 4K test add `-vf "scale=3840:2400:flags=lanczos"`
 before `-c:a`. For a silent file add `-an` and drop the `-c:a`/`-b:a` pair. ffmpeg 5.1 or later
-decodes the version 3 VQAs; check the source with `ffprobe GDI1.VQA` (expect 640x400, 15 fps).
+decodes the version 3 VQAs; check the source with `ffprobe gdi_m02.vqa` (expect 640x400, 15 fps).
 
-`GDI1` is the first GDI mission briefing. Start a new GDI campaign to reach it; the same file
+`GDI_M02` is the first GDI campaign movie, played after the intro when a new GDI campaign starts; the same file
 renamed `WWLOGO.mp4` in the same folder plays on every start, which is the quickest loop.
 `EVA.mp4` only plays on a first-time-install start.
 
 ## Routing
-- [ ] With `GDI1.mp4` beside the game, starting the GDI campaign plays the MP4 (log line above) and the mission loads afterwards exactly as with the VQA.
-- [ ] Rename the file `GDI1.MP4` and `gdi1.mp4`: both play.
+- [ ] With `GDI_M02.mp4` beside the game, starting the GDI campaign plays the MP4 (log line above) and the mission loads afterwards exactly as with the VQA.
+- [ ] Rename the file `GDI_M02.MP4` and `gdi_m02.mp4`: both play.
 - [ ] Move the file into `Run\HD\` with `SearchPaths=HD,INI,MIX,Maps` in `OPENTS.INI`: it plays. Remove `HD` from the list: the VQA plays.
 - [ ] `WWLOGO.mp4`, `FS_TITLE.mp4` or `STARTUP.mp4` beside the game route the startup sequence through the new path; `TS_Title.mp4` routes the title screen movie.
 - [ ] Win a mission with `<WinMovie>.mp4` present, lose one with `<LoseMovie>.mp4` present (`Win=`/`Lose=` in the mission's INI name them), and finish a campaign with `<FinalMovie>.mp4` present: each plays through the new path and the flow after it (score screen, map selection, retry dialog, credits) is unchanged.
