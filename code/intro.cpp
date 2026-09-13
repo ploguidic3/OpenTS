@@ -35,6 +35,7 @@
 #include "intro.h"
 
 #include "ccfile.h"
+#include "dbgprint.h"
 #include "movie.h"
 
 #include <cstdio>
@@ -60,9 +61,11 @@ void Choose_Side(int side)
 	// Each side's intro was INTRO.VQA on its own disc, so an installation
 	// holding both has to keep them apart by name.
 	if (CCFileClass(name).Is_Available()) {
+		DebugString("Choose_Side(%d): playing \"%s\"\n", side, name);
 		Play_Movie(name);
 		return;
 	}
 
+	DebugString("Choose_Side(%d): \"%s\" not found; playing \"INTRO.VQA\"\n", side, name);
 	Play_Movie("INTRO.VQA");
 }

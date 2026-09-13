@@ -91,7 +91,9 @@ void Play_Movie(char const * name, ThemeType theme, bool clrscrn_after, bool str
 	// A container movie of the same name is played in the VQA's place, at the window's
 	// own size; one that will not open leaves the VQA to play as before.
 	char videopath[_MAX_PATH];
-	if (Find_Video_File(name, videopath, sizeof(videopath))) {
+	bool foundvideo = Find_Video_File(name, videopath, sizeof(videopath));
+	DebugString("Movie: \"%s\" requested; %s\n", name, foundvideo ? videopath : "no matching .mp4 found");
+	if (foundvideo) {
 		Keyboard->Clear();
 		if (Play_Video_File(videopath, theme, stretch, clrscrn_before, false)) {
 			if (clrscrn_after == true) {
