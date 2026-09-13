@@ -69,8 +69,10 @@ bool VideoSinkClass::Open(unsigned rate, unsigned channels, float level)
 	Channels = channels;
 	Level = level;
 	Pusher.Open(*stream);
-	unsigned latency = (unsigned)((uint64_t)AudioEngine.Device_Latency_Frames() * rate / AUDIO_MIX_RATE);
-	Clock.Reset(rate, blockframes, latency, 1000);
+	Latency = (unsigned)((uint64_t)AudioEngine.Device_Latency_Frames() * rate / AUDIO_MIX_RATE);
+	Clock.Reset(rate, blockframes, Latency, 1000);
+	Origin = 0.0;
+	HasOrigin = false;
 	return(true);
 }
 
@@ -91,10 +93,14 @@ void VideoSinkClass::Release(void)
 }
 
 
-void VideoSinkClass::Queue(int16_t const * pcm, unsigned frames)
+void VideoSinkClass::Queue(int16_t const * pcm, unsigned frames, double seconds)
 {
 	if (Stream == nullptr || pcm == nullptr || frames == 0) {
 		return;
+	}
+	if (!HasOrigin) {
+		Origin = seconds > 0.0 ? seconds : 0.0;
+		HasOrigin = true;
 	}
 	std::lock_guard<std::mutex> guard(Lock);
 	if (QueuedHead > 0 && QueuedHead * 2 > Queued.size()) {
@@ -209,11 +215,16 @@ double VideoSinkClass::Clock_Seconds(void)
 	if (!Started) {
 		return(0.0);
 	}
-	if (!Handle.Is_Null()) {
-		return((double)Clock.Ticks(Stream->Frames_Consumed(), 0, Wall_Now()) / 1000.0);
-	}
 	unsigned long now = Paused ? PausedAt : Wall_Now();
-	return((double)(now - WallStart - PausedTotal) / 1000.0);
+	double wall = (double)(now - WallStart - PausedTotal) / 1000.0;
+
+	// Until the first of the track has been heard the sound clock stands at zero, so a
+	// movie whose sound starts late, or one whose device is slow to start, runs on
+	// wall time until then.
+	if (Handle.Is_Null() || Stream->Frames_Consumed() <= Latency) {
+		return(wall);
+	}
+	return(Origin + (double)Clock.Ticks(Stream->Frames_Consumed(), 0, Wall_Now()) / 1000.0);
 }
 
 

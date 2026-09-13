@@ -93,7 +93,7 @@ void Play_Movie(char const * name, ThemeType theme, bool clrscrn_after, bool str
 	char videopath[_MAX_PATH];
 	if (Find_Video_File(name, videopath, sizeof(videopath))) {
 		Keyboard->Clear();
-		if (Play_Video_File(videopath, theme, stretch, false)) {
+		if (Play_Video_File(videopath, theme, stretch, clrscrn_before, false)) {
 			if (clrscrn_after == true) {
 				HiddenSurface->Fill(0);
 				Update_Visible_Surface(HiddenSurface);

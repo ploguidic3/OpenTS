@@ -15,12 +15,14 @@
 
 #include "video/videomovie.h"
 
+#include "_surface.h"
 #include "_xmouse.h"
 #include "ccfile.h"
 #include "dbgprint.h"
 #include "dsurface.h"
 #include "globals.h"
 #include "goptions.h"
+#include "gscreen.h"
 #include "movieskip.h"
 #include "session.h"
 #include "theme.h"
@@ -43,8 +45,10 @@ namespace {
 double const PRIME_SECONDS = 0.2;
 double const LEAD_SECONDS = 0.5;
 
-// Frames decoded but not yet due. A 4K frame is 33 MB, so the queue stays short.
+// Frames decoded but not yet due. A 4K frame is 33 MB, so the queue stays short; the
+// larger bound is only reached while sound is being read ahead of the picture.
 size_t const MAX_PENDING_FRAMES = 3;
+size_t const MAX_HELD_FRAMES = 6;
 
 // How long the end waits for the last of the sound after the last frame.
 unsigned long const DRAIN_TIMEOUT_MS = 2000;
@@ -156,25 +160,33 @@ class PlaybackClass
 
 		bool Exhausted = false;
 		bool Presented = false;
+		bool Refused = false;
 		std::deque<PendingFrame> Frames;
+		PendingFrame LastShown;
 
 	private:
 		VideoPlayer & Player;
 		VideoSinkClass & Sink;
 		VideoPacket Packet;
 		OverlayImage Overlay;
+		std::vector<std::vector<uint8_t>> Spare;
 };
 
 
 void PlaybackClass::Decode_Ahead(double clock)
 {
+	double lookahead = Player.Frame_Rate() > 0.0 ? 1.0 / Player.Frame_Rate() : 0.0;
 	while (!Exhausted) {
-		bool wantframe = Frames.empty() || (Frames.size() < MAX_PENDING_FRAMES && Frames.back().Seconds <= clock);
-		bool wantaudio = Sink.Has_Audio() && Sink.Queued_Seconds() < LEAD_SECONDS && Frames.size() < MAX_PENDING_FRAMES;
+		bool wantframe = Frames.empty() || (Frames.size() < MAX_PENDING_FRAMES && Frames.back().Seconds <= clock + lookahead);
+		bool wantaudio = Sink.Has_Audio() && Sink.Queued_Seconds() < LEAD_SECONDS && Frames.size() < MAX_HELD_FRAMES;
 		if (!wantframe && !wantaudio) {
 			break;
 		}
 
+		if (!Spare.empty()) {
+			Packet.Bgra.swap(Spare.back());
+			Spare.pop_back();
+		}
 		Player.Read_Next(Packet);
 		switch (Packet.Type) {
 			case VIDEO_PACKET_FRAME: {
@@ -188,7 +200,7 @@ void PlaybackClass::Decode_Ahead(double clock)
 			}
 
 			case VIDEO_PACKET_AUDIO:
-				Sink.Queue(Packet.Pcm.data(), Packet.Frames);
+				Sink.Queue(Packet.Pcm.data(), Packet.Frames, Packet.Seconds);
 				break;
 
 			case VIDEO_PACKET_ERROR:
@@ -213,6 +225,7 @@ bool PlaybackClass::Present(double clock, bool integerfit, DSurface * overlaysur
 		return(false);
 	}
 	while (Frames.size() > 1 && Frames[1].Seconds <= clock) {
+		Spare.push_back(std::move(Frames.front().Bgra));
 		Frames.pop_front();
 	}
 	PendingFrame & frame = Frames.front();
@@ -220,11 +233,63 @@ bool PlaybackClass::Present(double clock, bool integerfit, DSurface * overlaysur
 	bool hasoverlay = overlaysurface != NULL && Build_Overlay(*overlaysurface, Overlay);
 	bool shown = Video_Present_Video_Frame(frame.Bgra.data(), frame.Width * 4, frame.Width, frame.Height, integerfit,
 		hasoverlay ? Overlay.Bgra.data() : NULL, Overlay.Width * 4, Overlay.Width, Overlay.Height, Overlay.X, Overlay.Y, OVERLAY_REFERENCE_HEIGHT);
-	Frames.pop_front();
 	if (shown) {
 		Presented = true;
+		if (!LastShown.Bgra.empty()) {
+			Spare.push_back(std::move(LastShown.Bgra));
+		}
+		LastShown = std::move(frame);
+	} else {
+		Refused = true;
+		Spare.push_back(std::move(frame.Bgra));
 	}
+	Frames.pop_front();
 	return(shown);
+}
+
+
+// Leaves the last frame in the game's own surfaces, reduced to fit, as a VQA leaves
+// its last frame there, so a caller that draws over the movie's end finds it.
+void Store_Last_Frame(PendingFrame const & frame)
+{
+	if (frame.Bgra.empty() || HiddenSurface == NULL) {
+		return;
+	}
+	DSurface * surface = (DSurface *)HiddenSurface;
+	int const surfacewidth = surface->Get_Width();
+	int const surfaceheight = surface->Get_Height();
+	if (surface->Bytes_Per_Pixel() != 2 || surfacewidth <= 0 || surfaceheight <= 0) {
+		return;
+	}
+
+	double scalex = (double)surfacewidth / (double)frame.Width;
+	double scaley = (double)surfaceheight / (double)frame.Height;
+	double scale = scalex < scaley ? scalex : scaley;
+	int destwidth = (int)(frame.Width * scale);
+	int destheight = (int)(frame.Height * scale);
+	if (destwidth < 1 || destheight < 1) {
+		return;
+	}
+	int destx = (surfacewidth - destwidth) / 2;
+	int desty = (surfaceheight - destheight) / 2;
+
+	surface->Fill(0);
+	unsigned short * pixels = (unsigned short *)surface->Lock();
+	if (pixels == NULL) {
+		return;
+	}
+	int const stride = surface->Stride() / (int)sizeof(unsigned short);
+	for (int y = 0; y < destheight; y++) {
+		int sourcey = (int)((int64_t)y * frame.Height / destheight);
+		uint8_t const * sourcerow = &frame.Bgra[(size_t)sourcey * (size_t)frame.Width * 4];
+		unsigned short * destrow = pixels + (desty + y) * stride + destx;
+		for (int x = 0; x < destwidth; x++) {
+			uint8_t const * pixel = sourcerow + (size_t)((int64_t)x * frame.Width / destwidth) * 4;
+			destrow[x] = (unsigned short)(((pixel[2] >> 3) << 11) | ((pixel[1] >> 2) << 5) | (pixel[0] >> 3));
+		}
+	}
+	surface->Unlock();
+	Update_Visible_Surface(HiddenSurface);
 }
 
 } // namespace
@@ -257,7 +322,7 @@ bool Find_Video_File(char const * moviename, char * path, size_t size)
 }
 
 
-bool Play_Video_File(char const * path, ThemeType theme, bool stretch, bool nobreakout)
+bool Play_Video_File(char const * path, ThemeType theme, bool stretch, bool clrscrn_before, bool nobreakout)
 {
 	if (path == NULL || !MF_Video_Available()) {
 		return(false);
@@ -286,6 +351,12 @@ bool Play_Video_File(char const * path, ThemeType theme, bool stretch, bool nobr
 	std::unique_ptr<DSurface> overlaysurface(new DSurface(OVERLAY_WIDTH, OVERLAY_HEIGHT));
 	PlaybackClass playback(*player, sink);
 
+	// The screen around a movie that does not cover the display is cleared as it is for a VQA.
+	if (clrscrn_before && HiddenSurface != NULL) {
+		HiddenSurface->Fill(0);
+		Update_Visible_Surface(HiddenSurface);
+	}
+
 	Hide_Mouse();
 	if (theme != THEME_NONE) {
 		Theme.Queue_Song(theme);
@@ -293,7 +364,7 @@ bool Play_Video_File(char const * path, ThemeType theme, bool stretch, bool nobr
 	Video_Begin_Movie();
 
 	playback.Decode_Ahead(0.0);
-	while (!playback.Exhausted && sink.Has_Audio() && sink.Queued_Seconds() < PRIME_SECONDS && playback.Frames.size() < MAX_PENDING_FRAMES) {
+	while (!playback.Exhausted && sink.Has_Audio() && sink.Queued_Seconds() < PRIME_SECONDS && playback.Frames.size() < MAX_HELD_FRAMES) {
 		playback.Decode_Ahead(playback.Frames.empty() ? 0.0 : playback.Frames.back().Seconds);
 	}
 	sink.Start();
@@ -333,7 +404,7 @@ bool Play_Video_File(char const * path, ThemeType theme, bool stretch, bool nobr
 		}
 
 		// A frame the renderer refused before anything was shown lets the VQA play instead.
-		if (!playback.Presented && playback.Frames.empty() && playback.Exhausted) {
+		if (!playback.Presented && (playback.Refused || (playback.Frames.empty() && playback.Exhausted))) {
 			break;
 		}
 
@@ -353,6 +424,9 @@ bool Play_Video_File(char const * path, ThemeType theme, bool stretch, bool nobr
 	sink.Release();
 	player->Close();
 	Video_End_Movie();
+	if (playback.Presented) {
+		Store_Last_Frame(playback.LastShown);
+	}
 	Show_Mouse();
 
 	if (brokeout) {

@@ -45,7 +45,7 @@ A movie narrower than 320 and shorter than 200 is passed over the way a VQA of t
 
 ## How it plays
 
-The picture follows the sound: the frame shown is the newest one due by what the mixer has heard of the track, less what the output device still holds, so the two stay in step through a stall on the game's own thread. A movie with no sound track is timed from the wall clock. Sound is decoded about half a second ahead of the picture; frames the clock has already passed are dropped rather than shown late.
+The picture follows the sound: the frame shown is the newest one due by what the mixer has heard of the track, less what the output device still holds, so the two stay in step through a stall on the game's own thread. A movie with no sound track is timed from the wall clock, and so is any movie until the first of its sound has been heard. When the movie ends its last frame is left in the game's own screen, reduced to fit, as a VQA's last frame is. Sound is decoded about half a second ahead of the picture; frames the clock has already passed are dropped rather than shown late.
 
 The movie keeps its shape and sits centered in the window with black around it. `StretchMovies=yes` grows it to the window's edge along whichever axis runs out first; `StretchMovies=no` grows it by a whole number instead, so a 1920 by 1080 movie in a 3840 by 2160 window fills it either way while a 1280 by 720 one shows at twice its size with a border. The window's size is what counts, not the resolution the game draws at, so a full screen window on a 4K display shows a 4K movie at 4K.
 

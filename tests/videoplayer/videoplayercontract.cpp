@@ -228,6 +228,24 @@ bool Encode_Movie(std::wstring const & path, std::string & why)
 }
 
 
+// Copies the front part of a file, standing in for a download that stopped short.
+void Write_Truncated(std::wstring const & source, std::wstring const & path, double fraction)
+{
+	FILE * in = _wfopen(source.c_str(), L"rb");
+	FILE * out = _wfopen(path.c_str(), L"wb");
+	if (in != nullptr && out != nullptr) {
+		std::fseek(in, 0, SEEK_END);
+		long size = std::ftell(in);
+		std::fseek(in, 0, SEEK_SET);
+		std::vector<char> bytes((size_t)(size * fraction));
+		size_t read = std::fread(bytes.data(), 1, bytes.size(), in);
+		std::fwrite(bytes.data(), 1, read, out);
+	}
+	if (in != nullptr) std::fclose(in);
+	if (out != nullptr) std::fclose(out);
+}
+
+
 void Write_Junk(std::wstring const & path)
 {
 	FILE * file = _wfopen(path.c_str(), L"wb");
@@ -259,6 +277,7 @@ int main(void)
 	std::wstring movie = Temp_Path(L"tiny.mp4");
 	std::wstring junk = Temp_Path(L"junk.mp4");
 	std::wstring missing = Temp_Path(L"missing.mp4");
+	std::wstring truncated = Temp_Path(L"truncated.mp4");
 	std::string why;
 	bool encoded = Encode_Movie(movie, why);
 	MFShutdown();
@@ -330,10 +349,25 @@ int main(void)
 	Check(!player->Open(Narrow(missing).c_str()), "a missing file does not open");
 	Check(player->Open(Narrow(movie).c_str()), "the movie opens again after a refusal");
 	player->Close();
+
+	// A file cut short either refuses to open or runs out cleanly; it never spins.
+	Write_Truncated(movie, truncated, 0.6);
+	bool truncatedclean = true;
+	if (player->Open(Narrow(truncated).c_str())) {
+		int reads = 0;
+		do {
+			player->Read_Next(packet);
+			reads++;
+		} while (packet.Type != VIDEO_PACKET_END && packet.Type != VIDEO_PACKET_ERROR && reads < 10000);
+		truncatedclean = reads < 10000;
+		player->Close();
+	}
+	Check(truncatedclean, "a truncated file ends with END or ERROR");
 	delete player;
 
 	DeleteFileW(movie.c_str());
 	DeleteFileW(junk.c_str());
+	DeleteFileW(truncated.c_str());
 	CoUninitialize();
 
 	std::printf("%d failure(s)\n", Failures);

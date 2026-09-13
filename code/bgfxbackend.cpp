@@ -590,8 +590,10 @@ bool Backend_Present_Video(void const * bgra, int pitch, int width, int height, 
 
 	bgfx::updateTexture2D(_VideoTexture, 0, 0, 0, 0, (uint16_t)width, (uint16_t)height, bgfx::copy(bgra, (uint32_t)(height * pitch)), (uint16_t)pitch);
 
+	// The overlay has to land after the frame, so the view draws in submission order.
 	bgfx::setViewFrameBuffer(VIEW_PRESENT, BGFX_INVALID_HANDLE);
 	bgfx::setViewClear(VIEW_PRESENT, BGFX_CLEAR_COLOR, 0x000000FF);
+	bgfx::setViewMode(VIEW_PRESENT, bgfx::ViewMode::Sequential);
 	Set_View_Transform(VIEW_PRESENT, _DrawableWidth, _DrawableHeight);
 	Submit_Quad(VIEW_PRESENT, _VideoTexture, (float)destx, (float)desty, (float)destwidth, (float)destheight, BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP);
 
@@ -609,6 +611,9 @@ bool Backend_Present_Video(void const * bgra, int pitch, int width, int height, 
 
 void Backend_Release_Video(void)
 {
+	if (_Initialized) {
+		bgfx::setViewMode(VIEW_PRESENT, bgfx::ViewMode::Default);
+	}
 	if (bgfx::isValid(_VideoTexture)) {
 		bgfx::destroy(_VideoTexture);
 		_VideoTexture = BGFX_INVALID_HANDLE;

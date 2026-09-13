@@ -19,6 +19,8 @@
 bool Find_Video_File(char const * moviename, char * path, size_t size);
 
 // Plays a container movie full screen, at the window's own size, and returns once it
-// is over or skipped. False means nothing was shown, so the caller may play the VQA
-// instead; a movie that fails partway through counts as shown.
-bool Play_Video_File(char const * path, ThemeType theme, bool stretch, bool nobreakout);
+// is over or skipped. The game's surfaces are blanked first when clrscrn_before asks
+// and hold the last frame afterwards, as they do after a VQA. False means nothing was
+// shown, so the caller may play the VQA instead; a movie that fails partway through
+// counts as shown.
+bool Play_Video_File(char const * path, ThemeType theme, bool stretch, bool clrscrn_before, bool nobreakout);

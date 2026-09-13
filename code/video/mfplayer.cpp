@@ -441,9 +441,10 @@ void MFVideoPlayer::Read_Next(VideoPacket & packet)
 		return;
 	}
 
-	// A stream that ended keeps answering with the end flag until the other does, so the
-	// read is repeated over such answers rather than reported each time.
-	for (int attempt = 0; attempt < 8; attempt++) {
+	// A stream that ended keeps answering with the end flag until the other does, and a
+	// gap or a tick comes back with no sample at all; the read is repeated over both
+	// rather than reported each time.
+	for (int attempt = 0; attempt < 256; attempt++) {
 		DWORD stream = 0;
 		DWORD flags = 0;
 		LONGLONG timestamp = 0;
@@ -495,7 +496,8 @@ void MFVideoPlayer::Read_Next(VideoPacket & packet)
 		}
 	}
 
-	// Nothing arrived over several reads; treat the file as over rather than spin.
+	// Nothing arrived over many reads; treat the file as over rather than spin.
+	DebugString("Video: the reader returned no samples; ending the movie\n");
 	packet.Type = VIDEO_PACKET_END;
 }
 

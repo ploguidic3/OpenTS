@@ -38,8 +38,9 @@ class VideoSinkClass : public AudioStreamProducerClass
 		bool Has_Audio(void) const { return(Stream != nullptr); }
 
 		// Game thread. Queues decoded sound for the feeder to push; the queue is not
-		// bounded, so the caller stops decoding once Queued_Seconds is enough.
-		void Queue(int16_t const * pcm, unsigned frames);
+		// bounded, so the caller stops decoding once Queued_Seconds is enough. seconds is
+		// where the first frame of this block sits in the movie.
+		void Queue(int16_t const * pcm, unsigned frames, double seconds);
 		double Queued_Seconds(void);
 		void Mark_End(void);
 
@@ -49,7 +50,8 @@ class VideoSinkClass : public AudioStreamProducerClass
 		void Resume(void);
 		void Stop(void);
 
-		// Seconds of the movie that have been heard, or elapsed for a silent movie.
+		// Seconds of the movie that have been heard, or elapsed for a silent movie and
+		// until the first of the sound has been heard.
 		double Clock_Seconds(void);
 
 		// Whether every queued sample has left the mixer, or the voice is gone.
@@ -74,6 +76,9 @@ class VideoSinkClass : public AudioStreamProducerClass
 		AudioMovieClockClass Clock;
 		unsigned Rate = 0;
 		unsigned Channels = 0;
+		unsigned Latency = 0;
+		double Origin = 0.0;
+		bool HasOrigin = false;
 		float Level = 1.0f;
 		bool Started = false;
 		bool Paused = false;
