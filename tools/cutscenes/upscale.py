@@ -88,21 +88,19 @@ def check_model(config: Config) -> Path:
     )
     if not directory.is_dir():
         raise PipelineError(f"{directory} is not a directory. {advice}")
-    missing = [
-        path.name for path in (
-            directory / f"{config.upscale_model}.param",
-            directory / f"{config.upscale_model}.bin",
-        ) if not path.is_file()
-    ]
-    if missing:
-        available = sorted({path.stem for path in directory.glob("*.param")})
-        found = (f"Models in that folder: {', '.join(available)}."
-                 if available else "That folder holds no .param file at all.")
-        raise PipelineError(
-            f"{directory} has no {' or '.join(missing)} for model "
-            f"{config.upscale_model}. {found} {advice}"
-        )
-    return directory
+    # The animevideov3 models carry the scale in their filenames, so the name
+    # passed to -n is not always the name on disk.
+    stems = (config.upscale_model, f"{config.upscale_model}-x{config.upscale_factor}")
+    if any(all((directory / f"{stem}{suffix}").is_file()
+               for suffix in (".param", ".bin")) for stem in stems):
+        return directory
+    available = sorted({path.stem for path in directory.glob("*.param")})
+    found = (f"Models in that folder: {', '.join(available)}."
+             if available else "That folder holds no .param file at all.")
+    wanted = " or ".join(f"{stem}.param with {stem}.bin" for stem in dict.fromkeys(stems))
+    raise PipelineError(
+        f"{directory} has no {wanted}. {found} {advice}"
+    )
 
 
 def _run_realesrgan(config: Config, staging: Path, staged_out: Path, fmt: str) -> None:

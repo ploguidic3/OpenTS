@@ -27,16 +27,23 @@ null-decode, at the cost of one extra decode pass per movie.
 
 ### realesrgan-ncnn-vulkan
 
-Download the Windows release zip from Xintao Wang's `Real-ESRGAN-ncnn-vulkan`
-releases and unpack it anywhere. The zip carries `realesrgan-ncnn-vulkan.exe` and a
-`models/` folder of `.param` and `.bin` file pairs, one pair per model. Put the folder
-on `PATH` or set `OPENTS_REALESRGAN` to the executable.
+Take the zip from the **`xinntao/Real-ESRGAN`** releases, not from the
+`Real-ESRGAN-ncnn-vulkan` repository of the same author. The binary is built in the
+latter and published in the former, and only the published one carries the trained
+models: `realesrgan-ncnn-vulkan-20220424-windows.zip` under tag `v0.2.5.0` is about
+45 MB and holds `realesrgan-ncnn-vulkan.exe`, `vcomp140.dll`, `vcomp140d.dll` and a
+`models/` folder. The zip attached to the build repository's own `v0.2.0` release is
+about 2 MB and holds the same executable with no models at all; the executable then
+fails to open the model as a process fault.
 
-The models are looked for in `models/` beside the executable. Where they are somewhere
-else, name the folder in `model_path` in `config.json` or in
-`OPENTS_REALESRGAN_MODELS`. `upscale_model` has to name a pair that folder holds:
-release zips differ in which models they carry, and a name that is not there is
-reported along with the ones that are.
+Unpack it anywhere and put the folder on `PATH`, or set `OPENTS_REALESRGAN` to the
+executable. The models are looked for in `models/` beside it; name another folder in
+`model_path` in `config.json` or in `OPENTS_REALESRGAN_MODELS`.
+
+The 2022 zip carries `realesrgan-x4plus`, `realesrgan-x4plus-anime` and
+`realesr-animevideov3`, and the pipeline's default is `realesrgan-x4plus`. The
+animevideov3 files carry the scale in their names, so the model named
+`realesr-animevideov3` is `realesr-animevideov3-x4.param` on disk at `-s 4`.
 
 ```powershell
 dir "<unpack folder>\models\*.param"     # the model names available

@@ -281,6 +281,22 @@ class ModelTests(unittest.TestCase):
         self.assertIn("realesr-animevideov3", message)
         self.assertIn("realesrnet-x4plus", message)
 
+    def test_accepts_a_model_that_carries_the_scale_in_its_name(self):
+        self.place("realesr-animevideov3-x4")
+        config = make_config(self.root, model_path=str(self.models),
+                             upscale_model="realesr-animevideov3",
+                             upscale_factor=4)
+        self.assertEqual(upscale_stage.check_model(config), self.models)
+
+    def test_rejects_a_scaled_model_at_a_scale_it_has_no_file_for(self):
+        self.place("realesr-animevideov3-x4")
+        config = make_config(self.root, model_path=str(self.models),
+                             upscale_model="realesr-animevideov3",
+                             upscale_factor=2)
+        with self.assertRaises(common.PipelineError) as caught:
+            upscale_stage.check_model(config)
+        self.assertIn("realesr-animevideov3-x2.param", str(caught.exception))
+
     def test_reports_a_folder_holding_no_model(self):
         with self.assertRaises(common.PipelineError) as caught:
             upscale_stage.check_model(self.config_for())
@@ -291,7 +307,6 @@ class ModelTests(unittest.TestCase):
         with self.assertRaises(common.PipelineError) as caught:
             upscale_stage.check_model(self.config_for())
         self.assertIn("realesrgan-x4plus.bin", str(caught.exception))
-        self.assertNotIn("realesrgan-x4plus.param or", str(caught.exception))
 
     def test_reports_a_directory_that_is_not_there(self):
         config = make_config(self.root, model_path=str(self.root / "absent"))
