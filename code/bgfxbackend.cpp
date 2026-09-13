@@ -52,6 +52,14 @@ static bgfx::UniformHandle _TextureSampler = BGFX_INVALID_HANDLE;
 static bgfx::FrameBufferHandle _PrescaleTarget = BGFX_INVALID_HANDLE;
 static bgfx::VertexLayout _VertexLayout;
 
+// The textures a container movie draws through; they exist only while one plays.
+static bgfx::TextureHandle _VideoTexture = BGFX_INVALID_HANDLE;
+static bgfx::TextureHandle _OverlayTexture = BGFX_INVALID_HANDLE;
+static int _VideoWidth = 0;
+static int _VideoHeight = 0;
+static int _OverlayWidth = 0;
+static int _OverlayHeight = 0;
+
 static int _FrameWidth = 0;
 static int _FrameHeight = 0;
 static int _PrescaleWidth = 0;
@@ -164,7 +172,7 @@ static void Build_Convert_Table(void)
 /// <summary>
 /// Submits one textured rectangle covering the given destination.
 /// </summary>
-static void Submit_Quad(bgfx::ViewId view, bgfx::TextureHandle texture, float x, float y, float width, float height, unsigned int samplerflags, bool flipv = false)
+static void Submit_Quad(bgfx::ViewId view, bgfx::TextureHandle texture, float x, float y, float width, float height, unsigned int samplerflags, bool flipv = false, bool blend = false)
 {
 	bgfx::TransientVertexBuffer buffer;
 
@@ -189,7 +197,7 @@ static void Submit_Quad(bgfx::ViewId view, bgfx::TextureHandle texture, float x,
 
 	bgfx::setVertexBuffer(0, &buffer);
 	bgfx::setTexture(0, _TextureSampler, texture, samplerflags);
-	bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A);
+	bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | (blend ? BGFX_STATE_BLEND_ALPHA : 0));
 	bgfx::submit(view, _Program);
 }
 
@@ -370,6 +378,7 @@ void Backend_Shutdown(void)
 	}
 
 	Destroy_Prescale_Target();
+	Backend_Release_Video();
 
 	if (bgfx::isValid(_FrameTexture)) {
 		bgfx::destroy(_FrameTexture);
@@ -537,6 +546,81 @@ void Backend_Present(void const * pixels, int pitch, int destx, int desty, int d
 	Submit_Quad(VIEW_PRESENT, source, (float)destx, (float)desty, (float)destwidth, (float)destheight, samplerflags, flipv);
 
 	bgfx::frame();
+}
+
+
+/// <summary>
+/// Makes sure a BGRA texture of the requested size exists, replacing one of another size.
+/// </summary>
+static bool Ensure_Video_Texture(bgfx::TextureHandle & texture, int & currentwidth, int & currentheight, int width, int height)
+{
+	if (bgfx::isValid(texture) && currentwidth == width && currentheight == height) {
+		return(true);
+	}
+	if (bgfx::isValid(texture)) {
+		bgfx::destroy(texture);
+		texture = BGFX_INVALID_HANDLE;
+	}
+	currentwidth = 0;
+	currentheight = 0;
+
+	const bgfx::Caps * caps = bgfx::getCaps();
+	if (width <= 0 || height <= 0 || width > caps->limits.maxTextureSize || height > caps->limits.maxTextureSize) {
+		return(false);
+	}
+	texture = bgfx::createTexture2D((uint16_t)width, (uint16_t)height, false, 1, bgfx::TextureFormat::BGRA8);
+	if (!bgfx::isValid(texture)) {
+		return(false);
+	}
+	currentwidth = width;
+	currentheight = height;
+	return(true);
+}
+
+
+bool Backend_Present_Video(void const * bgra, int pitch, int width, int height, int destx, int desty, int destwidth, int destheight,
+	void const * overlay, int overlaypitch, int overlaywidth, int overlayheight, int overlayx, int overlayy, int overlaydestwidth, int overlaydestheight)
+{
+	if (!_Initialized || bgra == NULL || _DrawableWidth <= 0 || _DrawableHeight <= 0) {
+		return(false);
+	}
+	if (!Ensure_Video_Texture(_VideoTexture, _VideoWidth, _VideoHeight, width, height)) {
+		return(false);
+	}
+
+	bgfx::updateTexture2D(_VideoTexture, 0, 0, 0, 0, (uint16_t)width, (uint16_t)height, bgfx::copy(bgra, (uint32_t)(height * pitch)), (uint16_t)pitch);
+
+	bgfx::setViewFrameBuffer(VIEW_PRESENT, BGFX_INVALID_HANDLE);
+	bgfx::setViewClear(VIEW_PRESENT, BGFX_CLEAR_COLOR, 0x000000FF);
+	Set_View_Transform(VIEW_PRESENT, _DrawableWidth, _DrawableHeight);
+	Submit_Quad(VIEW_PRESENT, _VideoTexture, (float)destx, (float)desty, (float)destwidth, (float)destheight, BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP);
+
+	if (overlay != NULL && overlaywidth > 0 && overlayheight > 0
+		&& Ensure_Video_Texture(_OverlayTexture, _OverlayWidth, _OverlayHeight, overlaywidth, overlayheight)) {
+		bgfx::updateTexture2D(_OverlayTexture, 0, 0, 0, 0, (uint16_t)overlaywidth, (uint16_t)overlayheight, bgfx::copy(overlay, (uint32_t)(overlayheight * overlaypitch)), (uint16_t)overlaypitch);
+		Submit_Quad(VIEW_PRESENT, _OverlayTexture, (float)overlayx, (float)overlayy, (float)overlaydestwidth, (float)overlaydestheight,
+			BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_POINT, false, true);
+	}
+
+	bgfx::frame();
+	return(true);
+}
+
+
+void Backend_Release_Video(void)
+{
+	if (bgfx::isValid(_VideoTexture)) {
+		bgfx::destroy(_VideoTexture);
+		_VideoTexture = BGFX_INVALID_HANDLE;
+	}
+	if (bgfx::isValid(_OverlayTexture)) {
+		bgfx::destroy(_OverlayTexture);
+		_OverlayTexture = BGFX_INVALID_HANDLE;
+	}
+	_VideoWidth = 0;
+	_VideoHeight = 0;
+	_OverlayWidth = 0;
+	_OverlayHeight = 0;
 }
 
 

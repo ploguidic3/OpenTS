@@ -51,4 +51,18 @@ void Video_Present_If_Dirty(void);
 
 VideoScaleInfo const & Video_Get_Scale_Info(void);
 
+// A container movie owns the window between these two calls: the game's frame is not
+// presented while it does, and is marked for presenting again once it is over.
+void Video_Begin_Movie(void);
+void Video_End_Movie(void);
+
+// Draws one movie frame fitted to the window's drawable area, the game's frame set
+// aside. The pixels are top-down BGRA and stay owned by the caller. integerfit grows
+// the frame by a whole number where it can instead of to the drawable's edge. The
+// overlay, when given, is BGRA with alpha, placed at (overlayx, overlayy) of a frame
+// overlayreferenceheight tall and grown with it. False when the renderer could not
+// take a frame of that size.
+bool Video_Present_Video_Frame(void const * bgra, int pitch, int width, int height, bool integerfit,
+	void const * overlay, int overlaypitch, int overlaywidth, int overlayheight, int overlayx, int overlayy, int overlayreferenceheight);
+
 int * EnumDisplayModes(int minwidth, int minheight, int maxwidth, int maxheight);

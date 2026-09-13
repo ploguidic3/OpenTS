@@ -55,6 +55,10 @@ static unsigned int _PresentInterval = 16;
 // that the engine's own present provoked.
 static bool _Presenting = false;
 
+// Set while a container movie draws straight to the window, so a paint provoked in the
+// meantime does not put the stale game frame over it.
+static bool _MovieOwnsWindow = false;
+
 
 /// <summary>
 /// Works out the shortest sensible gap between presents from the display's refresh rate.
@@ -262,7 +266,7 @@ void Video_Mark_Dirty(void)
 /// </summary>
 void Video_Present(void)
 {
-	if (!_Initialized || _Presenting || VisibleSurface == NULL) {
+	if (!_Initialized || _Presenting || _MovieOwnsWindow || VisibleSurface == NULL) {
 		return;
 	}
 
@@ -309,6 +313,76 @@ void Video_Present_If_Dirty(void)
 VideoScaleInfo const & Video_Get_Scale_Info(void)
 {
 	return(_ScaleInfo);
+}
+
+
+void Video_Begin_Movie(void)
+{
+	_MovieOwnsWindow = true;
+}
+
+
+void Video_End_Movie(void)
+{
+	if (!_MovieOwnsWindow) {
+		return;
+	}
+	_MovieOwnsWindow = false;
+	Backend_Release_Video();
+	_FrameIsDirty = true;
+}
+
+
+/// <summary>
+/// Works out where a movie frame of the given size lands in the drawable area.
+/// The frame keeps its shape; integerfit keeps its pixels a whole size where the
+/// drawable is at least as large as the frame.
+/// </summary>
+static void Video_Movie_Destination(int width, int height, bool integerfit, int & destx, int & desty, int & destwidth, int & destheight)
+{
+	double scalex = (double)_ScaleInfo.DrawableWidth / (double)width;
+	double scaley = (double)_ScaleInfo.DrawableHeight / (double)height;
+	double scale = (scalex < scaley) ? scalex : scaley;
+
+	if (integerfit && scale >= 1.0) {
+		scale = (double)(int)scale;
+	}
+
+	destwidth = (int)((double)width * scale);
+	destheight = (int)((double)height * scale);
+	if (destwidth < 1) destwidth = 1;
+	if (destheight < 1) destheight = 1;
+	destx = (_ScaleInfo.DrawableWidth - destwidth) / 2;
+	desty = (_ScaleInfo.DrawableHeight - destheight) / 2;
+}
+
+
+bool Video_Present_Video_Frame(void const * bgra, int pitch, int width, int height, bool integerfit,
+	void const * overlay, int overlaypitch, int overlaywidth, int overlayheight, int overlayx, int overlayy, int overlayreferenceheight)
+{
+	if (!_Initialized || bgra == NULL || width <= 0 || height <= 0 || _ScaleInfo.DrawableWidth <= 0 || _ScaleInfo.DrawableHeight <= 0) {
+		return(false);
+	}
+
+	int destx;
+	int desty;
+	int destwidth;
+	int destheight;
+	Video_Movie_Destination(width, height, integerfit, destx, desty, destwidth, destheight);
+
+	// The overlay is laid out for a frame of the reference height and grown with the picture.
+	int overlayscale = overlayreferenceheight > 0 ? destheight / overlayreferenceheight : 1;
+	if (overlayscale < 1) {
+		overlayscale = 1;
+	}
+
+	_Presenting = true;
+	bool shown = Backend_Present_Video(bgra, pitch, width, height, destx, desty, destwidth, destheight,
+		overlay, overlaypitch, overlaywidth, overlayheight,
+		destx + overlayx * overlayscale, desty + overlayy * overlayscale, overlaywidth * overlayscale, overlayheight * overlayscale);
+	_Presenting = false;
+	_LastPresentTime = timeGetTime();
+	return(shown);
 }
 
 

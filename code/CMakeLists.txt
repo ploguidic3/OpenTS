@@ -218,10 +218,17 @@ target_link_libraries(OpenTS PRIVATE
     ws2_32
     kernel32 user32 gdi32 winspool comdlg32 advapi32 shell32
     ole32 oleaut32 uuid odbc32 odbccp32
+
+    # Media Foundation plays container movies. Its DLLs are delay loaded because the N
+    # editions and servers without the media feature do not carry them, and the game
+    # then plays the VQA instead of failing to start.
+    mfplat mfreadwrite mfuuid delayimp
 )
 
 if(MSVC)
     target_link_options(OpenTS PRIVATE
+        /DELAYLOAD:mfplat.dll
+        /DELAYLOAD:mfreadwrite.dll
         /SUBSYSTEM:WINDOWS
         /DEBUG
         /MAP

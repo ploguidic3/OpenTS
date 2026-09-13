@@ -29,9 +29,12 @@
 #include "movieskip.h"
 #include "session.h"
 #include "vector.h"
+#include "video/videomovie.h"
 #include "vqa.h"
 
 #include "vq.hh"
+
+#include <cstdio>
 
 
 /// <summary>
@@ -84,6 +87,22 @@ void Play_Movie(char const * name, ThemeType theme, bool clrscrn_after, bool str
 
 	// Opened ahead of the file test so the other machines count this movie even if it is missing here.
 	MovieSkip::Playback playback(name);
+
+	// A container movie of the same name is played in the VQA's place, at the window's
+	// own size; one that will not open leaves the VQA to play as before.
+	char videopath[_MAX_PATH];
+	if (Find_Video_File(name, videopath, sizeof(videopath))) {
+		Keyboard->Clear();
+		if (Play_Video_File(videopath, theme, stretch, false)) {
+			if (clrscrn_after == true) {
+				HiddenSurface->Fill(0);
+				Update_Visible_Surface(HiddenSurface);
+			}
+			Map.Flag_To_Redraw(GS_REDRAW_ALL);
+			Keyboard->Clear();
+			return;
+		}
+	}
 
 	if (!CCFileClass(name).Is_Available()) {
 		return;
@@ -184,11 +203,10 @@ void _Play_Movie(char const * name, ThemeType theme)
 /// </summary>
 void Play_Movie(VQType vq, ThemeType theme, bool clrscrn, bool stretch)
 {
-	static char _buf[20];
+	char buf[64];
 	if (vq != VQ_NONE) {
-		strcpy(_buf, Movies[vq]);
-		strcpy(_buf + strlen(Movies[vq]), ".VQA");
-		Play_Movie(_buf, theme, clrscrn, stretch, true);
+		std::snprintf(buf, sizeof(buf), "%s.VQA", Movies[vq]);
+		Play_Movie(buf, theme, clrscrn, stretch, true);
 	}
 }
 
@@ -219,11 +237,10 @@ void Play_Ingame_Movie(const char * name)
 /// </summary>
 void Play_Ingame_Movie(VQType vq)
 {
-	static char _buf[20];
+	char buf[64];
 	if (vq != VQ_NONE) {
-		strcpy(_buf, Movies[vq]);
-		strcpy(_buf + strlen(Movies[vq]), ".VQA");
-		Play_Ingame_Movie(_buf);
+		std::snprintf(buf, sizeof(buf), "%s.VQA", Movies[vq]);
+		Play_Ingame_Movie(buf);
 	}
 }
 

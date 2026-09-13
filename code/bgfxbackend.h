@@ -43,4 +43,14 @@ void Backend_On_Resize(int drawablewidth, int drawableheight);
 // caller; they are consumed before this returns.
 void Backend_Present(void const * pixels, int pitch, int destx, int desty, int destwidth, int destheight, BackendScaleMode mode);
 
+// Uploads a movie frame and presents it over a black window in place of the game's
+// frame. The pixels are top-down BGRA and stay owned by the caller. The overlay, when
+// not null, is BGRA with alpha and is blended over the frame at its own destination.
+// False when a texture of the frame's size cannot be made.
+bool Backend_Present_Video(void const * bgra, int pitch, int width, int height, int destx, int desty, int destwidth, int destheight,
+	void const * overlay, int overlaypitch, int overlaywidth, int overlayheight, int overlayx, int overlayy, int overlaydestwidth, int overlaydestheight);
+
+// Frees the movie textures once a movie is over.
+void Backend_Release_Video(void);
+
 char const * Backend_Renderer_Name(void);

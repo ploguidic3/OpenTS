@@ -8,9 +8,11 @@ extensions:
 role: video
 related:
   - { type: format, id: mix }
+  - { type: format, id: video-files }
 source_files:
   - code/audio/audiomovie.cpp
   - code/movie.cpp
+  - code/video/videomovie.cpp
   - code/movies.cpp
   - code/rules.cpp
   - code/vqa.cpp
@@ -40,6 +42,8 @@ One lookup answers both questions asked of a movie name: whether the registry al
 Parts of the engine name a movie file outright instead of going through the list — the startup sequence, the score screen and the mission screens all do. Those names include the `.VQA` extension and the section has no bearing on them.
 
 ## Finding the file
+
+A full screen movie is first looked for as a loose [video file](/formats/video-files/) of the same name with an `.mp4` extension, and one that opens plays in the VQA's place. What follows applies where no such file is found or the one found does not open.
 
 Playing a movie first tests that the file exists, through the general file layer that consults both the mounted archives and the game directory. The movie is then opened again through the archive reader, which finds the member, opens the archive holding it, and reads the movie out of it in place. The general reader stands in for that open in one main menu sequence and nowhere else, so a loose `.VQA` in the game directory passes the existence test and then fails to open. A movie has to be an archive member.
 
