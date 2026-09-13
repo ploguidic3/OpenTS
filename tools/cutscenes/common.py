@@ -46,6 +46,7 @@ class Config:
     upscale_factor: int
     gpu: str
     threads: str
+    model_path: str
     crf: int
     preset: str
     audio_bitrate: str
@@ -71,6 +72,7 @@ class Config:
             upscale_factor=int(data["upscale_factor"]),
             gpu=str(data["gpu"]),
             threads=str(data["threads"]),
+            model_path=str(data.get("model_path", "")),
             crf=int(data["crf"]),
             preset=data["preset"],
             audio_bitrate=data["audio_bitrate"],
@@ -184,10 +186,17 @@ def run(command, capture: bool = False, check: bool = True) -> subprocess.Comple
     if check and result.returncode != 0:
         detail = (result.stderr or "").strip()[-2000:]
         raise PipelineError(
-            f"{printable[0]} exited {result.returncode}"
+            f"{printable[0]} exited {exit_code_text(result.returncode)}"
             + (f"\n{detail}" if detail else "")
         )
     return result
+
+
+def exit_code_text(code: int) -> str:
+    """Renders an exit code, adding hex for the Windows status codes."""
+    if code > 0xFFFF or code < -1:
+        return f"{code} (0x{code & 0xFFFFFFFF:08X})"
+    return str(code)
 
 
 def run_ffmpeg(args, check: bool = True) -> subprocess.CompletedProcess:

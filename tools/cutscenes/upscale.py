@@ -8,6 +8,7 @@ interrupted movie continues rather than starting again.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import shutil
 import sys
@@ -63,10 +64,52 @@ def _stage_missing(source: Path, target: Path, suffix: str, staging: Path) -> li
     return pending
 
 
+def model_directory(config: Config) -> Path:
+    """Returns the folder holding the .param and .bin model files."""
+    if config.model_path:
+        return Path(config.model_path)
+    override = os.environ.get("OPENTS_REALESRGAN_MODELS")
+    if override:
+        return Path(override)
+    return common.realesrgan().resolve().parent / "models"
+
+
+def check_model(config: Config) -> Path:
+    """Reports a model the upscaler could not load before it is launched.
+
+    realesrgan-ncnn-vulkan fails a missing model as a process fault rather than
+    an error, so the pair of files is checked here and the models actually
+    present are named.
+    """
+    directory = model_directory(config)
+    advice = (
+        "Set model_path in config.json, or OPENTS_REALESRGAN_MODELS, to the folder "
+        "holding the model files, and upscale_model to one of the models in it."
+    )
+    if not directory.is_dir():
+        raise PipelineError(f"{directory} is not a directory. {advice}")
+    missing = [
+        path.name for path in (
+            directory / f"{config.upscale_model}.param",
+            directory / f"{config.upscale_model}.bin",
+        ) if not path.is_file()
+    ]
+    if missing:
+        available = sorted({path.stem for path in directory.glob("*.param")})
+        found = (f"Models in that folder: {', '.join(available)}."
+                 if available else "That folder holds no .param file at all.")
+        raise PipelineError(
+            f"{directory} has no {' or '.join(missing)} for model "
+            f"{config.upscale_model}. {found} {advice}"
+        )
+    return directory
+
+
 def _run_realesrgan(config: Config, staging: Path, staged_out: Path, fmt: str) -> None:
     common.run([
         common.realesrgan(),
         "-i", staging, "-o", staged_out,
+        "-m", check_model(config),
         "-n", config.upscale_model,
         "-s", str(config.upscale_factor),
         "-f", fmt,

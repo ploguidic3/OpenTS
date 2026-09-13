@@ -29,9 +29,18 @@ null-decode, at the cost of one extra decode pass per movie.
 
 Download the Windows release zip from Xintao Wang's `Real-ESRGAN-ncnn-vulkan`
 releases and unpack it anywhere. The zip carries `realesrgan-ncnn-vulkan.exe` and a
-`models/` folder holding `realesrgan-x4plus.param` and `realesrgan-x4plus.bin`; the
-executable finds the models relative to itself, so keep them together. Put the folder
-on `PATH` or set `OPENTS_REALESRGAN`.
+`models/` folder of `.param` and `.bin` file pairs, one pair per model. Put the folder
+on `PATH` or set `OPENTS_REALESRGAN` to the executable.
+
+The models are looked for in `models/` beside the executable. Where they are somewhere
+else, name the folder in `model_path` in `config.json` or in
+`OPENTS_REALESRGAN_MODELS`. `upscale_model` has to name a pair that folder holds:
+release zips differ in which models they carry, and a name that is not there is
+reported along with the ones that are.
+
+```powershell
+dir "<unpack folder>\models\*.param"     # the model names available
+```
 
 `rife-ncnn-vulkan` is the same shape and only needed for `--rife`. Set `OPENTS_RIFE`.
 
@@ -152,6 +161,14 @@ run rather than a regression when they misbehave:
   against archives the tests build to the same layout.
 
 Run `pipeline.py proof` on one movie before a batch, which is what it is for.
+
+## When the upscaler dies without a message
+
+`realesrgan-ncnn-vulkan` treats a model it cannot open as a process fault: it prints a
+`_wfopen ... failed` line and exits with a Windows status code such as `0xC0000409`
+rather than an error. The pipeline checks the model pair before launching it and
+reports what is missing, so that crash should not reach you; if it does, the last line
+the tool printed names the file it wanted.
 
 ## Archives this reader will not open
 

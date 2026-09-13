@@ -8,10 +8,12 @@ itself, which is ffmpeg's, not this tool's.
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
+import os
 import shutil
 import struct
 import sys
 import unittest
+import unittest.mock
 import zlib
 
 
@@ -245,6 +247,88 @@ class FrameHelperTests(unittest.TestCase):
             directory = Path(temp)
             (directory / "00001.jpg").write_bytes(b"")
             self.assertTrue(common.frame_pattern(directory).endswith("%05d.jpg"))
+
+
+class ModelTests(unittest.TestCase):
+    """A model the upscaler cannot load has to be reported before it is launched."""
+
+    def setUp(self):
+        self.temp = TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.addCleanup(self.temp.cleanup)
+        self.models = self.root / "models"
+        self.models.mkdir()
+
+    def config_for(self, model="realesrgan-x4plus"):
+        return make_config(self.root, model_path=str(self.models),
+                           upscale_model=model)
+
+    def place(self, name):
+        for suffix in (".param", ".bin"):
+            (self.models / f"{name}{suffix}").write_bytes(b"")
+
+    def test_accepts_a_model_whose_pair_is_present(self):
+        self.place("realesrgan-x4plus")
+        self.assertEqual(upscale_stage.check_model(self.config_for()), self.models)
+
+    def test_names_the_models_that_are_there(self):
+        self.place("realesr-animevideov3")
+        self.place("realesrnet-x4plus")
+        with self.assertRaises(common.PipelineError) as caught:
+            upscale_stage.check_model(self.config_for())
+        message = str(caught.exception)
+        self.assertIn("realesrgan-x4plus.param", message)
+        self.assertIn("realesr-animevideov3", message)
+        self.assertIn("realesrnet-x4plus", message)
+
+    def test_reports_a_folder_holding_no_model(self):
+        with self.assertRaises(common.PipelineError) as caught:
+            upscale_stage.check_model(self.config_for())
+        self.assertIn("no .param file at all", str(caught.exception))
+
+    def test_reports_a_half_present_model(self):
+        (self.models / "realesrgan-x4plus.param").write_bytes(b"")
+        with self.assertRaises(common.PipelineError) as caught:
+            upscale_stage.check_model(self.config_for())
+        self.assertIn("realesrgan-x4plus.bin", str(caught.exception))
+        self.assertNotIn("realesrgan-x4plus.param or", str(caught.exception))
+
+    def test_reports_a_directory_that_is_not_there(self):
+        config = make_config(self.root, model_path=str(self.root / "absent"))
+        with self.assertRaises(common.PipelineError) as caught:
+            upscale_stage.check_model(config)
+        self.assertIn("is not a directory", str(caught.exception))
+
+    def test_the_environment_supplies_the_folder_when_the_setting_is_empty(self):
+        config = make_config(self.root, model_path="")
+        with unittest.mock.patch.dict(
+                os.environ, {"OPENTS_REALESRGAN_MODELS": str(self.models)}):
+            self.assertEqual(upscale_stage.model_directory(config), self.models)
+
+    def test_the_setting_wins_over_the_environment(self):
+        config = make_config(self.root, model_path=str(self.models))
+        with unittest.mock.patch.dict(
+                os.environ, {"OPENTS_REALESRGAN_MODELS": str(self.root / "other")}):
+            self.assertEqual(upscale_stage.model_directory(config), self.models)
+
+    def test_falls_back_to_the_folder_beside_the_executable(self):
+        config = make_config(self.root, model_path="")
+        fake = self.root / "realesrgan-ncnn-vulkan"
+        fake.write_bytes(b"")
+        with unittest.mock.patch.dict(os.environ, {"OPENTS_REALESRGAN": str(fake)},
+                                      clear=False):
+            os.environ.pop("OPENTS_REALESRGAN_MODELS", None)
+            self.assertEqual(upscale_stage.model_directory(config), self.models)
+
+
+class ExitCodeTests(unittest.TestCase):
+    def test_windows_status_codes_carry_their_hex(self):
+        self.assertEqual(common.exit_code_text(3221226505),
+                         "3221226505 (0xC0000409)")
+
+    def test_ordinary_codes_stay_plain(self):
+        self.assertEqual(common.exit_code_text(1), "1")
+        self.assertEqual(common.exit_code_text(0), "0")
 
 
 @unittest.skipUnless(have_ffmpeg(), "ffmpeg is not installed")
