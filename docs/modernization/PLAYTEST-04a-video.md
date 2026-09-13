@@ -22,13 +22,14 @@ before `-c:a`. For a silent file add `-an` and drop the `-c:a`/`-b:a` pair. ffmp
 decodes the version 3 VQAs; check the source with `ffprobe GDI1.VQA` (expect 640x400, 15 fps).
 
 `GDI1` is the first GDI mission briefing. Start a new GDI campaign to reach it; the same file
-renamed `EVA.mp4` in the same folder plays at startup, which is the quickest loop.
+renamed `WWLOGO.mp4` in the same folder plays on every start, which is the quickest loop.
+`EVA.mp4` only plays on a first-time-install start.
 
 ## Routing
 - [ ] With `GDI1.mp4` beside the game, starting the GDI campaign plays the MP4 (log line above) and the mission loads afterwards exactly as with the VQA.
 - [ ] Rename the file `GDI1.MP4` and `gdi1.mp4`: both play.
 - [ ] Move the file into `Run\HD\` with `SearchPaths=HD,INI,MIX,Maps` in `OPENTS.INI`: it plays. Remove `HD` from the list: the VQA plays.
-- [ ] `EVA.mp4`, `WWLOGO.mp4`, `FS_TITLE.mp4` or `STARTUP.mp4` beside the game route the startup sequence through the new path; `TS_Title.mp4` routes the title screen movie.
+- [ ] `WWLOGO.mp4`, `FS_TITLE.mp4` or `STARTUP.mp4` beside the game route the startup sequence through the new path; `TS_Title.mp4` routes the title screen movie.
 - [ ] Win a mission with `<WinMovie>.mp4` present, lose one with `<LoseMovie>.mp4` present (`Win=`/`Lose=` in the mission's INI name them), and finish a campaign with `<FinalMovie>.mp4` present: each plays through the new path and the flow after it (score screen, map selection, retry dialog, credits) is unchanged.
 - [ ] Delete the MP4: the VQA plays. Replace it with a text file renamed `.mp4`: the log reports the fallback and the VQA plays, in the same request, with no delay beyond a moment.
 - [ ] Skirmish with `PlayMovies=no` under `[Session]` in the launch INI, with MP4 files present: no movie of either kind plays.
