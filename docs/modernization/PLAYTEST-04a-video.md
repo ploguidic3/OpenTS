@@ -9,6 +9,23 @@ No `SUN.INI` setting turns the path on. A movie plays through it when `<name>.mp
 the user directory, the game directory, or a folder named in `OPENTS.INI [Paths] SearchPaths`
 (for example `SearchPaths=HD,INI,MIX,Maps` with the file at `Run\HD\INTR0.mp4`).
 
+## What has been run
+
+Observed on Windows against a Release build of this branch, 13 September 2026. Engine
+behaviour under test is that of `0707161`; every later commit touching `code/` adds debug
+logging only.
+
+| Group | Result |
+| --- | --- |
+| Stock path with no container movie present | Plays as VQA throughout, nothing logged about video files |
+| A container movie plays | Plays, with sound at 48 kHz stereo; see the encode note below |
+| A file that is not a movie | Falls back to the VQA in the same request, no perceptible delay |
+| Focus loss and ESC | Picture and sound stop and resume together; ESC ends the movie |
+| Name resolution | `INTR0.mp4` is taken for the campaign's opening cinema |
+
+Outstanding: the `StretchMovies` comparison under Picture, and everything the checklist
+marks that needs a second machine or a long movie.
+
 ## Making a test file
 
 Extract `intr0.vqa` from `MOVIES01.MIX` (XCC Mixer or any MIX tool), then re-encode it.
