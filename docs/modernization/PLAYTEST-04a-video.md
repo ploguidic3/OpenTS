@@ -7,16 +7,19 @@ movie; `Video: "<path>" did not open; the VQA plays instead` appears when it fal
 
 No `SUN.INI` setting turns the path on. A movie plays through it when `<name>.mp4` exists in
 the user directory, the game directory, or a folder named in `OPENTS.INI [Paths] SearchPaths`
-(for example `SearchPaths=HD,INI,MIX,Maps` with the file at `Run\HD\GDI_M02.mp4`).
+(for example `SearchPaths=HD,INI,MIX,Maps` with the file at `Run\HD\INTRO.mp4`).
 
 ## Making a test file
 
-Extract `gdi_m02.vqa` from `MOVIES01.MIX` (XCC Mixer or any MIX tool), then re-encode it.
+Extract `intro.vqa` from `MOVIES01.MIX` (XCC Mixer or any MIX tool), then re-encode it.
 The retail names are lower case with underscores: `intro.vqa`, `wwlogo.vqa`, `gdi_m02.vqa` through
-`gdi_m12a.vqa`, `nod_m02.vqa` and so on. The `*_sb.vqa` files are the 140x110 radar clips and stay VQA.
+`gdi_m12a.vqa`, `nod_m02.vqa` and so on. The `*_sb.vqa` files are the 140x110 radar clips and stay
+VQA. `INTRO.VQA` is the GDI faction intro and plays as mission 1's own briefing; the numbered
+mission movies start at `GDI_M02` for mission 2 onward, so a file named `GDI_M02.mp4` is never
+looked at on the way to mission 1 — use `intro.vqa` for a first-mission test, not a numbered one.
 
 ```
-ffmpeg -i gdi_m02.vqa -vsync 0 -c:v libx264 -pix_fmt yuv420p -profile:v high -crf 18 -c:a aac -ar 48000 -ac 2 -b:a 160k -movflags +faststart GDI_M02.mp4
+ffmpeg -i intro.vqa -vsync 0 -c:v libx264 -pix_fmt yuv420p -profile:v high -crf 18 -c:a aac -ar 48000 -ac 2 -b:a 160k -movflags +faststart INTRO.mp4
 ```
 
 `-ar 48000 -ac 2` is required, not optional: the VQA track is mono at 22050 Hz, and an AAC
@@ -24,15 +27,16 @@ track kept at that rate plays through Windows' decoder as choppy picture with br
 Resampled to 48 kHz stereo it plays cleanly (observed 13 Sep 2026 with `WWLOGO.mp4`).
 `-vsync 0` keeps the native frame count. For a 4K test add `-vf "scale=3840:2400:flags=lanczos"`
 before `-c:a`. For a silent file add `-an` and drop the `-c:a`/`-b:a` pair. ffmpeg 5.1 or later
-decodes the version 3 VQAs; check the source with `ffprobe gdi_m02.vqa` (expect 640x400, 15 fps).
+decodes the version 3 VQAs; check the source with `ffprobe intro.vqa` (expect 640x400, 15 fps).
 
-`GDI_M02` is the first GDI campaign movie, played after the intro when a new GDI campaign starts; the same file
-renamed `WWLOGO.mp4` in the same folder plays on every start, which is the quickest loop.
+`INTRO` is the GDI faction intro; it plays as mission 1's briefing when a new GDI campaign
+starts, so it doubles as the first-mission test file. `WWLOGO.mp4` in the same folder plays
+on every start instead, which is the quickest loop for the routing and skip passes.
 `EVA.mp4` only plays on a first-time-install start.
 
 ## Routing
-- [ ] With `GDI_M02.mp4` beside the game, starting the GDI campaign plays the MP4 (log line above) and the mission loads afterwards exactly as with the VQA.
-- [ ] Rename the file `GDI_M02.MP4` and `gdi_m02.mp4`: both play.
+- [ ] With `INTRO.mp4` beside the game, starting the GDI campaign plays the MP4 (log line above) and the mission loads afterwards exactly as with the VQA.
+- [ ] Rename the file `INTRO.MP4` and `intro.mp4`: both play.
 - [ ] Move the file into `Run\HD\` with `SearchPaths=HD,INI,MIX,Maps` in `OPENTS.INI`: it plays. Remove `HD` from the list: the VQA plays.
 - [ ] `WWLOGO.mp4`, `FS_TITLE.mp4` or `STARTUP.mp4` beside the game route the startup sequence through the new path; `TS_Title.mp4` routes the title screen movie.
 - [ ] Win a mission with `<WinMovie>.mp4` present, lose one with `<LoseMovie>.mp4` present (`Win=`/`Lose=` in the mission's INI name them), and finish a campaign with `<FinalMovie>.mp4` present: each plays through the new path and the flow after it (score screen, map selection, retry dialog, credits) is unchanged.
@@ -41,7 +45,7 @@ renamed `WWLOGO.mp4` in the same folder plays on every start, which is the quick
 - [ ] An in-mission EVA radar movie, the main menu animations and the world map clips still play as VQA with MP4 files of their names present.
 
 ## Picture
-- [ ] Borderless full screen on the 4K display with `ScreenWidth=1920 ScreenHeight=1080`: the 4K MP4 fills the whole window with no border and every pixel of the source is visible (a 1-pixel test pattern stays sharp; the game frame's own scaling does not apply).
+- [ ] Borderless full screen on the 4K display with `ScreenWidth=1920 ScreenHeight=1080`: the 4K `INTRO.mp4` fills the whole window with no border and every pixel of the source is visible (a 1-pixel test pattern stays sharp; the game frame's own scaling does not apply).
 - [ ] The same in a 1280x720 window: the movie shrinks to the window, centered, keeping its shape.
 - [ ] `StretchMovies=no`: a 1920x1080 MP4 in a 3840x2160 window shows at exactly twice its size (fills it); a 1280x720 MP4 shows at twice its size with a black border; the same files with `StretchMovies=yes` grow to the window's edge.
 - [ ] A 640x400 re-encode (no scale filter) shows at 5x in a 3840x2160 window with `StretchMovies=no` (3200x2000, bordered) and at 3456x2160 with `yes`.
