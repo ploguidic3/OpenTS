@@ -499,6 +499,32 @@ class StageTests(unittest.TestCase):
                                                     backend="lanczos")
         self.assertEqual(ran, 0)
 
+    def test_upscale_denoises_by_default(self):
+        dump_frames.dump(self.config, "PROOF", self.clip)
+        self.assertTrue(self.config.denoise_filter)
+        upscale_stage.upscale(self.config, "PROOF", backend="lanczos")
+        self.assertEqual(len(common.frame_files(self.config.denoised_dir("PROOF"))),
+                         SOURCE_FRAMES)
+
+    def test_no_denoise_skips_the_filter(self):
+        dump_frames.dump(self.config, "PROOF", self.clip)
+        upscale_stage.upscale(self.config, "PROOF", backend="lanczos",
+                              use_denoise=False)
+        self.assertFalse(self.config.denoised_dir("PROOF").is_dir())
+
+    def test_an_empty_filter_leaves_the_frames_alone(self):
+        config = make_config(self.root, denoise_filter="")
+        dump_frames.dump(config, "PROOF", self.clip)
+        upscale_stage.upscale(config, "PROOF", backend="lanczos")
+        self.assertFalse(config.denoised_dir("PROOF").is_dir())
+        self.assertEqual(len(common.frame_files(config.upscaled_dir("PROOF"))),
+                         SOURCE_FRAMES)
+
+    def test_the_shipped_configuration_names_a_model_and_a_filter(self):
+        shipped = common.Config.load()
+        self.assertEqual(shipped.upscale_model, "realesr-animevideov3")
+        self.assertIn("deblock", shipped.denoise_filter)
+
     def test_denoise_produces_the_same_frame_count(self):
         dump_frames.dump(self.config, "PROOF", self.clip)
         target = upscale_stage.denoise(self.config, "PROOF")

@@ -148,15 +148,18 @@ run before the upscale, and one to run at encode time. Add your own rather than 
 the shipped ones. The clips land in `work/trial/<NAME>/` at the delivery resolution,
 which is what you will be watching them at.
 
-Once a recipe wins, put its parts into `denoise_filter`, `upscale_model` and
-`post_filter` and run the batch.
+Once a recipe wins, put its parts into `upscale_model`, `denoise_filter` and
+`post_filter` and run the batch. The shipped settings are the
+`animevideo-deblock` recipe: `realesr-animevideov3` over deblocked and denoised
+frames.
 
 ### Denoise
 
-`--denoise` runs the `denoise_filter` from `config.json` over the frames before the
-upscale. `--post-filter` on `encode.py` appends a filter chain after the scale, which
-is where a temporal smoother such as `atadenoise` goes. Both cost real detail as well
-as noise.
+`denoise_filter` from `config.json` runs over the frames before every upscale;
+`--no-denoise` skips it for one run, and an empty filter means there is nothing to
+skip. `--post-filter` on `encode.py` appends a filter chain after the scale, which is
+where a temporal smoother such as `atadenoise` goes. Both cost real detail as well as
+noise.
 
 ### Frame rate
 

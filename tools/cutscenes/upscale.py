@@ -284,11 +284,16 @@ def upscale_dir(config: Config, source: Path, target: Path,
 
 
 def upscale(config: Config, name: str, backend: str = "realesrgan",
-            use_denoise: bool = False, fmt: str = "png",
+            use_denoise: bool = True, fmt: str = "png",
             force: bool = False) -> tuple[Path, int, float]:
-    """Enlarges one movie's frames. Returns the directory, frames run and frames/s."""
+    """Enlarges one movie's frames. Returns the directory, frames run and frames/s.
+
+    The configured denoise filter runs first unless use_denoise is false; an
+    empty filter means there is nothing to run.
+    """
     name = name.upper()
-    source = denoise(config, name, force=force) if use_denoise else config.frames_dir(name)
+    source = (denoise(config, name, force=force)
+              if use_denoise and config.denoise_filter else config.frames_dir(name))
     return upscale_dir(config, source, config.upscaled_dir(name),
                        backend=backend, fmt=fmt, force=force)
 
@@ -319,8 +324,8 @@ def main() -> int:
     parser.add_argument("movie", help="movie name, without an extension")
     parser.add_argument("--backend", choices=BACKENDS, default="realesrgan",
                         help="realesrgan (default) or lanczos, which only rescales")
-    parser.add_argument("--denoise", action="store_true",
-                        help="run the configured denoise filter before upscaling")
+    parser.add_argument("--no-denoise", dest="denoise", action="store_false",
+                        help="skip the configured denoise filter")
     parser.add_argument("--format", dest="fmt", choices=("png", "jpg"), default="png",
                         help="intermediate frame format; jpg trades quality for disk")
     parser.add_argument("--rife", action="store_true",

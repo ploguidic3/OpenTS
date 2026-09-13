@@ -30,7 +30,7 @@ def _sources_present(config: Config) -> list[str]:
 
 
 def run_one(config: Config, name: str, source: Path | None = None,
-            backend: str = "realesrgan", use_denoise: bool = False,
+            backend: str = "realesrgan", use_denoise: bool = True,
             fmt: str = "png", use_rife: bool = False, preview: bool = False,
             force: bool = False, keep_frames: bool = True) -> dict:
     """Runs stages 2 to 4 for one movie and returns its manifest entry."""
@@ -67,7 +67,7 @@ def run_one(config: Config, name: str, source: Path | None = None,
             "has_audio": media.has_audio,
         },
         "backend": backend,
-        "denoise": bool(use_denoise),
+        "denoise": config.denoise_filter if use_denoise else "",
         "rife": bool(use_rife),
         "preview": bool(preview),
         "output": str(output),
@@ -103,8 +103,8 @@ def command_proof(config: Config, args) -> int:
     common.log(f"Proof of {args.movie.upper()}")
     common.log(f"  source          {source['width']}x{source['height']} "
                f"@ {source['fps']:g} fps, {source['frames']} frames")
-    common.log(f"  upscale         {entry['backend']}"
-               f"{' + denoise' if entry['denoise'] else ''}, "
+    common.log(f"  upscale         {entry['backend']} {config.upscale_model}"
+               f"{' + ' + entry['denoise'] if entry['denoise'] else ''}, "
                f"{entry['upscale_frames_per_second']:g} frames/s")
     common.log(f"  output          {entry['output']}")
     common.log(f"  output size     {entry['output_bytes'] / (1 << 20):.2f} MiB")
@@ -261,8 +261,8 @@ def main() -> int:
     def add_upscale_options(sub):
         sub.add_argument("--backend", choices=upscale_stage.BACKENDS, default="realesrgan",
                          help="realesrgan (default) or lanczos, which only rescales")
-        sub.add_argument("--denoise", action="store_true",
-                         help="denoise before upscaling")
+        sub.add_argument("--no-denoise", dest="denoise", action="store_false",
+                         help="skip the configured denoise filter")
         sub.add_argument("--format", dest="fmt", choices=("png", "jpg"), default="png",
                          help="intermediate frame format")
         sub.add_argument("--rife", action="store_true",
