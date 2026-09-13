@@ -116,12 +116,47 @@ The sound track is rewritten to 48 kHz stereo rather than kept at the VQA's own
 22050 Hz mono. The Windows decoder the engine plays these files with mis-handles that
 rate, and the symptom is a stuttering picture with broken sound rather than an error.
 
+### Shimmer
+
+Real-ESRGAN sees one frame at a time. It has no idea what the previous frame looked
+like, so anything in the picture that is noise rather than content is reconstructed
+differently every frame, and the result crawls. A VQA gives it plenty to work with: the
+codec quantises 4x4 blocks against a per-frame codebook at 15-bit colour, so block
+edges, dither and codebook churn all move frame to frame, and the upscale sharpens
+every bit of it into detail that was never there.
+
+Two things help, in this order:
+
+- **Clean the source first.** `deblock=filter=strong:block=4` matches the codec's block
+  size, and a temporal denoise such as `hqdn3d=4:3:6:6` removes what varies between
+  frames while keeping what does not. This is where most of the shimmer goes.
+- **Change the model.** `realesr-animevideov3` is trained for video and is markedly
+  steadier than `realesrgan-x4plus`, at the cost of flattening fine texture. Which
+  trade is right depends on the shot.
+
+A still cannot show shimmer, so `compare` cannot settle this. `trial` encodes the same
+short segment several ways and leaves the clips side by side to be watched:
+
+```powershell
+python pipeline.py trial GDI_M02                       # every recipe, 120 frames
+python pipeline.py trial GDI_M02 --only plain deblock  # just these two
+python pipeline.py trial GDI_M02 --start 900 --length 200
+```
+
+The recipes are the `trials` list in `config.json`: a name, a model, a filter chain to
+run before the upscale, and one to run at encode time. Add your own rather than editing
+the shipped ones. The clips land in `work/trial/<NAME>/` at the delivery resolution,
+which is what you will be watching them at.
+
+Once a recipe wins, put its parts into `denoise_filter`, `upscale_model` and
+`post_filter` and run the batch.
+
 ### Denoise
 
-`--denoise` runs `hqdn3d=2:1:3:3` over the frames before the upscale. Real-ESRGAN
-works frame by frame, so film grain resolves differently in consecutive frames and
-shimmers. Judge it on one clip with `pipeline.py compare` before spending the batch
-on it; the filter costs detail as well as grain.
+`--denoise` runs the `denoise_filter` from `config.json` over the frames before the
+upscale. `--post-filter` on `encode.py` appends a filter chain after the scale, which
+is where a temporal smoother such as `atadenoise` goes. Both cost real detail as well
+as noise.
 
 ### Frame rate
 

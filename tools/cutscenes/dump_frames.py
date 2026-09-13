@@ -56,6 +56,7 @@ def dump(config: Config, name: str, source: Path | None = None,
                 f"{media.frames}. The frame directory is left in place for inspection."
             )
         common.log(f"  frames: {len(present)} written to {frames}")
+    common.write_frame_info(frames, media)
 
     audio = None
     if media.has_audio:

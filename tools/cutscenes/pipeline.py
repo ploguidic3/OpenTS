@@ -8,6 +8,7 @@ output.
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 import shutil
 import sys
@@ -141,6 +142,69 @@ def command_compare(config: Config, args) -> int:
     return 0
 
 
+def command_trial(config: Config, args) -> int:
+    """Encodes one short segment several ways so the motion can be compared.
+
+    Shimmer is temporal, so a still cannot show it. Each recipe is encoded to
+    its own clip of the same frames, to be watched one against another.
+    """
+    name = args.movie.upper()
+    frames = common.frame_files(config.frames_dir(name))
+    if not frames:
+        raise PipelineError(f"no frames for {name}; run dump_frames.py first")
+    recipes = [r for r in config.trials
+               if not args.only or r["name"] in args.only]
+    if not recipes:
+        raise PipelineError(
+            "no recipe selected. config.json lists: "
+            + ", ".join(r["name"] for r in config.trials)
+        )
+
+    length = args.length or config.trial_frames
+    start = args.start if args.start is not None else max(0, len(frames) // 2 - length // 2)
+    segment = frames[start:start + length]
+    if not segment:
+        raise PipelineError(f"frames {start} to {start + length} are outside {name}")
+
+    fps = args.fps or common.frame_rate(config.frames_dir(name))
+    root = common.ensure_dir(config.trial_dir(name))
+    source = common.ensure_dir(root / "source")
+    for stale in source.iterdir():
+        stale.unlink()
+    for position, frame in enumerate(segment, start=1):
+        shutil.copy2(frame, source / f"{position:05d}{frame.suffix}")
+    common.log(f"{name}: frames {start} to {start + len(segment) - 1}, "
+               f"{len(recipes)} recipe(s)")
+
+    produced = []
+    for recipe in recipes:
+        label = recipe["name"]
+        common.log(f"[{label}]")
+        settings = dataclasses.replace(
+            config, upscale_model=recipe.get("model", config.upscale_model))
+        stage = source
+        if recipe.get("denoise"):
+            common.log(f"  pre: {recipe['denoise']}")
+            stage = upscale_stage.filter_frames(
+                source, root / f"{label}-pre", recipe["denoise"],
+                fps=fps, force=args.force)
+        _target, _ran, rate = upscale_stage.upscale_dir(
+            settings, stage, root / f"{label}-up",
+            backend=args.backend, force=args.force)
+        clip = encode_stage.encode(
+            settings, name, frames=root / f"{label}-up", fps=fps,
+            audio=None, force=True, post_filter=recipe.get("post", ""),
+            target=root / f"{label}.mp4")
+        produced.append((label, clip, rate))
+
+    common.log("")
+    common.log(f"Trial clips for {name}, {len(segment)} frames each:")
+    for label, clip, rate in produced:
+        common.log(f"  {label:<20} {clip}  ({clip.stat().st_size / (1 << 20):.1f} MiB"
+                   + (f", {rate:.2f} frames/s)" if rate else ")"))
+    return 0
+
+
 def command_batch(config: Config, args) -> int:
     movies = [n.upper() for n in args.movies] or _sources_present(config)
     if not movies:
@@ -221,6 +285,22 @@ def main() -> int:
     compare.add_argument("--backend", choices=upscale_stage.BACKENDS,
                          default="realesrgan")
 
+    trial = subcommands.add_parser(
+        "trial", help="encode one short segment several ways for comparison")
+    trial.add_argument("movie")
+    trial.add_argument("--start", type=int, default=None,
+                       help="first frame (default: centred on the movie)")
+    trial.add_argument("--length", type=int, default=None,
+                       help="frames per clip (default: trial_frames)")
+    trial.add_argument("--only", nargs="*", default=None,
+                       help="run only these recipes, by name")
+    trial.add_argument("--fps", type=float, default=None,
+                       help="frame rate (default: the rate the frames were dumped at)")
+    trial.add_argument("--backend", choices=upscale_stage.BACKENDS,
+                       default="realesrgan")
+    trial.add_argument("--force", action="store_true",
+                       help="redo work that is already present")
+
     batch = subcommands.add_parser("batch", help="run every extracted movie")
     batch.add_argument("movies", nargs="*",
                        help="movie names (default: everything extracted)")
@@ -237,6 +317,7 @@ def main() -> int:
     return {
         "proof": command_proof,
         "compare": command_compare,
+        "trial": command_trial,
         "batch": command_batch,
         "verify": command_verify,
     }[args.command](config, args)

@@ -16,7 +16,8 @@ from common import Config, PipelineError
 
 def encode(config: Config, name: str, frames: Path | None = None,
            fps: float = 15.0, audio: Path | None = None,
-           preview: bool = False, force: bool = False) -> Path:
+           preview: bool = False, force: bool = False,
+           post_filter: str | None = None, target: Path | None = None) -> Path:
     """Encodes one movie. Returns the output path."""
     name = name.upper()
     frames = Path(frames) if frames else config.upscaled_dir(name)
@@ -26,9 +27,9 @@ def encode(config: Config, name: str, frames: Path | None = None,
         candidate = config.audio_file(name)
         audio = candidate if candidate.is_file() else None
 
-    target = config.output_file(name)
+    target = Path(target) if target else config.output_file(name)
     if preview:
-        target = target.with_name(f"{name}-preview.mp4")
+        target = target.with_name(f"{target.stem}-preview.mp4")
     common.ensure_dir(target.parent)
     if target.is_file() and not force:
         common.log(f"  encode: {target.name} already present")
@@ -37,8 +38,12 @@ def encode(config: Config, name: str, frames: Path | None = None,
     args = ["-framerate", f"{fps:g}", "-i", common.frame_pattern(frames)]
     if audio:
         args += ["-i", str(audio)]
+    chain = f"scale={config.target_width}:{config.target_height}:flags=lanczos"
+    post = config.post_filter if post_filter is None else post_filter
+    if post:
+        chain += f",{post}"
     args += [
-        "-vf", f"scale={config.target_width}:{config.target_height}:flags=lanczos",
+        "-vf", chain,
         "-c:v", "libx264",
         "-preset", config.preset,
         "-crf", str(config.crf),
@@ -66,10 +71,12 @@ def main() -> int:
     parser.add_argument("movie", help="movie name, without an extension")
     parser.add_argument("--frames", type=Path, default=None,
                         help="frame directory to encode (default: the upscaled frames)")
-    parser.add_argument("--fps", type=float, default=15.0,
-                        help="source frame rate; double it after --rife")
+    parser.add_argument("--fps", type=float, default=None,
+                        help="frame rate (default: the rate the frames were dumped at)")
     parser.add_argument("--audio", type=Path, default=None,
                         help="sound track to mux (default: the dumped WAV, if any)")
+    parser.add_argument("--post-filter", dest="post_filter", default=None,
+                        help="ffmpeg filter chain applied after the scale")
     parser.add_argument("--preview", action="store_true",
                         help="encode only the first frames, to a -preview.mp4")
     parser.add_argument("--force", action="store_true",
@@ -78,8 +85,9 @@ def main() -> int:
     config = common.apply_common(args)
 
     common.log(f"Encoding {args.movie.upper()}")
-    encode(config, args.movie, frames=args.frames, fps=args.fps, audio=args.audio,
-           preview=args.preview, force=args.force)
+    fps = args.fps or common.frame_rate(config.frames_dir(args.movie))
+    encode(config, args.movie, frames=args.frames, fps=fps, audio=args.audio,
+           preview=args.preview, force=args.force, post_filter=args.post_filter)
     return 0
 
 

@@ -420,6 +420,21 @@ class StageTests(unittest.TestCase):
         self.assertEqual(rate, self.config.audio_rate)
         self.assertEqual(channels, self.config.audio_channels)
 
+    def test_dump_records_the_rate_beside_the_frames(self):
+        _media, frames, _audio = dump_frames.dump(self.config, "PROOF", self.clip)
+        info = common.read_frame_info(frames)
+        self.assertIsNotNone(info)
+        self.assertAlmostEqual(info.fps, SOURCE_FPS, places=3)
+        self.assertEqual(info.frames, SOURCE_FRAMES)
+        self.assertAlmostEqual(common.frame_rate(frames), SOURCE_FPS, places=3)
+
+    def test_frame_rate_falls_back_when_nothing_was_recorded(self):
+        self.assertEqual(common.frame_rate(self.root / "absent"), 15.0)
+
+    def test_the_sidecar_is_not_counted_as_a_frame(self):
+        _media, frames, _audio = dump_frames.dump(self.config, "PROOF", self.clip)
+        self.assertEqual(len(common.frame_files(frames)), SOURCE_FRAMES)
+
     def test_dump_keeps_a_silent_source_going(self):
         silent = self.root / "SILENT.mp4"
         make_clip(silent, audio=False)
@@ -517,6 +532,24 @@ class StageTests(unittest.TestCase):
         self.assertTrue(output.name.endswith("-preview.mp4"))
         self.assertEqual(common.probe(output).frames, self.config.preview_frames)
 
+    def test_encode_applies_a_post_filter(self):
+        dump_frames.dump(self.config, "PROOF", self.clip)
+        upscale_stage.upscale(self.config, "PROOF", backend="lanczos")
+        plain = encode_stage.encode(self.config, "PROOF", fps=SOURCE_FPS,
+                                    post_filter="", target=self.root / "plain.mp4")
+        filtered = encode_stage.encode(self.config, "PROOF", fps=SOURCE_FPS,
+                                       post_filter="hue=s=0",
+                                       target=self.root / "grey.mp4")
+        self.assertNotEqual(common.md5_of(plain), common.md5_of(filtered))
+
+    def test_encode_reports_a_bad_post_filter(self):
+        dump_frames.dump(self.config, "PROOF", self.clip)
+        upscale_stage.upscale(self.config, "PROOF", backend="lanczos")
+        with self.assertRaises(common.PipelineError):
+            encode_stage.encode(self.config, "PROOF", fps=SOURCE_FPS,
+                                post_filter="nosuchfilter=1",
+                                target=self.root / "bad.mp4")
+
     def test_encode_reports_a_missing_upscale(self):
         with self.assertRaises(common.PipelineError):
             encode_stage.encode(self.config, "NOTHING")
@@ -602,6 +635,41 @@ class DriverTests(unittest.TestCase):
         args = _Args(movie="PROOF", frame=SOURCE_FRAMES, backend="lanczos")
         with self.assertRaises(common.PipelineError):
             pipeline.command_compare(self.config, args)
+
+    def test_trial_encodes_one_clip_for_each_recipe(self):
+        dump_frames.dump(self.config, "PROOF", self.clip)
+        args = _Args(movie="PROOF", start=0, length=4, fps=None,
+                     only=["plain", "deblock"], backend="lanczos", force=False)
+        self.assertEqual(pipeline.command_trial(self.config, args), 0)
+        root = self.config.trial_dir("PROOF")
+        clips = sorted(p.name for p in root.iterdir() if p.suffix == ".mp4")
+        self.assertEqual(clips, ["deblock.mp4", "plain.mp4"])
+        for clip in clips:
+            self.assertEqual(common.probe(root / clip).frames, 4)
+
+    def test_trial_recipes_differ_in_their_output(self):
+        dump_frames.dump(self.config, "PROOF", self.clip)
+        args = _Args(movie="PROOF", start=0, length=4, fps=None,
+                     only=["plain", "deblock"], backend="lanczos", force=False)
+        pipeline.command_trial(self.config, args)
+        root = self.config.trial_dir("PROOF")
+        self.assertNotEqual(common.md5_of(root / "plain.mp4"),
+                            common.md5_of(root / "deblock.mp4"))
+
+    def test_trial_names_the_recipes_when_none_is_selected(self):
+        dump_frames.dump(self.config, "PROOF", self.clip)
+        args = _Args(movie="PROOF", start=0, length=4, only=["nonesuch"], fps=None,
+                     backend="lanczos", force=False)
+        with self.assertRaises(common.PipelineError) as caught:
+            pipeline.command_trial(self.config, args)
+        self.assertIn("plain", str(caught.exception))
+
+    def test_trial_rejects_a_segment_outside_the_movie(self):
+        dump_frames.dump(self.config, "PROOF", self.clip)
+        args = _Args(movie="PROOF", start=SOURCE_FRAMES + 10, length=4, fps=None,
+                     only=["plain"], backend="lanczos", force=False)
+        with self.assertRaises(common.PipelineError):
+            pipeline.command_trial(self.config, args)
 
     def test_verify_separates_optional_from_missing(self):
         rules = self.root / "rules.ini"

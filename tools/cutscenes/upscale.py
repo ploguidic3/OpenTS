@@ -23,6 +23,29 @@ from common import Config, PipelineError
 BACKENDS = ("realesrgan", "lanczos")
 
 
+def filter_frames(source: Path, target: Path, filter_string: str,
+                  fps: float = 15.0, force: bool = False) -> Path:
+    """Runs an ffmpeg filter chain over a frame sequence into another directory.
+
+    The sequence is passed as one input so temporal filters see the frames
+    either side of each one.
+    """
+    frames = common.frame_files(source)
+    if not frames:
+        raise PipelineError(f"no frames in {source}")
+    if force and target.is_dir():
+        shutil.rmtree(common.guard_output(target))
+    if len(common.frame_files(target)) == len(frames):
+        return target
+    common.ensure_dir(target)
+    common.run_ffmpeg([
+        "-framerate", f"{fps:g}", "-i", common.frame_pattern(source),
+        "-vf", filter_string,
+        "-fps_mode", "passthrough", str(target / "%05d.png"),
+    ])
+    return target
+
+
 def denoise(config: Config, name: str, force: bool = False) -> Path:
     """Runs the configured denoise filter over the dumped frames.
 
@@ -40,12 +63,7 @@ def denoise(config: Config, name: str, force: bool = False) -> Path:
     if len(common.frame_files(target)) == len(frames):
         common.log(f"  denoise: {len(frames)} frames already present")
         return target
-    common.ensure_dir(target)
-    common.run_ffmpeg([
-        "-framerate", "15", "-i", common.frame_pattern(source),
-        "-vf", config.denoise_filter,
-        "-fps_mode", "passthrough", str(target / "%05d.png"),
-    ])
+    filter_frames(source, target, config.denoise_filter, force=force)
     common.log(f"  denoise: {config.denoise_filter} -> {target}")
     return target
 
@@ -220,15 +238,17 @@ def upscale_frame(config: Config, frame: Path, target: Path,
     return target
 
 
-def upscale(config: Config, name: str, backend: str = "realesrgan",
-            use_denoise: bool = False, fmt: str = "png",
-            force: bool = False) -> tuple[Path, int, float]:
-    """Enlarges one movie's frames. Returns the directory, frames run and frames/s."""
-    name = name.upper()
-    source = denoise(config, name, force=force) if use_denoise else config.frames_dir(name)
+def upscale_dir(config: Config, source: Path, target: Path,
+                backend: str = "realesrgan", fmt: str = "png",
+                force: bool = False) -> tuple[Path, int, float]:
+    """Enlarges every frame of one directory into another.
+
+    Returns the target, how many frames this call ran, and the rate it managed.
+    Frames already present and complete are left alone, so an interrupted run
+    continues where it stopped.
+    """
     if not common.frame_files(source):
         raise PipelineError(f"no frames in {source}; run dump_frames.py first")
-    target = config.upscaled_dir(name)
     if force and target.is_dir():
         shutil.rmtree(common.guard_output(target))
     common.ensure_dir(target)
@@ -236,16 +256,15 @@ def upscale(config: Config, name: str, backend: str = "realesrgan",
     suffix = f".{fmt}"
     # The staging directory sits beside the output so the frames can be linked
     # rather than copied, and so nothing crosses a drive.
-    staging = common.ensure_dir(target.parent / f".staging-{name}")
+    staging = common.ensure_dir(target.parent / f".staging-{target.name}")
     try:
         for stale in staging.iterdir():
             stale.unlink()
-        already = len(common.frame_files(target))
         pending = _stage_missing(source, target, suffix, staging)
+        already = len(common.frame_files(target))
         if not pending:
             common.log(f"  upscale: {already} frames already present")
             return target, 0, 0.0
-        already = len(common.frame_files(target))
         common.log(f"  upscale: {len(pending)} frame(s) through {backend} -> {target}")
         started = time.monotonic()
         with _Progress(target, already, len(pending)):
@@ -254,7 +273,7 @@ def upscale(config: Config, name: str, backend: str = "realesrgan",
         produced = len(common.frame_files(target)) - already
         if produced != len(pending):
             raise PipelineError(
-                f"{name}: {backend} produced {produced} of {len(pending)} frames"
+                f"{target.name}: {backend} produced {produced} of {len(pending)} frames"
             )
     finally:
         shutil.rmtree(staging, ignore_errors=True)
@@ -262,6 +281,16 @@ def upscale(config: Config, name: str, backend: str = "realesrgan",
     rate = len(pending) / elapsed
     common.log(f"  upscale: {len(pending)} frames in {elapsed:.1f}s ({rate:.2f} frames/s)")
     return target, len(pending), rate
+
+
+def upscale(config: Config, name: str, backend: str = "realesrgan",
+            use_denoise: bool = False, fmt: str = "png",
+            force: bool = False) -> tuple[Path, int, float]:
+    """Enlarges one movie's frames. Returns the directory, frames run and frames/s."""
+    name = name.upper()
+    source = denoise(config, name, force=force) if use_denoise else config.frames_dir(name)
+    return upscale_dir(config, source, config.upscaled_dir(name),
+                       backend=backend, fmt=fmt, force=force)
 
 
 def interpolate(config: Config, name: str, source: Path, force: bool = False) -> Path:

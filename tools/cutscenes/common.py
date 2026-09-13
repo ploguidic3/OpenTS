@@ -54,6 +54,9 @@ class Config:
     audio_channels: int
     preview_frames: int
     denoise_filter: str
+    post_filter: str
+    trial_frames: int
+    trials: tuple
     optional_movies: tuple[str, ...]
     movie_mixes: tuple[str, ...]
 
@@ -80,6 +83,9 @@ class Config:
             audio_channels=int(data["audio_channels"]),
             preview_frames=int(data["preview_frames"]),
             denoise_filter=data["denoise_filter"],
+            post_filter=str(data.get("post_filter", "")),
+            trial_frames=int(data.get("trial_frames", 120)),
+            trials=tuple(data.get("trials", ())),
             optional_movies=tuple(n.upper() for n in data["optional_movies"]),
             movie_mixes=tuple(data["movie_mixes"]),
         )
@@ -104,6 +110,9 @@ class Config:
 
     def output_file(self, name: str) -> Path:
         return self.out / f"{name.upper()}.mp4"
+
+    def trial_dir(self, name: str) -> Path:
+        return self.work / "trial" / name.upper()
 
     def compare_dir(self) -> Path:
         return self.work / "compare"
@@ -349,6 +358,37 @@ def frame_pattern(directory: Path) -> str:
     files = frame_files(directory)
     suffix = files[0].suffix if files else ".png"
     return str(Path(directory) / f"%05d{suffix}")
+
+
+INFO_NAME = ".info.json"
+
+
+def write_frame_info(directory: Path, media: "MediaInfo") -> Path:
+    """Records a dumped movie's rate and geometry beside its frames.
+
+    Later stages read this rather than the source, which they may not have.
+    """
+    path = guard_output(Path(directory) / INFO_NAME)
+    path.write_text(json.dumps(dataclasses.asdict(media), indent=2) + "\n",
+                    encoding="utf-8")
+    return path
+
+
+def read_frame_info(directory: Path) -> MediaInfo | None:
+    """Returns what was recorded for a frame directory, or None if nothing was."""
+    path = Path(directory) / INFO_NAME
+    if not path.is_file():
+        return None
+    try:
+        return MediaInfo(**json.loads(path.read_text(encoding="utf-8")))
+    except (ValueError, TypeError):
+        return None
+
+
+def frame_rate(directory: Path, fallback: float = 15.0) -> float:
+    """Returns the recorded frame rate of a frame directory, or the fallback."""
+    info = read_frame_info(directory)
+    return info.fps if info and info.fps else fallback
 
 
 def md5_of(path: Path) -> str:
