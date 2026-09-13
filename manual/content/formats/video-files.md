@@ -8,6 +8,7 @@ extensions:
 role: video
 source_files:
   - code/video/videomovie.cpp
+  - code/intro.cpp
   - code/video/mfplayer.cpp
   - code/video/videosink.cpp
   - code/movie.cpp
@@ -26,6 +27,8 @@ A container movie is a loose `.mp4` that plays in place of a full screen [VQA](/
 ## Naming and placement
 
 The file is named for the movie it replaces, without the `.VQA` extension: `GDI_M02.mp4` stands in for `GDI_M02`, and `WWLOGO.mp4` for the `WWLOGO.VQA` the startup sequence names outright. Case does not matter. Whatever extension the movie name carries is dropped before `.mp4` is added.
+
+Not every name is written into the code that asks for it. The cinema that opens a campaign's first mission is looked for as `INTR<n>.VQA`, where `<n>` is the campaign's CD number, and as `INTRO.VQA` only where no file of that name is present; the stock GDI campaign resolves to `INTR0`, so `INTR0.mp4` is what stands in for it and `INTRO.mp4` is never consulted. The [debug log](/using/debug-logging/) names every full screen movie the game asks for and the container file found for it, or records that none was found, so a movie that keeps playing as a VQA is a question the log answers.
 
 The file is found the way any loose file is: the user directory, the current directory and then [the folders `SearchPaths` names](/formats/opents-ini/#the-order-files-are-searched-for-in), in that order. A deployment can keep its movies in a folder of their own by adding it to `SearchPaths`. A `.mp4` inside a MIX archive is never played.
 
