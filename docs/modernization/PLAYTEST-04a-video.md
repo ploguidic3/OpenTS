@@ -22,9 +22,10 @@ logging only.
 | A file that is not a movie | Falls back to the VQA in the same request, no perceptible delay |
 | Focus loss and ESC | Picture and sound stop and resume together; ESC ends the movie |
 | Name resolution | `INTR0.mp4` is taken for the campaign's opening cinema |
+| `StretchMovies` | Both fits confirmed on a 2560x1440 display |
 
-Outstanding: the `StretchMovies` comparison under Picture, and everything the checklist
-marks that needs a second machine or a long movie.
+Outstanding: everything the checklist marks that needs a second machine, a long movie, or a
+display other than 2560x1440.
 
 ## Making a test file
 
@@ -73,10 +74,27 @@ this first if a movie plays as VQA unexpectedly, rather than guessing the file n
 - [ ] An in-mission EVA radar movie, the main menu animations and the world map clips still play as VQA with MP4 files of their names present.
 
 ## Picture
-- [ ] Borderless full screen on the 4K display with `ScreenWidth=1920 ScreenHeight=1080`: the 4K `INTR0.mp4` fills the whole window with no border. It looks like one clean upscale of the 640x400 source, not the game's own frame buffer resampled a second time on top of ffmpeg's own scale — no visible pixel grid, no extra softness beyond what the `lanczos` filter itself put in. Burned-in text from the original video stays soft after a plain `lanczos` upscale; that is the source's native resolution showing, not a defect in this path, and is what prompt 04b's Real-ESRGAN pipeline exists to fix.
+
+The movie keeps its shape and sits centered. `StretchMovies=yes` scales it by whichever of
+width and height runs out first. `no` cuts that factor down to a whole number, and is
+ignored where the window is smaller than the movie, since there is no whole number to cut
+to. Shape is preserved either way, so a movie shaped unlike the display keeps bars on two
+sides under both settings: the 16:10 retail movies never reach the left and right edges of
+a 16:9 screen, and reaching them is not what to look for.
+
+From a 640x400 re-encode with no scale filter:
+
+| Display | `StretchMovies=yes` | `StretchMovies=no` |
+| --- | --- | --- |
+| 2560x1440 | 2304x1440, a bar of 128 at each side | 1920x1200, bordered all round |
+| 3840x2160 | 3456x2160, a bar of 192 at each side | 3200x2000, bordered all round |
+
+A 4K re-encode shown on a 2560x1440 display scales below 1, so the whole-number rule does
+not apply and both settings give 2304x1440.
+
+- [ ] Both cells of the row for the display to hand, measured rather than judged by eye.
+- [ ] Borderless full screen with `ScreenWidth=1920 ScreenHeight=1080` and a re-encode at the display's own height or larger: the picture looks like one clean upscale of the 640x400 source, not the game's own frame buffer resampled a second time on top of ffmpeg's scale. No visible pixel grid, no softness beyond what `lanczos` itself put in. Burned-in text from the original video stays soft; that is the source's native resolution showing, not a defect in this path, and is what prompt 04b's Real-ESRGAN pipeline exists to fix.
 - [ ] The same in a 1280x720 window: the movie shrinks to the window, centered, keeping its shape.
-- [ ] `StretchMovies=no`: a 1920x1080 MP4 in a 3840x2160 window shows at exactly twice its size (fills it); a 1280x720 MP4 shows at twice its size with a black border; the same files with `StretchMovies=yes` grow to the window's edge.
-- [ ] A 640x400 re-encode (no scale filter) shows at 5x in a 3840x2160 window with `StretchMovies=no` (3200x2000, bordered) and at 3456x2160 with `yes`.
 - [ ] Resize the window while the movie plays (windowed mode): the picture follows the new size on the next frame.
 - [ ] Alt-tab away and back mid-movie: the picture and sound stop together and resume together where they stopped; no stale game frame flashes over the movie, and the game screen is drawn correctly after the movie ends.
 - [ ] After the movie the mouse pointer is back and the screen behind it is clean (no leftover movie frame under menus or the loading screen).
