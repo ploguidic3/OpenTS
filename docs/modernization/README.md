@@ -67,6 +67,11 @@ Rules that make this go well:
 | 4 | `04a-video-playback.md` then `04b-cutscene-pipeline.md` | Engine path first (test it with any MP4), then the upscale pipeline. |
 | 5 | `05a-voxel-scale.md`, `05b-asset-scale-mode.md`, `05c-shp-upscale-pipeline.md`, `05d-terrain.md` | Largest project; each step leaves the game playable. |
 
+A phase that builds on the one before it belongs on that phase's branch, not on a branch
+chosen before it existed. `04b` writes into `manual/content/formats/video-files.md`, which
+`04a` creates, so `04b` goes on `fork/video-playback`. Tell the session so at the start;
+a session that is handed a different branch by its harness will otherwise take that one.
+
 ## What is in `kb/`
 
 | File | Covers |
