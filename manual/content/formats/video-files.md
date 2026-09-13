@@ -37,7 +37,7 @@ Three uses keep to VQA whatever files are present: the movies that play inside t
 
 ## What the decoder accepts
 
-Media Foundation decodes H.264 video with AAC audio in an MP4 container on every edition of Windows 10 and later that carries the media components. HEVC and AV1 need the codec extensions from the Microsoft Store. The picture is taken at whatever size and frame rate the file declares; the sound track is taken at its own rate and mixed like any other sound, with any channels beyond the front pair dropped.
+Media Foundation decodes H.264 video with AAC audio in an MP4 container on every edition of Windows 10 and later that carries the media components. HEVC and AV1 need the codec extensions from the Microsoft Store. The picture is taken at whatever size and frame rate the file declares; the sound track is taken at its own rate and mixed like any other sound, with any channels beyond the front pair dropped. Encode the sound at 44.1 or 48 kHz in stereo: an AAC track at 22050 Hz mono, the rate of the original VQA tracks, comes out of the Windows decoder wrong and plays as a stuttering picture with broken sound.
 
 A file that does not open, or one that yields no picture, is passed over and the VQA of the same name plays instead, in the same request. A file that fails partway through ends where it fails and the VQA does not follow it. On an N edition or a server without the media feature no container movie plays and every VQA plays as before.
 

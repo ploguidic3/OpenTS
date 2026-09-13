@@ -14,9 +14,12 @@ the user directory, the game directory, or a folder named in `OPENTS.INI [Paths]
 Extract `GDI1.VQA` from `MOVIES01.MIX` (any MIX tool, or XCC Mixer), then re-encode it:
 
 ```
-ffmpeg -i GDI1.VQA -vsync 0 -c:v libx264 -pix_fmt yuv420p -profile:v high -crf 18 -c:a aac -b:a 160k -movflags +faststart GDI1.mp4
+ffmpeg -i GDI1.VQA -vsync 0 -c:v libx264 -pix_fmt yuv420p -profile:v high -crf 18 -c:a aac -ar 48000 -ac 2 -b:a 160k -movflags +faststart GDI1.mp4
 ```
 
+`-ar 48000 -ac 2` is required, not optional: the VQA track is mono at 22050 Hz, and an AAC
+track kept at that rate plays through Windows' decoder as choppy picture with broken sound.
+Resampled to 48 kHz stereo it plays cleanly (observed 13 Sep 2026 with `WWLOGO.mp4`).
 `-vsync 0` keeps the native frame count. For a 4K test add `-vf "scale=3840:2400:flags=lanczos"`
 before `-c:a`. For a silent file add `-an` and drop the `-c:a`/`-b:a` pair. ffmpeg 5.1 or later
 decodes the version 3 VQAs; check the source with `ffprobe GDI1.VQA` (expect 640x400, 15 fps).
@@ -48,7 +51,7 @@ renamed `WWLOGO.mp4` in the same folder plays on every start, which is the quick
 - [ ] Sound starts within the first frame and lip sync at the start matches the VQA's.
 - [ ] Let a long movie run (`INTRO.mp4`, or any 3 minute re-encode) to the 3 minute mark: lip sync has not drifted.
 - [ ] A silent re-encode (`-an`) plays at the right speed and ends when the picture ends.
-- [ ] A re-encode with 44.1 kHz audio (`-ar 44100`) plays at the right pitch and speed.
+- [ ] A re-encode with 44.1 kHz stereo audio (`-ar 44100 -ac 2`) plays at the right pitch and speed. A 22050 Hz mono AAC track is known not to; keep every encode at 44.1 or 48 kHz stereo.
 - [ ] Lower the movie volume in the audio options: the MP4 sound follows the same setting a VQA's does.
 - [ ] Unplug or switch the audio device mid-movie: the picture keeps moving and the movie still ends.
 
