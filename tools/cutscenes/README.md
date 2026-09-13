@@ -109,7 +109,12 @@ command line.
 
 `config.json` holds the delivery size, the model and GPU index, the encoder settings,
 the denoise filter, and `optional_movies` — the names `verify` accepts as having no
-MP4. The logos, the two title screens and `SIZZLE1` are in that list.
+MP4. The logos and the two title screens are in that list.
+
+`extra_movies` names movies the code asks for that no table lists. `Choose_Side`
+(`code/intro.cpp:59`) asks for `INTR<n>` by the campaign's disc number rather than the
+`INTRO` its enumerator carries, so the opening cinema is `INTR0` on a stock install and
+`INTRO.mp4` is never consulted.
 
 ### Sound
 

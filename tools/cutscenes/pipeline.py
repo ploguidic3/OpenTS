@@ -237,7 +237,7 @@ def command_batch(config: Config, args) -> int:
 
 def command_verify(config: Config, args) -> int:
     """Reports what each named movie has: an output, a source, or neither."""
-    movies = common.movie_names(args.rules)
+    movies = common.movie_names(args.rules, config.extra_movies)
     encoded, ready, optional, missing = [], [], [], []
     for name in movies:
         if config.output_file(name).is_file():

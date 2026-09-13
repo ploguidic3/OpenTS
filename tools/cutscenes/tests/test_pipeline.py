@@ -322,6 +322,27 @@ class MovieInventoryTests(unittest.TestCase):
         for sentinel in ("NONE", "COUNT", "FIRST"):
             self.assertNotIn(sentinel, names)
 
+    def test_extra_names_are_appended(self):
+        names = common.movie_names(None, ("INTR0", "SIZZLE1"))
+        self.assertEqual(names[-2:], ["INTR0", "SIZZLE1"])
+        self.assertIn("GDI_M02", names)
+
+    def test_an_extra_name_already_in_the_table_is_not_repeated(self):
+        names = common.movie_names(None, ("GDI_M02", "INTR0"))
+        self.assertEqual(names.count("GDI_M02"), 1)
+        self.assertEqual(names[-1], "INTR0")
+
+    def test_the_shipped_configuration_asks_for_the_opening_cinema(self):
+        config = common.Config.load()
+        self.assertIn("INTR0", config.extra_movies)
+        self.assertIn("INTR0", common.movie_names(None, config.extra_movies))
+
+    def test_extra_names_follow_a_rules_ini_too(self):
+        with TemporaryDirectory() as temp:
+            rules = Path(temp) / "rules.ini"
+            rules.write_text("[Movies]\n1=GDI1\n", encoding="utf-8")
+            self.assertEqual(common.movie_names(rules, ("INTR0",)), ["GDI1", "INTR0"])
+
     def test_rules_ini_wins_when_it_is_there(self):
         with TemporaryDirectory() as temp:
             rules = Path(temp) / "rules.ini"
@@ -817,13 +838,22 @@ class DriverTests(unittest.TestCase):
             pipeline.command_trial(self.config, args)
 
     def test_verify_separates_optional_from_missing(self):
+        config = make_config(self.root, extra_movies=[])
         rules = self.root / "rules.ini"
         rules.write_text("[Movies]\n1=GDI1\n2=WWLOGO\n", encoding="utf-8")
         args = _Args(rules=rules)
-        self.assertEqual(pipeline.command_verify(self.config, args), 1)
-        common.ensure_dir(self.config.out)
-        self.config.output_file("GDI1").write_bytes(b"")
-        self.assertEqual(pipeline.command_verify(self.config, args), 0)
+        self.assertEqual(pipeline.command_verify(config, args), 1)
+        common.ensure_dir(config.out)
+        config.output_file("GDI1").write_bytes(b"")
+        self.assertEqual(pipeline.command_verify(config, args), 0)
+
+    def test_verify_counts_an_extracted_source_as_ready(self):
+        config = make_config(self.root, extra_movies=[])
+        rules = self.root / "rules.ini"
+        rules.write_text("[Movies]\n1=GDI1\n", encoding="utf-8")
+        common.ensure_dir(config.work / "vqa")
+        config.vqa_file("GDI1").write_bytes(b"source")
+        self.assertEqual(pipeline.command_verify(config, _Args(rules=rules)), 0)
 
 
 class _Args:

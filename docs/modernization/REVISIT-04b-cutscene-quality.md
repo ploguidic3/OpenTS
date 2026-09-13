@@ -48,6 +48,10 @@ batch. A still cannot show the defect being fixed.
   `code/vq.hh` rather than from `rules.ini [Movies]`, and a MIX can only be asked for
   exact names, so the files may exist under names that were never asked for. Extract
   `rules.ini` from `TIBSUN.MIX` and pass `--rules` to settle it.
+- The inventory is `rules.ini [Movies]` plus `config.json`'s `extra_movies`. Anything
+  else the code asks for by a bare name is not encoded and plays as a VQA. `SIZZLE1` and
+  `INTR0` through `INTR3` are listed; the other bare-string sites in
+  `kb/03-movies-and-video.md` section 2 have not been checked against it.
 - `--rife` for 15 to 30 fps was never evaluated.
 - `post_filter` is empty. A temporal smoother such as `atadenoise` after the scale was
   written and tested but not judged against a clip.

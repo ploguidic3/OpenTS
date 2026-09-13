@@ -86,7 +86,8 @@ def main() -> int:
     data_dir = args.data
     if not data_dir.is_dir():
         raise PipelineError(f"{data_dir} is not a directory")
-    movies = [name.upper() for name in args.movies] or common.movie_names(args.rules)
+    movies = ([name.upper() for name in args.movies]
+              or common.movie_names(args.rules, config.extra_movies))
 
     common.log(f"Extracting {len(movies)} movie name(s) from {data_dir}")
     if args.verbose:

@@ -59,6 +59,7 @@ class Config:
     trials: tuple
     optional_movies: tuple[str, ...]
     movie_mixes: tuple[str, ...]
+    extra_movies: tuple[str, ...]
 
     @classmethod
     def load(cls, path: Path | None = None) -> "Config":
@@ -88,6 +89,7 @@ class Config:
             trials=tuple(data.get("trials", ())),
             optional_movies=tuple(n.upper() for n in data["optional_movies"]),
             movie_mixes=tuple(data["movie_mixes"]),
+            extra_movies=tuple(n.upper() for n in data.get("extra_movies", ())),
         )
 
     def frames_dir(self, name: str) -> Path:
@@ -407,18 +409,23 @@ _ENUM_RE = re.compile(r"^\s*VQ_([A-Z0-9_]+)\s*[,=]", re.MULTILINE)
 _SKIP_ENUMERATORS = {"NONE", "COUNT", "FIRST"}
 
 
-def movie_names(rules_ini: Path | None = None) -> list[str]:
-    """Returns the campaign movie names, from rules.ini when it is available.
+def movie_names(rules_ini: Path | None = None, extra=()) -> list[str]:
+    """Returns the movie names to encode, in inventory order.
 
     ``rules.ini [Movies]`` is the table the game actually loads; its order must
-    match ``code/vq.hh``. Without the retail file the enumerator names stand in,
-    which is the same inventory under the same names.
+    match ``code/vq.hh``. Without the retail file the enumerator names stand in.
+    Neither table is the whole story: some movies are asked for by name in the
+    code and appear in no table, so ``extra`` is appended. ``Choose_Side``
+    (``code/intro.cpp:59``) asks for ``INTR<n>`` by the campaign's disc number,
+    which is the opening cinema and is in no table at all.
     """
+    names = []
     if rules_ini and Path(rules_ini).is_file():
         names = _movies_from_rules(Path(rules_ini))
-        if names:
-            return names
-    return _movies_from_enum(ROOT / "code" / "vq.hh")
+    if not names:
+        names = _movies_from_enum(ROOT / "code" / "vq.hh")
+    seen = {name.upper() for name in names}
+    return names + [name for name in extra if name.upper() not in seen]
 
 
 def _movies_from_rules(path: Path) -> list[str]:

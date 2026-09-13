@@ -59,6 +59,13 @@
     "MOVIES01.MIX",
     "MOVIES02.MIX"
   ],
+  "extra_movies": [
+    "INTR0",
+    "INTR1",
+    "INTR2",
+    "INTR3",
+    "SIZZLE1"
+  ],
   "optional_movies": [
     "SIZZLE1",
     "WWLOGO",
