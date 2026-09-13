@@ -228,6 +228,12 @@ double VideoSinkClass::Clock_Seconds(void)
 }
 
 
+unsigned VideoSinkClass::Underruns(void) const
+{
+	return(Stream != nullptr ? Stream->Underruns.load(std::memory_order_relaxed) : 0);
+}
+
+
 bool VideoSinkClass::Is_Drained(void)
 {
 	if (Handle.Is_Null()) {

@@ -57,6 +57,9 @@ class VideoSinkClass : public AudioStreamProducerClass
 		// Whether every queued sample has left the mixer, or the voice is gone.
 		bool Is_Drained(void);
 
+		// Times the mixer found the ring empty.
+		unsigned Underruns(void) const;
+
 		// The feeder's own hooks. Close does nothing: the stream is released by Release,
 		// on the game thread, once the feeder has let go.
 		bool Fill(AudioStreamClass & stream) override;

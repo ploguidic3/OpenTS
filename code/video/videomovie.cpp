@@ -161,6 +161,9 @@ class PlaybackClass
 		bool Exhausted = false;
 		bool Presented = false;
 		bool Refused = false;
+		unsigned Shown = 0;
+		unsigned Dropped = 0;
+		unsigned Decoded = 0;
 		std::deque<PendingFrame> Frames;
 		PendingFrame LastShown;
 
@@ -196,6 +199,7 @@ void PlaybackClass::Decode_Ahead(double clock)
 				frame.Height = Packet.Height;
 				frame.Seconds = Packet.Seconds;
 				Frames.push_back(std::move(frame));
+				Decoded++;
 				break;
 			}
 
@@ -227,6 +231,7 @@ bool PlaybackClass::Present(double clock, bool integerfit, DSurface * overlaysur
 	while (Frames.size() > 1 && Frames[1].Seconds <= clock) {
 		Spare.push_back(std::move(Frames.front().Bgra));
 		Frames.pop_front();
+		Dropped++;
 	}
 	PendingFrame & frame = Frames.front();
 
@@ -235,6 +240,7 @@ bool PlaybackClass::Present(double clock, bool integerfit, DSurface * overlaysur
 		hasoverlay ? Overlay.Bgra.data() : NULL, Overlay.Width * 4, Overlay.Width, Overlay.Height, Overlay.X, Overlay.Y, OVERLAY_REFERENCE_HEIGHT);
 	if (shown) {
 		Presented = true;
+		Shown++;
 		if (!LastShown.Bgra.empty()) {
 			Spare.push_back(std::move(LastShown.Bgra));
 		}
@@ -337,7 +343,11 @@ bool Play_Video_File(char const * path, ThemeType theme, bool stretch, bool clrs
 		DebugString("Video: \"%s\" is too small to show\n", path);
 		return(false);
 	}
-	DebugString("Video: playing \"%s\" %dx%d at %.2f fps%s\n", path, player->Width(), player->Height(), player->Frame_Rate(), player->Has_Audio() ? "" : " (no sound)");
+	if (player->Has_Audio()) {
+		DebugString("Video: playing \"%s\" %dx%d at %.2f fps, sound %u Hz %u channel(s)\n", path, player->Width(), player->Height(), player->Frame_Rate(), player->Audio_Rate(), player->Audio_Channels());
+	} else {
+		DebugString("Video: playing \"%s\" %dx%d at %.2f fps (no sound)\n", path, player->Width(), player->Height(), player->Frame_Rate());
+	}
 
 	VideoSinkClass sink;
 	if (player->Has_Audio()) {
@@ -372,6 +382,8 @@ bool Play_Video_File(char const * path, ThemeType theme, bool stretch, bool clrs
 	bool brokeout = false;
 	bool sleeping = false;
 	unsigned long drainstart = 0;
+	unsigned long const wallstart = timeGetTime();
+	unsigned long nextreport = wallstart + 5000;
 
 	while (true) {
 		VQA_Message_Handler();
@@ -399,6 +411,12 @@ bool Play_Video_File(char const * path, ThemeType theme, bool stretch, bool clrs
 		double clock = sink.Clock_Seconds();
 		playback.Decode_Ahead(clock);
 
+		if ((long)(timeGetTime() - nextreport) >= 0) {
+			nextreport += 5000;
+			DebugString("Video: clock %.2f s at wall %.2f s, %u shown, %u dropped, %u decoded, %.2f s of sound queued, %u underruns\n",
+				clock, (double)(timeGetTime() - wallstart) / 1000.0, playback.Shown, playback.Dropped, playback.Decoded, sink.Queued_Seconds(), sink.Underruns());
+		}
+
 		if (playback.Present(clock, integerfit, overlaysurface.get())) {
 			continue;
 		}
@@ -419,6 +437,9 @@ bool Play_Video_File(char const * path, ThemeType theme, bool stretch, bool clrs
 
 		Sleep(1);
 	}
+
+	DebugString("Video: %s after %.2f s: clock %.2f s, %u shown, %u dropped, %u decoded, %u underruns\n",
+		brokeout ? "skipped" : "ended", (double)(timeGetTime() - wallstart) / 1000.0, sink.Clock_Seconds(), playback.Shown, playback.Dropped, playback.Decoded, sink.Underruns());
 
 	sink.Stop();
 	sink.Release();
