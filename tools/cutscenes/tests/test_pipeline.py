@@ -287,6 +287,26 @@ class ExtractionTests(unittest.TestCase):
         found = extract_movies.extract(self.config, self.data, ["GDI1"])
         self.assertEqual(found["GDI1"].read_bytes(), b"one" * 8)
 
+    def test_search_all_finds_a_movie_in_another_archive(self):
+        mixreader.write_mix(self.data / "EXTRA.MIX", {"FSGDIM02.VQA": b"firestorm"})
+        without = extract_movies.extract(self.config, self.data, ["FSGDIM02"])
+        self.assertEqual(without, {})
+        found = extract_movies.extract(self.config, self.data, ["FSGDIM02"],
+                                       search_all=True)
+        self.assertEqual(found["FSGDIM02"].read_bytes(), b"firestorm")
+
+    def test_search_all_still_prefers_the_movie_archives(self):
+        mixreader.write_mix(self.data / "AAA.MIX", {"GDI1.VQA": b"wrong one"})
+        found = extract_movies.extract(self.config, self.data, ["GDI1"],
+                                       search_all=True)
+        self.assertEqual(found["GDI1"].read_bytes(), b"one" * 8)
+
+    def test_search_all_skips_files_that_are_not_archives(self):
+        (self.data / "README.txt").write_bytes(b"not an archive")
+        found = extract_movies.extract(self.config, self.data, ["GDI1"],
+                                       search_all=True)
+        self.assertEqual(sorted(found), ["GDI1"])
+
     def test_reports_a_data_directory_with_no_archives(self):
         empty = self.root / "empty"
         empty.mkdir()

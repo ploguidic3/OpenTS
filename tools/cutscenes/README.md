@@ -72,6 +72,7 @@ Python 3.11 or later. The scripts use the standard library only.
 
 ```powershell
 python extract_movies.py --data ..\..\Run       # MOVIES01/02.MIX -> work\vqa\
+python extract_movies.py --data ..\..\Run --search-all   # every MIX in that folder
 python pipeline.py proof GDI1                   # one movie, end to end
 python pipeline.py compare GDI1                 # three stills to judge the look
 python pipeline.py batch                        # everything extracted

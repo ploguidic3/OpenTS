@@ -16,22 +16,32 @@ from common import PipelineError
 import mixreader
 
 
-def find_archives(data_dir: Path, names) -> list[Path]:
-    """Returns the movie archives present in the data directory, in search order."""
+def find_archives(data_dir: Path, names, search_all: bool = False) -> list[Path]:
+    """Returns the archives to search, the named movie archives first.
+
+    With search_all the remaining MIX files in the directory follow them, which
+    is how a movie packed somewhere other than the movie archives is found.
+    """
     found = []
     for name in names:
-        matches = [p for p in data_dir.iterdir()
-                   if p.is_file() and p.name.lower() == name.lower()]
-        found.extend(matches)
+        found.extend(p for p in sorted(data_dir.iterdir())
+                     if p.is_file() and p.name.lower() == name.lower())
+    if search_all:
+        already = {p.name.lower() for p in found}
+        found.extend(p for p in sorted(data_dir.iterdir())
+                     if p.is_file() and p.suffix.lower() == ".mix"
+                     and p.name.lower() not in already)
     return found
 
 
-def extract(config: common.Config, data_dir: Path, movies, force: bool = False) -> dict:
-    archives = find_archives(data_dir, config.movie_mixes)
+def extract(config: common.Config, data_dir: Path, movies, force: bool = False,
+            search_all: bool = False) -> dict:
+    archives = find_archives(data_dir, config.movie_mixes, search_all=search_all)
     if not archives:
         raise PipelineError(
-            f"none of {', '.join(config.movie_mixes)} is in {data_dir}. "
-            "Point --data at the installed game directory."
+            f"none of {', '.join(config.movie_mixes)} is in {data_dir}"
+            + (" and it holds no other MIX archive" if search_all else "")
+            + ". Point --data at the installed game directory."
         )
     destination = common.ensure_dir(config.work / "vqa")
     wanted = {f"{name}.VQA": name for name in movies}
@@ -66,6 +76,8 @@ def main() -> int:
                         help="rules.ini to take the [Movies] inventory from")
     parser.add_argument("--force", action="store_true",
                         help="re-extract members that are already present")
+    parser.add_argument("--search-all", action="store_true",
+                        help="also search every other MIX archive in the data directory")
     parser.add_argument("movies", nargs="*",
                         help="movie names to extract (default: the whole inventory)")
     args = parser.parse_args()
@@ -77,11 +89,19 @@ def main() -> int:
     movies = [name.upper() for name in args.movies] or common.movie_names(args.rules)
 
     common.log(f"Extracting {len(movies)} movie name(s) from {data_dir}")
-    results = extract(config, data_dir, movies, force=args.force)
+    if args.verbose:
+        for archive in find_archives(data_dir, config.movie_mixes,
+                                     search_all=args.search_all):
+            common.log(f"  searching {archive.name}")
+    results = extract(config, data_dir, movies, force=args.force,
+                      search_all=args.search_all)
     missing = [name for name in movies if name not in results]
     common.log(f"Extracted {len(results)} of {len(movies)}; {len(missing)} not present")
-    if missing and args.verbose:
-        common.log("  missing: " + ", ".join(missing))
+    if missing:
+        common.log("  not present: " + ", ".join(missing))
+        if not args.search_all:
+            common.log("  --search-all looks in every MIX archive in the data "
+                       "directory, not just the movie archives")
     return 0
 
 
