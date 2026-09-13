@@ -138,6 +138,21 @@ asset is touched. The stage tests need ffmpeg and are skipped without it; they u
 `lanczos` upscale backend, which rescales with ffmpeg instead of a network. That
 backend exists to exercise the pipeline without a GPU and is not an upscale.
 
+## What has not been run
+
+The pipeline was written and tested on Linux without a Radeon, a retail install, or
+ffprobe. Three things are therefore unproven and are worth treating as the first
+run rather than a regression when they misbehave:
+
+- No VQA has been probed or decoded. That ffmpeg reads Tiberian Sun's version 3 files
+  is taken from its source, not observed here, and is what `proof` establishes first.
+- `realesrgan-ncnn-vulkan` has never been invoked. Its arguments follow its
+  documentation. Only the `lanczos` backend has run.
+- No MIX archive from the retail install has been opened. `mixreader.py` was exercised
+  against archives the tests build to the same layout.
+
+Run `pipeline.py proof` on one movie before a batch, which is what it is for.
+
 ## Archives this reader will not open
 
 `mixreader.py` reads a plain or extended MIX index. An archive whose index is
