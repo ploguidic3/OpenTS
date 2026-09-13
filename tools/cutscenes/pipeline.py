@@ -236,21 +236,27 @@ def command_batch(config: Config, args) -> int:
 
 
 def command_verify(config: Config, args) -> int:
+    """Reports what each named movie has: an output, a source, or neither."""
     movies = common.movie_names(args.rules)
-    have, optional, missing = [], [], []
+    encoded, ready, optional, missing = [], [], [], []
     for name in movies:
         if config.output_file(name).is_file():
-            have.append(name)
+            encoded.append(name)
+        elif config.vqa_file(name).is_file():
+            ready.append(name)
         elif name.upper() in config.optional_movies:
             optional.append(name)
         else:
             missing.append(name)
-    common.log(f"{len(have)} encoded, {len(optional)} optional and not encoded, "
-               f"{len(missing)} missing, of {len(movies)} named")
+    common.log(f"{len(movies)} named: {len(encoded)} encoded, {len(ready)} extracted "
+               f"and not encoded, {len(optional)} optional, {len(missing)} with no source")
+    common.log(f"  sources in {config.work / 'vqa'}")
+    if ready:
+        common.log("  ready:    " + ", ".join(ready))
     if optional:
         common.log("  optional: " + ", ".join(optional))
     if missing:
-        common.log("  missing:  " + ", ".join(missing))
+        common.log("  no source: " + ", ".join(missing))
     return 1 if missing else 0
 
 

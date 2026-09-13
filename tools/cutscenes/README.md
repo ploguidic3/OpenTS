@@ -229,9 +229,19 @@ rather than an error. The pipeline checks the model pair before launching it and
 reports what is missing, so that crash should not reach you; if it does, the last line
 the tool printed names the file it wanted.
 
-## Archives this reader will not open
+## Archives
 
-`mixreader.py` reads a plain or extended MIX index. An archive whose index is
-encrypted is refused by name: the engine decrypts those with a key that is not in
-this repository. Unpack such an archive with XCC Mixer instead and put the `.VQA`
-files into `work/vqa/` by hand; the rest of the pipeline reads them from there.
+`mixreader.py` reads a plain, extended or encrypted MIX index. Tiberian Sun's movie
+archives are encrypted, and are decrypted the way the engine does it: the archive
+carries a Blowfish key of its own encrypted with the fixed key pair in
+`code/_pk.cpp`, and the index follows as Blowfish blocks. Member data is never
+encrypted.
+
+The archives are indexed by a checksum of the member name rather than by name, so
+extraction asks for each name in the inventory instead of listing the archive. A
+movie whose name is not in `rules.ini [Movies]` or `code/vq.hh` is therefore not
+found even when it is in the archive; pass such a name on the command line.
+
+XCC Mixer remains a fine way to unpack an archive by hand. Put the `.VQA` files
+straight into `work/vqa/`, flat and named for the movie, and the rest of the
+pipeline reads them from there.

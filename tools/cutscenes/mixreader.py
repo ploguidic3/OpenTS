@@ -7,9 +7,9 @@ groups through ``CRC::Memory`` (``code/crc.cpp:298``, a reflected CRC-32) and
 pads a short final group as ``CRCEngine::Add_Padding`` does
 (``code/crc.h:128-133``).
 
-Encrypted indices are detected and refused: the engine decrypts them with a key
-that is not in this repository, so those archives have to be unpacked with XCC
-Mixer instead. The README says so.
+An encrypted index is decrypted the way the engine does it, through the key pair
+in `code/_pk.cpp`; `mixcrypt.py` covers that half. The member data itself is
+never encrypted.
 """
 
 from __future__ import annotations
@@ -18,6 +18,9 @@ import dataclasses
 from pathlib import Path
 import struct
 import zlib
+
+from blowfish import BLOCK_SIZE, Blowfish
+import mixcrypt
 
 
 HEADER_SIZE = 6
@@ -76,20 +79,57 @@ class MixFile:
         if first == 0:
             has_digest = bool(second & FLAG_DIGEST)
             if second & FLAG_ENCRYPTED:
-                raise MixError(
-                    f"{self.path.name} has an encrypted index, which this reader does not "
-                    "decrypt. Unpack it with XCC Mixer (see the README)."
-                )
+                header, index, data_start = self._read_encrypted_index()
+                count, data_size, members = self._members_from(header, index)
+                return has_digest, count, data_size, data_start, members
             header = self._handle.read(HEADER_SIZE)
         else:
             self._handle.seek(0)
             header = self._handle.read(HEADER_SIZE)
         if len(header) < HEADER_SIZE:
             raise MixError(f"{self.path} is too short to hold a MIX header")
+        count = struct.unpack_from("<h", header)[0]
+        index = self._handle.read(count * ENTRY_SIZE) if count > 0 else b""
+        count, data_size, members = self._members_from(header, index)
+        return has_digest, count, data_size, self._handle.tell(), members
+
+    def _read_encrypted_index(self):
+        """Decrypts the index, leaving the member data where it is.
+
+        The header and index are one run of Blowfish blocks, and the data
+        follows the last whole block of that run.
+        """
+        key = mixcrypt.PublicKey.engine_key()
+        key_block = self._handle.read(key.encrypted_key_length())
+        try:
+            engine = mixcrypt.blowfish_for(key_block, key)
+        except ValueError as error:
+            raise MixError(f"{self.path.name}: {error}") from error
+
+        first = self._read_blocks(engine, 1)
+        count = struct.unpack_from("<h", first)[0]
+        if count < 0:
+            raise MixError(f"{self.path} declares {count} members")
+        total = HEADER_SIZE + count * ENTRY_SIZE
+        blocks = -(-total // BLOCK_SIZE)
+        plain = first + self._read_blocks(engine, blocks - 1)
+        data_start = 4 + key.encrypted_key_length() + blocks * BLOCK_SIZE
+        return plain[:HEADER_SIZE], plain[HEADER_SIZE:total], data_start
+
+    def _read_blocks(self, engine: Blowfish, blocks: int) -> bytes:
+        if blocks <= 0:
+            return b""
+        raw = self._handle.read(blocks * BLOCK_SIZE)
+        if len(raw) < blocks * BLOCK_SIZE:
+            raise MixError(f"{self.path} ends inside its encrypted index")
+        return engine.decrypt(raw)
+
+    def _members_from(self, header: bytes, index: bytes):
+        if len(header) < HEADER_SIZE:
+            raise MixError(f"{self.path} is too short to hold a MIX header")
         count, data_size = struct.unpack("<hi", header)
         if count < 0:
             raise MixError(f"{self.path} declares {count} members")
-        index = self._handle.read(count * ENTRY_SIZE)
         if len(index) < count * ENTRY_SIZE:
             raise MixError(
                 f"{self.path} declares {count} members but its index stops short"
@@ -98,8 +138,7 @@ class MixFile:
             Member(*struct.unpack_from("<iii", index, i * ENTRY_SIZE))
             for i in range(count)
         ]
-        data_start = self._handle.tell()
-        return has_digest, count, data_size, data_start, members
+        return count, data_size, members
 
     def __enter__(self) -> "MixFile":
         return self
@@ -145,19 +184,39 @@ class MixFile:
         return found
 
 
-def write_mix(path: Path, members: dict[str, bytes], extended: bool = False) -> Path:
-    """Writes a MIX archive. Used by the tests to build a synthetic archive."""
+def write_mix(path: Path, members: dict[str, bytes], extended: bool = False,
+              private_exponent: int | None = None,
+              blowfish_key: bytes | None = None) -> Path:
+    """Writes a MIX archive. Used by the tests to build a synthetic archive.
+
+    Passing private_exponent writes an encrypted index, which needs the private
+    half of the engine's key pair and is therefore only ever done by a test.
+    """
     entries = []
     blob = bytearray()
     for name, data in members.items():
         entries.append(Member(name_key(name), len(blob), len(data)))
         blob += data
     entries.sort(key=lambda entry: entry.key)
+
+    header = struct.pack("<hi", len(entries), len(blob))
+    index = b"".join(struct.pack("<iii", e.key, e.offset, e.size) for e in entries)
+
     with open(path, "wb") as handle:
-        if extended:
-            handle.write(struct.pack("<hh", 0, 0))
-        handle.write(struct.pack("<hi", len(entries), len(blob)))
-        for entry in entries:
-            handle.write(struct.pack("<iii", entry.key, entry.offset, entry.size))
+        if private_exponent is not None:
+            public = mixcrypt.PublicKey.engine_key()
+            private = mixcrypt.PublicKey(public.modulus, private_exponent)
+            key = blowfish_key or bytes(range(mixcrypt.KEY_SIZE))
+            padded = key.ljust(private.plain_key_length(), b"\0")
+            plain = (header + index).ljust(
+                -(-len(header + index) // BLOCK_SIZE) * BLOCK_SIZE, b"\0")
+            handle.write(struct.pack("<hh", 0, FLAG_ENCRYPTED))
+            handle.write(private.encrypt(padded))
+            handle.write(Blowfish(key).encrypt(plain))
+        else:
+            if extended:
+                handle.write(struct.pack("<hh", 0, 0))
+            handle.write(header)
+            handle.write(index)
         handle.write(blob)
     return Path(path)

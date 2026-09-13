@@ -20,10 +20,12 @@ import zlib
 TOOLS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOLS))
 
+import blowfish
 import common
 import dump_frames
 import encode as encode_stage
 import extract_movies
+import mixcrypt
 import mixreader
 import pipeline
 import upscale as upscale_stage
@@ -33,6 +35,12 @@ SOURCE_WIDTH = 64
 SOURCE_HEIGHT = 40
 SOURCE_FRAMES = 16
 SOURCE_FPS = 15
+
+# The private half of the engine's key pair, from the _DEBUG block of
+# code/_pk.cpp. Only a test needs it: it writes the encrypted archives that the
+# reader is then asked to read back.
+PRIVATE_EXPONENT = mixcrypt.der_integer(__import__("base64").b64decode(
+    "AigKVje8mROcR8QixnxUEF5b29Curkq01DNDWCdOG99XBqH79OaCiTCB"))
 
 
 def have_ffmpeg() -> bool:
@@ -140,12 +148,30 @@ class MixFileTests(unittest.TestCase):
             keys = [member.key for member in archive.members]
             self.assertEqual(keys, sorted(keys))
 
-    def test_refuses_an_encrypted_index(self):
+    def test_reads_back_an_encrypted_archive(self):
+        path = mixreader.write_mix(self.root / "MOVIES01.MIX", self.members,
+                                   private_exponent=PRIVATE_EXPONENT)
+        with mixreader.MixFile(path) as archive:
+            self.assertEqual(archive.count, len(self.members))
+            for name, data in self.members.items():
+                self.assertEqual(archive.read(name), data, name)
+
+    def test_an_encrypted_archive_places_its_data_after_whole_blocks(self):
+        path = mixreader.write_mix(self.root / "E.MIX", self.members,
+                                   private_exponent=PRIVATE_EXPONENT)
+        key = mixcrypt.PublicKey.engine_key()
+        total = mixreader.HEADER_SIZE + len(self.members) * mixreader.ENTRY_SIZE
+        blocks = -(-total // blowfish.BLOCK_SIZE)
+        with mixreader.MixFile(path) as archive:
+            self.assertEqual(archive.data_start,
+                             4 + key.encrypted_key_length()
+                             + blocks * blowfish.BLOCK_SIZE)
+
+    def test_reports_an_encrypted_archive_that_stops_short(self):
         path = self.root / "E.MIX"
         path.write_bytes(struct.pack("<hh", 0, mixreader.FLAG_ENCRYPTED) + b"\0" * 64)
-        with self.assertRaises(mixreader.MixError) as caught:
+        with self.assertRaises(mixreader.MixError):
             mixreader.MixFile(path)
-        self.assertIn("XCC", str(caught.exception))
 
     def test_reports_a_truncated_index(self):
         path = mixreader.write_mix(self.root / "T.MIX", self.members)
@@ -165,6 +191,79 @@ class MixFileTests(unittest.TestCase):
         with mixreader.MixFile(path) as archive:
             found = archive.resolve(["GDI1.VQA", "ABSENT.VQA"])
         self.assertEqual(sorted(found), ["GDI1.VQA"])
+
+
+class BlowfishTests(unittest.TestCase):
+    """Checked against the published Blowfish ECB vectors."""
+
+    VECTORS = (
+        ("0000000000000000", "0000000000000000", "4EF997456198DD78"),
+        ("FFFFFFFFFFFFFFFF", "FFFFFFFFFFFFFFFF", "51866FD5B85ECB8A"),
+        ("3000000000000000", "1000000000000001", "7D856F9A613063F2"),
+        ("1111111111111111", "1111111111111111", "2466DD878B963C9D"),
+        ("0123456789ABCDEF", "1111111111111111", "61F9C3802281B096"),
+        ("FEDCBA9876543210", "0123456789ABCDEF", "0ACEAB0FC6A0A28D"),
+    )
+
+    def test_encrypts_the_published_vectors(self):
+        for key, plain, cipher in self.VECTORS:
+            engine = blowfish.Blowfish(bytes.fromhex(key))
+            self.assertEqual(engine.encrypt(bytes.fromhex(plain)).hex().upper(),
+                             cipher, key)
+
+    def test_decrypts_the_published_vectors(self):
+        for key, plain, cipher in self.VECTORS:
+            engine = blowfish.Blowfish(bytes.fromhex(key))
+            self.assertEqual(engine.decrypt(bytes.fromhex(cipher)).hex().upper(),
+                             plain, key)
+
+    def test_refuses_a_partial_block(self):
+        engine = blowfish.Blowfish(b"key")
+        with self.assertRaises(ValueError):
+            engine.decrypt(b"1234567")
+
+    def test_refuses_an_empty_key(self):
+        with self.assertRaises(ValueError):
+            blowfish.Blowfish(b"")
+
+
+class KeyExchangeTests(unittest.TestCase):
+    """The block sizes and the key pair the engine carries."""
+
+    def setUp(self):
+        self.key = mixcrypt.PublicKey.engine_key()
+
+    def test_block_sizes_match_the_engine(self):
+        self.assertEqual(self.key.plain_block_size, 39)
+        self.assertEqual(self.key.crypt_block_size, 40)
+        self.assertEqual(self.key.encrypted_key_length(), 80)
+        self.assertEqual(self.key.plain_key_length(), 78)
+
+    def test_the_engines_key_pair_round_trips(self):
+        private = mixcrypt.PublicKey(self.key.modulus, PRIVATE_EXPONENT)
+        plain = bytes(range(self.key.plain_key_length()))
+        self.assertEqual(self.key.decrypt(private.encrypt(plain)), plain)
+
+    def test_recovers_a_blowfish_key_from_its_block(self):
+        private = mixcrypt.PublicKey(self.key.modulus, PRIVATE_EXPONENT)
+        secret = bytes(range(200, 200 + blowfish.KEY_SIZE))
+        block = private.encrypt(secret.ljust(self.key.plain_key_length(), b"\0"))
+        engine = mixcrypt.blowfish_for(block, self.key)
+        expected = blowfish.Blowfish(secret)
+        self.assertEqual(engine.encrypt(b"12345678"), expected.encrypt(b"12345678"))
+
+    def test_reports_a_truncated_key_block(self):
+        with self.assertRaises(ValueError):
+            mixcrypt.blowfish_for(b"\0" * 40, self.key)
+
+    def test_der_integer_reads_both_length_forms(self):
+        self.assertEqual(mixcrypt.der_integer(bytes([0x02, 0x02, 0x01, 0x00])), 256)
+        self.assertEqual(
+            mixcrypt.der_integer(bytes([0x02, 0x81, 0x02, 0x01, 0x00])), 256)
+
+    def test_der_integer_rejects_other_tags(self):
+        with self.assertRaises(ValueError):
+            mixcrypt.der_integer(bytes([0x03, 0x01, 0x00]))
 
 
 class ExtractionTests(unittest.TestCase):
