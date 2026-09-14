@@ -14,6 +14,8 @@
 #define INCLUDE_COM
 #include "always.h"
 
+#include "assetscale.h"
+
 #include "tactical.h"
 
 #include "_alpha.h"
@@ -135,8 +137,15 @@ Tactical::Tactical(void) :
 	 * cell-height ratio and pixel Y by the cell-width ratio; the first row sums the two terms
 	 * (world X) and the second row takes their difference (world Y).
 	 */
-	float x_scale = (float)(CELL_LEPTON_W / CELL_PIXEL_W) + 0.6667f;
-	float y_scale = (float)(CELL_LEPTON_H / CELL_PIXEL_H) + 0.3333302f;
+	float classic_x_scale = (float)(CELL_LEPTON_W / CELL_PIXEL_W) + 0.6667f;
+	float classic_y_scale = (float)(CELL_LEPTON_H / CELL_PIXEL_H) + 0.3333302f;
+	ClassicPixelToCoordMatrix.Set(
+		 classic_y_scale, classic_x_scale, 0.0f, 0.0f,
+		-classic_y_scale, classic_x_scale, 0.0f, 0.0f,
+		 0.0f,            0.0f,            1.0f, 0.0f);
+
+	float x_scale = classic_x_scale / Asset_Scale();
+	float y_scale = classic_y_scale / Asset_Scale();
 	PixelToCoordMatrix.Set(
 		 y_scale, x_scale, 0.0f, 0.0f,
 		-y_scale, x_scale, 0.0f, 0.0f,
@@ -190,10 +199,7 @@ Tactical::~Tactical(void)
 Point2D Tactical::Rectangular_To_Isometric(Point2D point)
 {
 	Point2D iso;
-	iso.X = point.X * ISO_TILE_PIXEL_W / 2;
-	iso.Y = point.X * ISO_TILE_PIXEL_H / 2;
-	iso.X += point.Y * ISO_TILE_PIXEL_W / -2;
-	iso.Y += point.Y * ISO_TILE_PIXEL_H / 2;
+	Asset_Rect_To_Iso(point.X, point.Y, ISO_TILE_PIXEL_W, ISO_TILE_PIXEL_H, iso.X, iso.Y);
 	return(iso);
 }
 
@@ -246,6 +252,32 @@ Point2D Tactical::Pixel_To_Lepton(Point2D const & pixel)
 
 
 /// <summary>
+/// Maps a pixel offset measured against the original tile back to world-lepton XY.
+/// </summary>
+/// <remarks>
+/// Art offsets and anything the simulation derives from them go through this rather than
+/// Pixel_To_Lepton, so that the world position they name is the same for every player
+/// whatever each has the asset scale set to.
+/// </remarks>
+Point2D Tactical::Classic_Pixel_To_Lepton(Point2D const & pixel)
+{
+	Vector3 vector(pixel.X, pixel.Y, 0.0);
+	vector = ClassicPixelToCoordMatrix * vector;
+	return(Point2D(vector.X, vector.Y));
+}
+
+
+/// <summary>
+/// The Coord that an art offset in original pixels names, with no height.
+/// </summary>
+Coord Tactical::Classic_Pixel_To_Coord_Absolute(Point2D const & pixel)
+{
+	Point2D lepton = Classic_Pixel_To_Lepton(pixel);
+	return(Coord(lepton.X, lepton.Y, 0));
+}
+
+
+/// <summary>
 /// Converts a height in leptons into a vertical pixel lift.
 /// This routine is used by the coordinate conversions to raise an object off the ground plane
 /// of the isometric view by its height.
@@ -253,10 +285,24 @@ Point2D Tactical::Pixel_To_Lepton(Point2D const & pixel)
 /// <returns>Returns with the number of pixels the object should be lifted by.</returns>
 int Tactical::Z_Lepton_To_Pixel(LEPTON lepton)
 {
+	return(Z_Lepton_To_Pixel_At(lepton, ISO_TILE_PIXEL_W));
+}
+
+
+/// <summary>
+/// Converts a height in leptons into the vertical pixel lift of a tile of the given width.
+/// </summary>
+/// <remarks>
+/// Simulation code must pass ASSET_TILE_BASE_W rather than the view's own tile, so that the
+/// result it derives is the same for every player whatever each has the asset scale set to.
+/// </remarks>
+/// <returns>Returns with the number of pixels the object should be lifted by.</returns>
+int Tactical::Z_Lepton_To_Pixel_At(LEPTON lepton, int tile_width)
+{
 	int fudge = 0;
 
-	static double pixels_per_lepton = ISO_TILE_PIXEL_W / CELL_LEPTON_DIAG;
-	static double z_pixels_per_lepton = std::sin(RAD_60) * pixels_per_lepton;
+	double const pixels_per_lepton = tile_width / CELL_LEPTON_DIAG;
+	double const z_pixels_per_lepton = std::sin(RAD_60) * pixels_per_lepton;
 
 	if (lepton >= (CELL_LEPTON * 3) + (CELL_LEPTON / 2) + 40) {
 		fudge = 1;
@@ -273,7 +319,21 @@ int Tactical::Z_Lepton_To_Pixel(LEPTON lepton)
 /// <returns>Returns with the height that the pixel lift stands for.</returns>
 LEPTON Tactical::Pixel_To_Z_Lepton(int pixel)
 {
-	static double z_leptons_per_pixel = CELL_LEPTON_DIAG / (std::sin(RAD_60) * ISO_TILE_PIXEL_W);
+	return(Pixel_To_Z_Lepton_At(pixel, ISO_TILE_PIXEL_W));
+}
+
+
+/// <summary>
+/// Converts a vertical pixel lift of a tile of the given width back into a height in leptons.
+/// </summary>
+/// <remarks>
+/// Simulation code must pass ASSET_TILE_BASE_W, along with a pixel measured against
+/// ASSET_TILE_BASE_H, so that the height it derives does not follow the view.
+/// </remarks>
+/// <returns>Returns with the height that the pixel lift stands for.</returns>
+LEPTON Tactical::Pixel_To_Z_Lepton_At(int pixel, int tile_width)
+{
+	double const z_leptons_per_pixel = CELL_LEPTON_DIAG / (std::sin(RAD_60) * tile_width);
 
 	return(LEPTON(z_leptons_per_pixel * (pixel - 0.5)));
 }
@@ -1769,10 +1829,7 @@ Point2D Tactical::Get_Relative_Tactical_Position(void)
 /// </summary>
 void Tactical::Rectangular_To_Isometric(int xin, int yin, int & xout, int & yout)
 {
-	xout = xin * ISO_TILE_PIXEL_W / 2;
-	yout = xin * ISO_TILE_PIXEL_H / 2;
-	xout += yin * ISO_TILE_PIXEL_W / -2;
-	yout += yin * ISO_TILE_PIXEL_H / 2;
+	Asset_Rect_To_Iso(xin, yin, ISO_TILE_PIXEL_W, ISO_TILE_PIXEL_H, xout, yout);
 }
 
 
@@ -1788,8 +1845,7 @@ void Tactical::Rectangular_To_Isometric(int xin, int yin, int & xout, int & yout
 /// </summary>
 void Tactical::Isometric_To_Rectangular(int xin, int yin, int & xout, int & yout)
 {
-	xout = ((ISO_TILE_PIXEL_W / 2) * yin + (ISO_TILE_PIXEL_H / 2) * xin) / 576 - 65536;
-	yout = ((ISO_TILE_PIXEL_W / 2) * yin - (ISO_TILE_PIXEL_H / 2) * xin) / 576 + 65536;
+	Asset_Iso_To_Rect(xin, yin, ISO_TILE_PIXEL_W, ISO_TILE_PIXEL_H, xout, yout);
 }
 
 
@@ -1800,12 +1856,7 @@ void Tactical::Isometric_To_Rectangular(int xin, int yin, int & xout, int & yout
 /// </summary>
 void Tactical::Cell_To_Rectangular(int xin, int yin, int & xout, int & yout)
 {
-	int xsh = xin << 8;
-	int ysh = yin << 8;
-	int y = ((ISO_TILE_PIXEL_W / 2) * ysh - (ISO_TILE_PIXEL_H / 2) * xsh) / 576 + 65536;
-	int x = ((ISO_TILE_PIXEL_W / 2) * ysh + (ISO_TILE_PIXEL_H / 2) * xsh) / 576 - 65536;
-	xout = x;
-	yout = y;
+	Asset_Iso_To_Rect(xin << 8, yin << 8, ISO_TILE_PIXEL_W, ISO_TILE_PIXEL_H, xout, yout);
 }
 
 

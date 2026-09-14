@@ -2579,7 +2579,7 @@ void UnitClass::Unit_Draw_Voxel(Point2D xdrawpoint, Rect xcliprect, int brightne
 	Surface * old_surface = LogicalSurface;
 	if (has_turret) {
 		LogicalSurface = EightBitSurface;
-		drawpoint = Point2D(80, 80);
+		drawpoint = Point2D(AS(80), AS(80));
 		flags = ShapeFlags_Type(SHAPE_ALPHA|SHAPE_ZGRAD);
 		cliprect = LogicalSurface->Get_Rect();
 		IsCompositingToEightBitSurface = true;
@@ -2790,7 +2790,7 @@ void UnitClass::Unit_Draw_Shape(Point2D xdrawpoint, Rect xcliprect, int brightne
 
 		Surface * old_surface = LogicalSurface;
 		LogicalSurface = EightBitSurface;
-		Point2D pt = Point2D(80,80);
+		Point2D pt = Point2D(AS(80), AS(80));
 
 		Matrix3D nmtx;
 		Rect srect = LogicalSurface->Get_Rect();

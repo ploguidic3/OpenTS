@@ -214,6 +214,9 @@ class OptionsClass {
 		// Whether voxel objects are rasterised at twice their size and reduced back down.
 		bool VoxelSupersample;
 
+		// How many pixels the tactical view draws per classic pixel. Fixed once the game starts.
+		int AssetScale;
+
 		float SoundVolume;				// Volume for sound effects.
 		float VoiceVolume;				/// Volume for voices.
 		float ScoreVolume;				// Volume for scores.

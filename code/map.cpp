@@ -59,6 +59,8 @@
 
 #include "always.h"
 
+#include "assetscale.h"
+
 #include "map.h"
 
 #include "_alpha.h"
@@ -1042,8 +1044,13 @@ void MapClass::Sight_From(Coord const & xcoord, int sightrange, HouseClass * hou
 	int cell_height = xcoord.Z / LEVEL_LEPTON_H;
 
 	Coord coord = xcoord;
-	coord.X = coord.X + (TacticalMap->Z_Lepton_To_Pixel(coord.Z) / -CELL_PIXEL_W) * CELL_LEPTON;
-	coord.Y = coord.Y + (TacticalMap->Z_Lepton_To_Pixel(coord.Z) / -CELL_PIXEL_W) * CELL_LEPTON;
+	/*
+	 * Shroud is game state, so this lift is taken at the original tile width. Reading the
+	 * view's own width here would make what a player reveals depend on their asset scale.
+	 */
+	int const lift = Tactical::Z_Lepton_To_Pixel_At(coord.Z, ASSET_TILE_BASE_W);
+	coord.X = coord.X + (lift / -CELL_PIXEL_W) * CELL_LEPTON;
+	coord.Y = coord.Y + (lift / -CELL_PIXEL_W) * CELL_LEPTON;
 
 	Cell cell = coord.As_Cell();                            /// Center cell as is appears on the map
 	Cell hoffset = cell - xcoord.As_Cell() - Cell(2, 2);    /// Height offset between real and apparent cells

@@ -119,7 +119,17 @@ class Tactical : public AbstractClass
 		 * Coordinate conversion.
 		 */
 		static int Z_Lepton_To_Pixel(LEPTON lepton);
+
+		// Pass ASSET_TILE_BASE_W from simulation code, so the result does not follow the view.
+		static int Z_Lepton_To_Pixel_At(LEPTON lepton, int tile_width);
 		static LEPTON Pixel_To_Z_Lepton(int pixel);
+
+		// Pass ASSET_TILE_BASE_W from simulation code, so the result does not follow the view.
+		static LEPTON Pixel_To_Z_Lepton_At(int pixel, int tile_width);
+
+		// For a pixel offset measured against the original tile, such as an art.ini offset.
+		Point2D Classic_Pixel_To_Lepton(Point2D const & pixel);
+		Coord Classic_Pixel_To_Coord_Absolute(Point2D const & pixel);
 
 		bool Coord_To_Pixel(Coord const & coord, Point2D & pixel);
 		Coord Pixel_To_Coord(Point2D const & pixel);
@@ -397,6 +407,13 @@ class Tactical : public AbstractClass
 		 * from the integer Rectangular_To_Isometric instead, so nothing reads it.
 		 */
 		Matrix3D CoordToPixelMatrix;
+
+		/*
+		 * This is the inverse projection of the original 48x24 tile, which the asset scale
+		 * never touches. Art offsets and the simulation values derived from them run through
+		 * it, so that they name the same world position at every scale.
+		 */
+		Matrix3D ClassicPixelToCoordMatrix;
 
 		/*
 		 * This is the inverse isometric projection, which turns a screen pixel offset back

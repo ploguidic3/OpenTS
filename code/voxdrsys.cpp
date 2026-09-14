@@ -12,6 +12,7 @@
 #include "voxdrsys.h"
 
 #include "_voxel.h"
+#include "assetscale.h"
 #include "bsurface.h"
 #include "stbuffer.h"
 #include "voxeldownsample.h"
@@ -142,7 +143,7 @@ void VoxelDrawSystem::Init(void)
 	VoxelSurface = new BSurface(Voxel_Bitmap_Width(), Voxel_Bitmap_Height(), VOXEL_BITMAP_BPP, VoxelDrawBuffer);
 	VoxelZSurface = new BSurface(Voxel_Bitmap_Width(), Voxel_Bitmap_Height(), VOXEL_BITMAP_BPP, VoxelDrawZBuffer);
 
-	if (Voxel_Scale() > 1) {
+	if (Voxel_Scale() > Asset_Scale()) {
 		VoxelResolveSurface = new BSurface(VOXEL_SCALE_BASE_SIZE, VOXEL_SCALE_BASE_SIZE, VOXEL_BITMAP_BPP, VoxelResolveBuffer);
 
 		Voxel_Build_Nearest_Table((unsigned char const *)VoxelRGBColors, VPLRemapStart, VPLRemapEnd, VoxelNearestColors);

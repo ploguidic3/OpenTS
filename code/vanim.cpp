@@ -477,7 +477,7 @@ void VoxelAnimClass::AI(void)
 						int lepton = abs(mycoord.X - occoord.X) + abs(mycoord.Y - occoord.Y);
 						if (lepton <= Class->DamageRadius) {
 							int damage = Class->Damage;
-							occupier->Take_Damage(damage, Tactical::Z_Lepton_To_Pixel(lepton), Class->Warhead, 0, 0, 0);
+							occupier->Take_Damage(damage, Tactical::Z_Lepton_To_Pixel_At(lepton, ASSET_TILE_BASE_W), Class->Warhead, 0, 0, 0);
 						}
 					}
 				}

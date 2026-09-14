@@ -287,15 +287,22 @@ extern const double RAD_90;
 extern const double CELL_LEPTON_DIAG;
 
 extern const double ISO_TILE_SIZE;
-extern const int ISO_TILE_PIXEL_W;
-extern const int ISO_TILE_PIXEL_H;
+
+// These four are pixel quantities, so the asset scale multiplies them. They hold the
+// original tile until Init_Tactical_Geometry runs, and are fixed for the process after it.
+extern int ISO_TILE_PIXEL_W;
+extern int ISO_TILE_PIXEL_H;
 
 extern const int LEVEL_LEPTON_H;
-extern const int LEVEL_PIXEL_H;
+extern int LEVEL_PIXEL_H;
 extern const double CELL_SLOPE_ANGLE;
 extern const double CELL_DIAG_SLOPE_ANGLE;
-extern const int LEVEL_PIXEL_H_1;
+extern int LEVEL_PIXEL_H_1;
 extern const int BRIDGE_LEPTON_HEIGHT;
+
+// Applies the asset scale to the pixel geometry above. Call once, after Set_Asset_Scale and
+// before anything projects a coordinate or builds a tile table.
+void Init_Tactical_Geometry(void);
 
 
 extern const Cell CELL_NONE;

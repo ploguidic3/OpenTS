@@ -149,6 +149,7 @@
 #include "vanimtype.h"
 #include "vector.h"
 #include "video.h"
+#include "assetscale.h"
 #include "voxelscale.h"
 #include "walk.h"
 #include "warhead.h"
@@ -167,6 +168,7 @@
 
 #include <conio.h>
 #include <io.h>
+#include <algorithm>
 #include <cfloat>
 #include <string>
 #include <vector>
@@ -597,9 +599,18 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		// Wanted before the surfaces are allocated; the settings dialog never edits it, so it is read once.
 		Options.UIScale = ConfigINI.Get_Int("Video", "UIScale", Options.UIScale);
 
+		/*
+		 * The tactical geometry, the tile tables and the voxel bitmap are all built from the
+		 * asset scale, so it is read here and never changes again for the run.
+		 */
+		Options.AssetScale = ConfigINI.Get_Int("Video", "AssetScale", Options.AssetScale);
+		Set_Asset_Scale(Options.AssetScale);
+		Options.AssetScale = Asset_Scale();
+		Init_Tactical_Geometry();
+
 		// Wanted before the voxel bitmap is built, and fixed for the run once it is.
 		Options.VoxelSupersample = ConfigINI.Get_Bool("Video", "VoxelSupersample", Options.VoxelSupersample);
-		Set_Voxel_Scale(Options.VoxelSupersample ? 2 : 1);
+		Set_Voxel_Scale(std::max(Asset_Scale(), Options.VoxelSupersample ? 2 : 1));
 
 		/*
 		 * The command line asks for a window regardless of what the settings say.

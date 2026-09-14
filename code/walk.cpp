@@ -13,6 +13,8 @@
 
 #include "always.h"
 
+#include "assetscale.h"
+
 #include "walk.h"
 
 #include "_map.h"
@@ -141,7 +143,7 @@ void STDMETHODCALLTYPE WalkLocomotionClass::Move_To(Coord to)
 		DestinationCoord = to;
 		if (to != COORD_NONE) {
 			if (Map[to].IsUnderBridge) {
-				DestinationCoord.Z += TacticalMap->Pixel_To_Z_Lepton(4 * ISO_TILE_PIXEL_H / 2);
+				DestinationCoord.Z += Tactical::Pixel_To_Z_Lepton_At(4 * ASSET_TILE_BASE_H / 2, ASSET_TILE_BASE_W);
 			}
 			IsMoving = true;
 		} else {

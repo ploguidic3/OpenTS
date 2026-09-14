@@ -47,6 +47,7 @@
 #include "iflyctrl_i.c"
 #undef INCLUDE_COM
 
+#include "assetscale.h"
 #include "_voxel.h"
 #include "globals.h"
 #include "goptions.h"
@@ -85,20 +86,31 @@ const double CELL_LEPTON_DIAG = std::sqrt(pow((double)CELL_LEPTON_H, 2) * 2);			
 
 /// Isometric tile size
 const double ISO_TILE_SIZE = std::sqrt(pow(34, 2) * 2);                                        // 48.0832595825195
-const int ISO_TILE_PIXEL_W = (int)(ISO_TILE_SIZE);                                                  // 48
-const int ISO_TILE_PIXEL_H = (int)(std::cos(RAD_60) * ISO_TILE_SIZE);                          // 24
+int ISO_TILE_PIXEL_W = (int)(ISO_TILE_SIZE);                                                        // 48
+int ISO_TILE_PIXEL_H = (int)(std::cos(RAD_60) * ISO_TILE_SIZE);                                // 24
 
 /// Height-related
 const int LEVEL_LEPTON_H = (int)(std::tan(RAD_90 - RAD_60) * CELL_LEPTON_DIAG / 2);            // 104
-const int LEVEL_PIXEL_H = ISO_TILE_PIXEL_H / 2;                                                     // 12
+int LEVEL_PIXEL_H = ISO_TILE_PIXEL_H / 2;                                                           // 12
 const double CELL_SLOPE_ANGLE = std::atan(LEVEL_LEPTON_H * (1 / (double)CELL_LEPTON_H));       // 0.372388541698456
 const double CELL_DIAG_SLOPE_ANGLE = std::atan((LEVEL_LEPTON_H * 2) / CELL_LEPTON_DIAG);       // 0.511634767055511
-const int LEVEL_PIXEL_H_1 = LEVEL_PIXEL_H;                                                          // 12
+int LEVEL_PIXEL_H_1 = LEVEL_PIXEL_H;                                                                // 12
 const int BRIDGE_LEPTON_HEIGHT = (int)((LEVEL_LEPTON_H * BRIDGE_CELL_HEIGHT) + 0.5);                /// 416
 
 /// "None" coordinate and cell values
 Cell const CELL_NONE(0,0);
 Coord const COORD_NONE(0,0,0);
+
+
+void Init_Tactical_Geometry(void)
+{
+	int const scale = Asset_Scale();
+
+	ISO_TILE_PIXEL_W = (int)(ISO_TILE_SIZE) * scale;
+	ISO_TILE_PIXEL_H = (int)(std::cos(RAD_60) * ISO_TILE_SIZE) * scale;
+	LEVEL_PIXEL_H = ISO_TILE_PIXEL_H / 2;
+	LEVEL_PIXEL_H_1 = LEVEL_PIXEL_H;
+}
 
 
 /*

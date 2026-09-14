@@ -211,7 +211,7 @@ UnitType UnitTypeClass::From_Name(char const * name)
 void UnitTypeClass::One_Time(void)
 {
 	if (EightBitSurface == NULL) {
-		EightBitSurface = new BSurface(160, 160, 1);
+		EightBitSurface = new BSurface(AS(160), AS(160), 1);
 		EightBitSurface->Fill(TBLACK);
 	}
 

@@ -16,6 +16,7 @@
 #ifdef INCLUDE_COM
 #include "isun.h"
 #endif
+#include "assetscale.h"
 #include <cstring>
 
 /// Everything from here on is the content of defines.h.
@@ -87,8 +88,17 @@
 #define CELL_LEPTON_H			256
 #define CELL_LEPTON				256
 
-#define LEPTON_TO_PIXEL(lepton) ((lepton) / 7)
-#define PIXEL_TO_LEPTON(pixel)  ((pixel) * 7)
+// These two cross between leptons and screen pixels, so they carry the asset scale. The
+// CELL_PIXEL and PIXEL_LEPTON constants above do not: simulation code measures in them.
+inline int LEPTON_TO_PIXEL(int lepton)
+{
+	return(lepton * Asset_Scale() / 7);
+}
+
+inline int PIXEL_TO_LEPTON(int pixel)
+{
+	return(pixel * 7 / Asset_Scale());
+}
 
 #define	PIXEL_LEPTON_W			(CELL_LEPTON_W/CELL_PIXEL_W)
 #define	PIXEL_LEPTON_H			(CELL_LEPTON_H/CELL_PIXEL_H)

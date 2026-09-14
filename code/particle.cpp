@@ -327,7 +327,7 @@ void ParticleClass::Gas_Behavior_AI(void)
 				if (occupier->IsActive) {
 					if (occupier->Strength > 0) {
 						int damage = Class->Damage;
-						result = occupier->Take_Damage(damage, TacticalMap->Z_Lepton_To_Pixel(abs(delta.X) + abs(delta.Y)), Class->Warhead, 0, 0, 0);
+						result = occupier->Take_Damage(damage, Tactical::Z_Lepton_To_Pixel_At(abs(delta.X) + abs(delta.Y), ASSET_TILE_BASE_W), Class->Warhead, 0, 0, 0);
 					}
 				}
 				occupier = next;

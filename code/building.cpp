@@ -7816,7 +7816,7 @@ void BuildingClass::Set_Anim_Coords(void)
 	for (int i = 0; i < BANIM_COUNT; i++) {
 		AnimClass * anim = Anims[i];
 		if (anim != NULL) {
-			anim->Set_Coord(render + TacticalMap->Pixel_To_Coord_Absolute(Class->AnimData[i].Location));
+			anim->Set_Coord(render + TacticalMap->Classic_Pixel_To_Coord_Absolute(Class->AnimData[i].Location));
 		}
 	}
 }
@@ -7839,7 +7839,7 @@ void BuildingClass::Create_Anim(char const * name, BAnimType anim, bool damaged,
 
 	AnimType animtype = AnimTypeClass::From_Name(name);
 	if (animtype != ANIM_NONE) {
-		Coord coord (Render_Coord() + TacticalMap->Pixel_To_Coord_Absolute(Class->AnimData[anim].Location));
+		Coord coord (Render_Coord() + TacticalMap->Classic_Pixel_To_Coord_Absolute(Class->AnimData[anim].Location));
 		AnimClass * animptr = new AnimClass(AnimTypes[animtype], coord, delay, 1, ShapeFlags_Type(SHAPE_CENTER|SHAPE_WIN_REL|SHAPE_ZREAD));
 
 		animptr->ZAdjust = Class->AnimData[anim].ZAdjust;

@@ -689,7 +689,7 @@ BounceResultType AnimClass::Bounce_AI(void)
 				int rad = abs(cdiff.X) + abs(cdiff.Y);
 				if (rad <= Class->DamageRadius) {
 					int damage = (int)Class->Damage;
-					optr->Take_Damage(damage, TacticalMap->Z_Lepton_To_Pixel(rad), Class->Warhead);
+					optr->Take_Damage(damage, Tactical::Z_Lepton_To_Pixel_At(rad, ASSET_TILE_BASE_W), Class->Warhead);
 				}
 				optr = optr->Next;
 			}

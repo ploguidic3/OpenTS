@@ -35,9 +35,12 @@
 
 #include "draw.h"
 
+#include "assetscale.h"
 #include "blit.h"
 #include "bsurface.h"
 #include "convert.h"
+#include "shapeexpand.h"
+#include "shapeload.h"
 #include "shapeset.h"
 
 #include "zgrad.hh"
@@ -88,6 +91,32 @@ void Draw_Shape(Surface & surface, ConvertClass & convert, ShapeSet const * shap
 	void const * buffer = shapefile->Get_Data(shapenum);
 	int width = shapefile->Get_Width();
 	int height = shapefile->Get_Height();
+
+	int const shapescale = Shape_Scale(shapefile);
+	int const factor = (shapescale > 0) ? Asset_Scale() / shapescale : 1;
+	bool scaled = false;
+
+	if (factor > 1) {
+		ExpandedFrame const frame = Shape_Expanded_Frame(shapefile, shapenum, factor);
+		if (frame.Data != NULL) {
+			buffer = frame.Data;
+			rect.X *= factor;
+			rect.Y *= factor;
+			rect.Width = frame.Width;
+			rect.Height = frame.Height;
+			width *= factor;
+			height *= factor;
+
+			/*
+			 * A magnified frame is uncompressed, so it draws through the plain blitters.
+			 * Those honour SHAPE_NOTRANS literally and paint the transparent index as a
+			 * colour, where the RLE blitters skip that index whatever the flag says.
+			 */
+			flags = ShapeFlags_Type(flags & ~SHAPE_NOTRANS);
+			scaled = true;
+		}
+	}
+
 	BSurface const shape(rect.Width, rect.Height, 1, (void *)buffer);
 
 	Point2D zpoint = z_off;
@@ -96,7 +125,24 @@ void Draw_Shape(Surface & surface, ConvertClass & convert, ShapeSet const * shap
 
 	if (z_shapefile != NULL) {
 		z_rect = z_shapefile->Get_Rect(z_shapenum);
-		z_shape = new BSurface(z_rect.Width, z_rect.Height, 1, z_shapefile->Get_Data(z_shapenum));
+
+		int const zscale = Shape_Scale(z_shapefile);
+		int const zfactor = (zscale > 0) ? Asset_Scale() / zscale : 1;
+		ExpandedFrame zframe;
+
+		if (zfactor > 1) {
+			zframe = Shape_Expanded_Frame(z_shapefile, z_shapenum, zfactor);
+		}
+
+		if (zframe.Data != NULL) {
+			z_rect.X *= zfactor;
+			z_rect.Y *= zfactor;
+			z_rect.Width = zframe.Width;
+			z_rect.Height = zframe.Height;
+			z_shape = new BSurface(z_rect.Width, z_rect.Height, 1, (void *)zframe.Data);
+		} else {
+			z_shape = new BSurface(z_rect.Width, z_rect.Height, 1, z_shapefile->Get_Data(z_shapenum));
+		}
 	} else {
 		z_shape = NULL;
 		z_rect = RECT_NONE;
@@ -143,7 +189,7 @@ void Draw_Shape(Surface & surface, ConvertClass & convert, ShapeSet const * shap
 	**	an RLE compressed shape. RLE compression uses different blitter routines
 	**	than the normal method.
 	*/
-	if (shapefile->Is_RLE_Compressed(shapenum)) {
+	if (!scaled && shapefile->Is_RLE_Compressed(shapenum)) {
 		RLEBlitter const * blitter = convert.RLEBlitter_From_Flags(flags);
 		if (blitter != NULL) {
 			RLE_Blit(surface, window, Rect(x, y, rect.Width, rect.Height), shape, rect, rect, *blitter, height_offset, zgrad, intensity, 0, z_shape, zpoint);
