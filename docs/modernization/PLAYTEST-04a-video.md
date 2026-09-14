@@ -23,9 +23,26 @@ logging only.
 | Focus loss and ESC | Picture and sound stop and resume together; ESC ends the movie |
 | Name resolution | `INTR0.mp4` is taken for the campaign's opening cinema |
 | `StretchMovies` | Both fits confirmed on a 2560x1440 display |
+| A movie from the upscale pipeline | `HD\INTR0.MP4` at 3840x2400 taken and played |
 
 Outstanding: everything the checklist marks that needs a second machine, a long movie, or a
 display other than 2560x1440.
+
+## A movie from the upscale pipeline
+
+The opening cinema, encoded by `tools/cutscenes/` from the retail VQA, was placed in an
+`HD` folder named first in `OPENTS.INI [Paths] SearchPaths` and played on 14 September
+2026:
+
+```
+Movie: "INTR0.VQA" requested; HD\INTR0.MP4
+Video: playing "HD\INTR0.MP4" 3840x2400 at 15.00 fps, sound 48000 Hz 2 channel(s)
+```
+
+That covers the path end to end: the search folder is consulted, `Choose_Side`'s per-disc
+`INTR0` name resolves to the container file rather than to `INTRO`, and the picture and
+sound are taken at the size and rate the pipeline encodes to. The sound rate confirms the
+encode note below in practice, not only by reasoning.
 
 ## Making a test file
 
