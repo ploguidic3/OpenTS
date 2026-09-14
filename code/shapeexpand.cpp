@@ -109,7 +109,9 @@ ExpandedFrame Shape_Expanded_Frame(ShapeSet const * shapefile, int shapenum, int
 
 	if (shapefile->Is_RLE_Compressed(shapenum)) {
 		decoded.resize((std::size_t)rect.Width * rect.Height);
-		if (!Scale_Decode_RLE_Frame(data, shapefile->Get_Size(shapenum), rect.Width, rect.Height, decoded.data())) {
+		// The shape format's per-frame size is not populated by anything here, so the row
+		// framing is trusted exactly as the engine's RLE blitter trusts it.
+		if (!Scale_Decode_RLE_Frame(data, 0, rect.Width, rect.Height, decoded.data())) {
 			return(result);
 		}
 		source = decoded.data();

@@ -18,4 +18,6 @@ void Scale_Expand_8Bit(unsigned char const * source, int width, int height, unsi
 
 // Decodes one RLE frame into width * height bytes of dest. On malformed data it returns
 // false having filled dest with the transparent index, so an unchecked caller draws nothing.
+// A data_size of zero means the size is not known and each row's own length prefix is
+// trusted to walk the rows, which is what the engine's RLE blitter does.
 bool Scale_Decode_RLE_Frame(void const * data, int data_size, int width, int height, unsigned char * dest);

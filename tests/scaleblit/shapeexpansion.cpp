@@ -104,6 +104,10 @@ int main(void)
 	Check(ok, "A well formed RLE frame decodes");
 	Check(std::memcmp(decoded.data(), frame, sizeof(frame)) == 0, "The decoded frame matches the uncompressed one");
 
+	std::vector<unsigned char> unbounded(3 * 4, 0xFF);
+	Check(Scale_Decode_RLE_Frame(encoded.data(), 0, 3, 4, unbounded.data()), "An unknown size decodes from the row prefixes alone");
+	Check(std::memcmp(unbounded.data(), frame, sizeof(frame)) == 0, "The unbounded decode matches the bounded one");
+
 	std::vector<unsigned char> roundtrip(3 * 2 * 4 * 2, 0xFF);
 	Scale_Expand_8Bit(decoded.data(), 3, 4, roundtrip.data(), 2);
 	Check(std::memcmp(roundtrip.data(), expanded.data(), expanded.size()) == 0, "Decoding then doubling matches doubling the raw frame");
@@ -131,6 +135,10 @@ int main(void)
 	std::vector<unsigned char> longrun;
 	Append_Row(longrun, {0, 200});
 	Check(!Scale_Decode_RLE_Frame(longrun.data(), (int)longrun.size(), 3, 1, guard.data()), "A zero run past the frame width is refused");
+
+	std::vector<unsigned char> unboundedoverrun;
+	Append_Row(unboundedoverrun, {1, 2, 3, 4, 5});
+	Check(!Scale_Decode_RLE_Frame(unboundedoverrun.data(), 0, 3, 1, guard.data()), "An over-wide row is refused even with no declared size");
 
 	std::vector<unsigned char> danglingrun;
 	Append_Row(danglingrun, {17, 0});

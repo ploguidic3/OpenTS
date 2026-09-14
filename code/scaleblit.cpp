@@ -48,18 +48,19 @@ bool Scale_Decode_RLE_Frame(void const * data, int data_size, int width, int hei
 	}
 
 	unsigned char const * source = (unsigned char const *)data;
+	bool const bounded = data_size > 0;
 	int remaining = data_size;
 
 	for (int y = 0; y < height; y++) {
 
 		// Every row is prefixed with its own total length, counting the prefix itself.
-		if (remaining < (int)sizeof(unsigned short)) {
+		if (bounded && remaining < (int)sizeof(unsigned short)) {
 			return(false);
 		}
 
 		unsigned short rowbytes;
 		std::memcpy(&rowbytes, source, sizeof(rowbytes));
-		if (rowbytes < sizeof(unsigned short) || rowbytes > remaining) {
+		if (rowbytes < sizeof(unsigned short) || (bounded && rowbytes > remaining)) {
 			return(false);
 		}
 
