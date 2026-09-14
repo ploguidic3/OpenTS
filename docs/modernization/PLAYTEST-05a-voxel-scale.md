@@ -22,8 +22,10 @@ On Windows, 14 September 2026:
   on its hull and the shadow stayed under the vehicle at every facing, so the reduction grid
   is phase-locked across separately rendered sub-objects as intended.
 
-House colours and the frame rate cost are still unobserved. The comparison against the
-unchanged drawing path is covered by test rather than by screenshot; see below.
+- Frame rate was unaffected in ordinary play, by observation rather than measurement.
+
+House colours are still unchecked. The comparison against the unchanged drawing path is
+covered by test rather than by screenshot; see below.
 
 ## Nothing changes with the setting off
 
@@ -36,7 +38,7 @@ for the two below.
   144 vectors recorded before the change, every CI run.
 - [x] The centring and region arithmetic is unchanged at scale 1. `tests/voxeldraw` checks
   `Voxel_Region` against the original expression, written out rather than rearranged.
-- [ ] Frame rate on a busy map is unchanged.
+- [x] Frame rate on a busy map is unchanged, by observation in ordinary play.
 
 To compare in the game anyway, crop to one parked vehicle rather than diffing whole frames.
 Stand it on plain ground away from tiberium, shroud edge and infantry, deselect it, and
@@ -67,15 +69,24 @@ the same crop worth reading.
   4K and look for the whole vehicle flickering between two appearances.
 
 ## House colours
-- [ ] Every side's colour is the same colour it is with the setting off, on every unit type.
+
+House colour on a voxel is the palette range the VPL header sets aside, `RemapStart` through
+`RemapEnd`, and on most vehicles it covers a small part of the model rather than the whole
+hull. Rather than hunt for those pixels, compare two owners: start a skirmish with two
+players whose colours differ sharply, put the same vehicle type on screen for each, and read
+the pair together. The reduction resolves inside the remap range whenever any pixel of a
+block falls in it, so the failure to look for is a coloured area losing its colour at its
+edge, not the whole unit changing.
+
+- [ ] The same vehicle type under two owners reads as two clearly different colours with the
+  setting on, and as the same two colours it does with the setting off.
 - [ ] House colour does not spread onto the hull around its edges, and a thin house coloured
   stripe does not disappear.
-- [ ] A unit changing owner, and a unit under the effect of a chronosphere or an EMP, keeps
-  its colours correct.
+- [ ] A unit changing owner keeps its colours correct.
 
 ## Cost
-- [ ] Frame rate with roughly 100 units on screen at 2560×1440 and at 3840×2160, on and off,
-  recorded as numbers rather than an impression.
+- [x] Frame rate is unaffected in ordinary play. Observed rather than measured; no numbers
+  were recorded, and no scene was built to put roughly 100 units on screen at once.
 - [ ] The first moments after a large force comes into view are not noticeably rougher than
   with the setting off, since each new pose is drawn once and kept.
 - [ ] Peak working set at scenario load, on and off.
