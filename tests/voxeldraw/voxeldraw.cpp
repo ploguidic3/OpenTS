@@ -19,6 +19,7 @@
 #include <climits>
 
 #include "voxdrsys.h"
+#include "voxelscale.h"
 #include "voxlib.h"
 
 #include "voxelgolden.h"
@@ -31,13 +32,13 @@ void __cdecl Draw_Voxel_Regular(VoxelFuncArgumentStruct * state);
 void __cdecl Draw_Voxel_Reverse(VoxelFuncArgumentStruct * state);
 
 /*
- * Standing in for voxdrsys.cpp, which the harness does not build. The draw buffer is larger
- * than the engine's so that a drawer overrunning it is caught here rather than corrupting
- * whatever the engine happens to place next to it.
+ * Standing in for voxdrsys.cpp, which the harness does not build. The buffers carry the
+ * engine's own padding, so a drawer overrunning the bitmap is caught here rather than
+ * corrupting whatever the engine happens to place next to it.
  */
 extern "C" {
-unsigned char VoxelDrawBuffer[262144];
-unsigned char VoxelDrawZBuffer[262144];
+unsigned char VoxelDrawBuffer[VOXEL_BITMAP_BYTES];
+unsigned char VoxelDrawZBuffer[VOXEL_BITMAP_BYTES];
 unsigned char VoxelPaletteTranslateTable[MAX_PALETTE_LOOKUP_ENTRIES][VOXEL_PALETTE_SIZE];
 }
 
@@ -54,6 +55,10 @@ VoxelPaletteLibrary::~VoxelPaletteLibrary(void) {}
 void VoxelPaletteLibrary::Calculate_Lookup_Table(float *, int) {}
 
 namespace {
+
+// The vectors were recorded over a bitmap of this size, so the hash covers exactly this
+// much however large the buffer itself is.
+int const GOLDENBYTES = VOXEL_SCALE_BASE_SIZE * VOXEL_SCALE_BASE_SIZE * VOXEL_SCALE_MAX * VOXEL_SCALE_MAX;
 
 int const SPANMAX = 4096;
 int const DATAMAX = 65536;
@@ -207,6 +212,71 @@ void Setup(VoxelFuncArgumentStruct & arg)
 	arg.ZSize = 8;
 }
 
+// A projection with steps of about three pixels a voxel, so the drawn shape is large enough
+// for its size to be measured. Setup's own transform draws a few pixels across.
+void Setup_Spread(VoxelFuncArgumentStruct & arg, int scale)
+{
+	Setup(arg);
+
+	arg.TransformMatrix[0].I = (128 * scale) << 8;
+	arg.TransformMatrix[0].J = (128 * scale) << 8;
+	arg.TransformMatrix[0].K = 128 << 8;
+
+	arg.TransformMatrix[1].I = 768 * scale;
+	arg.TransformMatrix[1].J = 384 * scale;
+	arg.TransformMatrix[2].I = -384 * scale;
+	arg.TransformMatrix[2].J = 768 * scale;
+	arg.TransformMatrix[3].I = 200 * scale;
+	arg.TransformMatrix[3].J = -700 * scale;
+}
+
+
+struct DrawnExtent
+{
+	int Width;
+	int Height;
+	int Painted;
+};
+
+DrawnExtent Measure(int stride, int rows)
+{
+	DrawnExtent extent = { 0, 0, 0 };
+
+	int left = stride;
+	int right = -1;
+	int top = rows;
+	int bottom = -1;
+
+	for (int y = 0; y < rows; y++) {
+		for (int x = 0; x < stride; x++) {
+			if (VoxelDrawBuffer[y * stride + x] == 0) {
+				continue;
+			}
+			extent.Painted++;
+			if (x < left) left = x;
+			if (x > right) right = x;
+			if (y < top) top = y;
+			if (y > bottom) bottom = y;
+		}
+	}
+
+	if (right >= left) {
+		extent.Width = right - left + 1;
+		extent.Height = bottom - top + 1;
+	}
+
+	return(extent);
+}
+
+void Check(bool condition, char const * what)
+{
+	std::printf("%-52s %s\n", what, condition ? "ok" : "FAILED");
+	if (!condition) {
+		Failures++;
+	}
+	Checked++;
+}
+
 }	// namespace
 
 
@@ -223,7 +293,7 @@ int main(void)
 
 		Drawers[test.Which](&arg);
 
-		unsigned long long const hash = Hash(VoxelDrawBuffer, sizeof(VoxelDrawBuffer));
+		unsigned long long const hash = Hash(VoxelDrawBuffer, GOLDENBYTES);
 
 		if (hash != test.Hash) {
 			std::printf("FAILED %-38s seed %u: expected %llu, got %llu\n",
@@ -235,6 +305,56 @@ int main(void)
 	}
 
 	std::printf("%-52s %s\n", "Voxel drawing matches the recorded assembly", Failures == 0 ? "ok" : "FAILED");
+
+	/*
+	 * The same model drawn at twice the scale covers twice the ground in each direction.
+	 * Painted bytes grow faster than the area because a voxel covers a larger block, and
+	 * they grow more slowly than that block alone would say because the spread reduces how
+	 * much of it overlaps its neighbours.
+	 */
+	for (int which = 0; which < 6; which++) {
+		Build_Layer(1234u, 64, 8, which < 4);
+
+		VoxelFuncArgumentStruct arg;
+
+		Set_Voxel_Scale(1);
+		std::memset(VoxelDrawBuffer, 0, sizeof(VoxelDrawBuffer));
+		Setup_Spread(arg, 1);
+		Drawers[which](&arg);
+		DrawnExtent const single = Measure(VOXEL_SCALE_BASE_SIZE, VOXEL_SCALE_BASE_SIZE);
+
+		Set_Voxel_Scale(2);
+		std::memset(VoxelDrawBuffer, 0, sizeof(VoxelDrawBuffer));
+		Setup_Spread(arg, 2);
+		Drawers[which](&arg);
+		DrawnExtent const doubled = Measure(VOXEL_SCALE_BASE_SIZE * 2, VOXEL_SCALE_BASE_SIZE * 2);
+
+		Set_Voxel_Scale(1);
+
+		char label[96];
+
+		std::snprintf(label, sizeof(label), "%.30s draws twice as wide", Names[which]);
+		Check(single.Width > 8 && doubled.Width >= single.Width * 2 - 3 && doubled.Width <= single.Width * 2 + 3, label);
+
+		std::snprintf(label, sizeof(label), "%.30s draws twice as tall", Names[which]);
+		Check(single.Height > 8 && doubled.Height >= single.Height * 2 - 3 && doubled.Height <= single.Height * 2 + 3, label);
+
+		std::snprintf(label, sizeof(label), "%.30s paints three to ten times", Names[which]);
+		Check(single.Painted > 0 && doubled.Painted >= single.Painted * 3 && doubled.Painted <= single.Painted * 10, label);
+	}
+
+	/*
+	 * The drawers lay a voxel's block down without a bounds test, so the buffer's padding is
+	 * what keeps a voxel at the bottom edge inside it.
+	 */
+	bool padclean = true;
+	for (int i = VOXEL_BITMAP_BYTES - 1; i >= GOLDENBYTES + VOXEL_SCALE_BASE_SIZE * VOXEL_SCALE_MAX; i--) {
+		if (VoxelDrawBuffer[i] != 0) {
+			padclean = false;
+		}
+	}
+	Check(padclean, "Drawing stays within the buffer's padding");
+
 	std::printf("checked %d cases, %d mismatches\n", Checked, Failures);
 
 	return(Failures == 0 ? 0 : 1);

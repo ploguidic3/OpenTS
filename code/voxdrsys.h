@@ -23,13 +23,11 @@ class BSurface;
 class FileClass;
 class VoxelLibrary;
 struct SurfaceRegion;
-class Vector3i16;
+class Vector3i;
 template<class T> class TRect;
 typedef TRect<int> Rect;
 
 
-#define VOXEL_BITMAP_WIDTH 256
-#define VOXEL_BITMAP_HEIGHT 256
 #define VOXEL_BITMAP_BPP 1
 
 
@@ -44,6 +42,8 @@ namespace VoxelDrawSystem
 	inline void Disable_Lighting(void) { EnableLighting = false; }
 	inline void Enable_ZBuffer(void) { EnableZBuffer = true; }
 	inline void Disable_ZBuffer(void) { EnableZBuffer = false; }
+
+	void Init(void);
 
 	void Init_256_Array(void);
 	void Convert_Voxel_Colors(int red_left, int red_right, int green_left, int green_right, int blue_left, int blue_right);
@@ -124,7 +124,6 @@ extern VoxelRenderOrientation VoxelRenderOrientations[VOXEL_BOUNDS_COUNT];
 
 /*
  * Struct used to pass data to the low-level voxel drawing functions.
- * WARNING: If you modify this struct you must update the struct in WINASM.ASM!
  */
 struct VoxelFuncArgumentStruct {
 	/*
@@ -153,9 +152,11 @@ struct VoxelFuncArgumentStruct {
 	/*
 	 * This is the projection the drawers work in. The first entry is the screen position of
 	 * the anchor corner and the other three are the steps taken per voxel along X, Y and Z,
-	 * all expressed as 8.8 fixed point so that the walk can be stepped in integers.
+	 * all expressed as 8.8 fixed point so that the walk can be stepped in integers. The
+	 * screen position needs more than eight whole bits once the bitmap is drawn at a scale,
+	 * so these are full width.
 	 */
-	Vector3i16 TransformMatrix[4];
+	Vector3i TransformMatrix[4];
 
 	/*
 	 * These are the dimensions of the layer being drawn, measured in voxels.
@@ -172,6 +173,3 @@ extern unsigned char VoxelDrawZBuffer[];
 
 extern RGBStruct VoxelRGBColors[VOXEL_PALETTE_SIZE];
 
-extern BSurface VoxelSurface;
-
-extern BSurface VoxelZSurface;

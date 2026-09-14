@@ -13,6 +13,7 @@
 #include "rgb.h"
 #include "voxdrsys.h"
 #include "voxel.h"
+#include "voxelscale.h"
 #include "win.h"
 
 #include "voxel.hh"
@@ -187,6 +188,6 @@ class VoxelPaletteLibrary
 };
 
 extern "C" {
-extern short VoxelPixelDeltaTable[VOXEL_BITMAP_WIDTH][2];
+extern int VoxelPixelDeltaTable[VOXEL_MAX_RUN][2];
 extern unsigned char VoxelNormalTranslateTable[VOXEL_PALETTE_SIZE];
 }

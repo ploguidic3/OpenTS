@@ -69,6 +69,12 @@ inline void Set_Voxel_Camera_Angle(float angle)
 {
 	VoxelCameraAngle = angle;
 	VoxelCameraMatrix.Make_Identity();
+
+	// The screen axes only. View space Z lands in an eight bit depth buffer, and stretching
+	// it would cost occlusion accuracy on the deepest models for nothing.
+	if (Voxel_Scale() != 1) {
+		VoxelCameraMatrix.Scale((float)Voxel_Scale(), (float)Voxel_Scale(), 1.0f);
+	}
 }
 
 inline void Set_Voxel_Light_Angle(float angle)

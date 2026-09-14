@@ -14,6 +14,8 @@
 #include "_voxel.h"
 #include "bsurface.h"
 #include "stbuffer.h"
+#include "voxeldownsample.h"
+#include "voxelscale.h"
 #include "voxlib.h"
 #include "wwfile.h"
 
@@ -23,11 +25,19 @@
 BOOL VoxelDrawSystem::EnableLighting;
 BOOL VoxelDrawSystem::EnableZBuffer;
 
-unsigned char VoxelDrawBuffer[VOXEL_BITMAP_WIDTH * VOXEL_BITMAP_HEIGHT * VOXEL_BITMAP_BPP];
-BSurface VoxelSurface(VOXEL_BITMAP_WIDTH, VOXEL_BITMAP_HEIGHT, VOXEL_BITMAP_BPP, VoxelDrawBuffer);
+unsigned char VoxelDrawBuffer[VOXEL_BITMAP_BYTES];
+unsigned char VoxelDrawZBuffer[VOXEL_BITMAP_BYTES];
 
-unsigned char VoxelDrawZBuffer[VOXEL_BITMAP_WIDTH * VOXEL_BITMAP_HEIGHT * VOXEL_BITMAP_BPP];
-BSurface VoxelZSurface(VOXEL_BITMAP_WIDTH, VOXEL_BITMAP_HEIGHT, VOXEL_BITMAP_BPP, VoxelDrawZBuffer);
+// The surfaces describe whichever part of those buffers the chosen scale uses, so they are
+// built once the scale is known.
+static BSurface * VoxelSurface;
+static BSurface * VoxelZSurface;
+
+// Where a supersampled render is reduced to the size the rest of the game draws at.
+static BSurface * VoxelResolveSurface;
+static unsigned char VoxelResolveBuffer[VOXEL_SCALE_BASE_SIZE * VOXEL_SCALE_BASE_SIZE];
+static unsigned char VoxelNearestColors[VOXEL_DOWNSAMPLE_LUT_SIZE];
+static VoxelDownsampleTables VoxelResolveTables;
 
 Vector3 MinVoxelBounds;
 Vector3 MaxVoxelBounds;
@@ -118,12 +128,43 @@ unsigned char *VoxelDrawSystem::Get_Surface_Buffer(void)
 
 
 /// <summary>
+/// Builds the drawing surfaces and the tables the reduction pass needs.
+/// </summary>
+/// <remarks>Call once the voxel scale is chosen and the palette library is loaded, and
+/// before anything asks the draw system to render.</remarks>
+void VoxelDrawSystem::Init(void)
+{
+	delete VoxelSurface;
+	delete VoxelZSurface;
+	delete VoxelResolveSurface;
+	VoxelResolveSurface = NULL;
+
+	VoxelSurface = new BSurface(Voxel_Bitmap_Width(), Voxel_Bitmap_Height(), VOXEL_BITMAP_BPP, VoxelDrawBuffer);
+	VoxelZSurface = new BSurface(Voxel_Bitmap_Width(), Voxel_Bitmap_Height(), VOXEL_BITMAP_BPP, VoxelDrawZBuffer);
+
+	if (Voxel_Scale() > 1) {
+		VoxelResolveSurface = new BSurface(VOXEL_SCALE_BASE_SIZE, VOXEL_SCALE_BASE_SIZE, VOXEL_BITMAP_BPP, VoxelResolveBuffer);
+
+		Voxel_Build_Nearest_Table((unsigned char const *)VoxelRGBColors, VPLRemapStart, VPLRemapEnd, VoxelNearestColors);
+
+		VoxelResolveTables.Palette = (unsigned char const *)VoxelRGBColors;
+		VoxelResolveTables.Nearest = VoxelNearestColors;
+		VoxelResolveTables.RemapStart = VPLRemapStart;
+		VoxelResolveTables.RemapEnd = VPLRemapEnd;
+	}
+}
+
+
+/// <summary>
 /// Fetches the surface that voxels are drawn into.
 /// Callers blit out of this surface once Render has composed the object onto it.
 /// </summary>
 Surface * VoxelDrawSystem::Get_Surface(void)
 {
-	return(&VoxelSurface);
+	if (VoxelResolveSurface != NULL) {
+		return(VoxelResolveSurface);
+	}
+	return(VoxelSurface);
 }
 
 
@@ -215,7 +256,7 @@ void VoxelDrawSystem::Prep_For_Shadow(VoxelLibrary * voxlib, int layer, int info
 		data.ShadowCorner[i] = motion * layer_info.BoxCorner[i];
 		data.ShadowCorner[i].Z = 0;
 		data.ShadowCorner[i] = camera * data.ShadowCorner[i];
-		data.ShadowCorner[i] = data.ShadowCorner[i] + light;
+		data.ShadowCorner[i] = data.ShadowCorner[i] + light * (float)Voxel_Scale();
 		data.ShadowCorner[i].Y = -data.ShadowCorner[i].Y;
 
 		if (data.ShadowCorner[i].X < MinVoxelBounds.X) {
@@ -304,6 +345,86 @@ void VoxelDrawSystem::Prep_For_Object(VoxelLibrary * voxlib, int layer, int info
 }
 
 
+/*
+ * Both Render overloads finish the same way, by naming the drawn part of the bitmap and the
+ * screen offset it belongs at. A supersampled render is reduced here, so everything past
+ * this point works at the size the rest of the game draws at.
+ */
+static SurfaceRegion Resolve_Region(SurfaceRegion const & region)
+{
+	// Every piece of an object is reduced on one grid of screen pixels, so a hull, its
+	// turret and its barrel stay in step however their own bounding boxes fall.
+	int left = region.Bounds.X - (region.Point.X & 1);
+	int top = region.Bounds.Y - (region.Point.Y & 1);
+	int right = region.Bounds.X + region.Bounds.Width;
+	int bottom = region.Bounds.Y + region.Bounds.Height;
+
+	int screen_x = region.Point.X - (region.Point.X & 1);
+	int screen_y = region.Point.Y - (region.Point.Y & 1);
+
+	while (left < 0) {
+		left += 2;
+		screen_x += 2;
+	}
+	while (top < 0) {
+		top += 2;
+		screen_y += 2;
+	}
+	if (right > Voxel_Bitmap_Width()) {
+		right = Voxel_Bitmap_Width();
+	}
+	if (bottom > Voxel_Bitmap_Height()) {
+		bottom = Voxel_Bitmap_Height();
+	}
+
+	int width = (right - left) / 2;
+	int height = (bottom - top) / 2;
+	if (width > VOXEL_SCALE_BASE_SIZE) {
+		width = VOXEL_SCALE_BASE_SIZE;
+	}
+	if (height > VOXEL_SCALE_BASE_SIZE) {
+		height = VOXEL_SCALE_BASE_SIZE;
+	}
+
+	SurfaceRegion resolved;
+	resolved.Point.X = screen_x / 2;
+	resolved.Point.Y = screen_y / 2;
+	resolved.Bounds = Rect(0, 0, (width > 0) ? width : 0, (height > 0) ? height : 0);
+
+	if (resolved.Bounds.Width == 0 || resolved.Bounds.Height == 0) {
+		return(resolved);
+	}
+
+	Voxel_Downsample(VoxelDrawBuffer + top * Voxel_Bitmap_Width() + left, Voxel_Bitmap_Width(),
+		VoxelResolveBuffer, VOXEL_SCALE_BASE_SIZE, resolved.Bounds.Width, resolved.Bounds.Height, VoxelResolveTables);
+
+	return(resolved);
+}
+
+
+static SurfaceRegion Finish_Render(Vector3 const & center)
+{
+	int const scale = Voxel_Scale();
+
+	int width = MaxVoxelBounds.X - MinVoxelBounds.X;
+	int height = MaxVoxelBounds.Y - MinVoxelBounds.Y;
+
+	SurfaceRegion region;
+	region.Bounds.Width = width + 8 * scale;
+	region.Bounds.Height = height + 8 * scale;
+	region.Bounds.X = Voxel_Bitmap_Width() / 2 - width / 2 - 4 * scale;
+	region.Bounds.Y = Voxel_Bitmap_Height() / 2 - height / 2 - 4 * scale;
+	region.Point.X = (int)center.X - region.Bounds.Width / 2;
+	region.Point.Y = (int)center.Y - region.Bounds.Height / 2;
+
+	if (VoxelResolveSurface == NULL) {
+		return(region);
+	}
+
+	return(Resolve_Region(region));
+}
+
+
 /// <summary>
 /// Draws every prepared voxel object into the drawing buffer.
 /// This routine finishes the voxel drawing sequence. The shadows go down first, then the
@@ -353,17 +474,11 @@ void VoxelDrawSystem::Render(Rect & rect, int & x, int & y)
 		}
 	}
 
-	rect.Width = MaxVoxelBounds.X - MinVoxelBounds.X;
+	SurfaceRegion region = Finish_Render(center);
 
-	rect.Height = MaxVoxelBounds.Y - MinVoxelBounds.Y;
-
-	rect.Set(VOXEL_BITMAP_WIDTH / 2 - rect.Width / 2, VOXEL_BITMAP_HEIGHT / 2 - rect.Height / 2, rect.Width + 8, rect.Height + 8);
-
-	rect.X -= 4;
-	rect.Y -= 4;
-
-	x = (int)center.X - rect.Width / 2;
-	y = (int)center.Y - rect.Height / 2;
+	rect = region.Bounds;
+	x = region.Point.X;
+	y = region.Point.Y;
 }
 
 
@@ -413,18 +528,7 @@ SurfaceRegion VoxelDrawSystem::Render(void)
 		}
 	}
 
-	int width = MaxVoxelBounds.X - MinVoxelBounds.X;
-	int height = MaxVoxelBounds.Y - MinVoxelBounds.Y;
-
-	SurfaceRegion region;
-	region.Point.X = (int)center.X - (width + 8) / 2;
-	region.Point.Y = (int)center.Y - (height + 8) / 2;
-	region.Bounds.Width = width + 8;
-	region.Bounds.Height = height + 8;
-	region.Bounds.X = VOXEL_BITMAP_WIDTH / 2 - width / 2 - 4;
-	region.Bounds.Y = VOXEL_BITMAP_HEIGHT / 2 - height / 2 - 4;
-
-	return(region);
+	return(Finish_Render(center));
 }
 
 
@@ -433,7 +537,7 @@ SurfaceRegion VoxelDrawSystem::Render(void)
 /// </summary>
 void VoxelDrawSystem::Clear_Buffer(void)
 {
-	std::fill(std::begin(VoxelDrawBuffer), std::end(VoxelDrawBuffer), 0);
+	std::fill_n(VoxelDrawBuffer, Voxel_Bitmap_Width() * Voxel_Bitmap_Height() + VOXEL_BITMAP_PAD, (unsigned char)0);
 }
 
 
@@ -442,5 +546,5 @@ void VoxelDrawSystem::Clear_Buffer(void)
 /// </summary>
 void VoxelDrawSystem::Clear_Z_Buffer(void)
 {
-	std::fill(std::begin(VoxelDrawZBuffer), std::end(VoxelDrawZBuffer), 0);
+	std::fill_n(VoxelDrawZBuffer, Voxel_Bitmap_Width() * Voxel_Bitmap_Height() + VOXEL_BITMAP_PAD, (unsigned char)0);
 }

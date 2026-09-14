@@ -6,6 +6,7 @@ opents_add_test(VoxelDraw
     SOURCES voxeldraw.cpp
     ENGINE
         voxlib.cpp
+        voxelscale.cpp
     INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}
     DEFINITIONS WIN32 _WINDOWS _MBCS
     FLOAT

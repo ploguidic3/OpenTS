@@ -12,12 +12,51 @@
 #include "voxlib.h"
 
 #include "voxdrsys.h"
+#include "voxelscale.h"
 #include "wwfile.h"
 
 #include <algorithm>
 
-short VoxelPixelDeltaTable[VOXEL_BITMAP_WIDTH][2];
+int VoxelPixelDeltaTable[VOXEL_MAX_RUN][2];
 unsigned char VoxelNormalTranslateTable[VOXEL_PALETTE_SIZE];
+
+namespace
+{
+
+// A voxel covers two bitmap columns, and at a larger scale that many more columns and as
+// many rows as the scale. The bitmap is padded past its last row so no guard is needed.
+inline void Voxel_Put(VoxelSpan const & span, unsigned int index, unsigned char color)
+{
+	for (int row = 0; row < span.Scale; row++) {
+		for (int column = 0; column < 2 * span.Scale; column++) {
+			VoxelDrawBuffer[index + column] = color;
+		}
+		index += span.Stride;
+	}
+}
+
+inline void Voxel_Put_Narrow(VoxelSpan const & span, unsigned int index, unsigned char color)
+{
+	for (int row = 0; row < span.Scale; row++) {
+		for (int column = 0; column < span.Scale; column++) {
+			VoxelDrawBuffer[index + column] = color;
+		}
+		index += span.Stride;
+	}
+}
+
+inline void Voxel_Put_Z(VoxelSpan const & span, unsigned int index, unsigned char color, unsigned char depth)
+{
+	for (int row = 0; row < span.Scale; row++) {
+		for (int column = 0; column < 2 * span.Scale; column++) {
+			VoxelDrawBuffer[index + column] = color;
+			VoxelDrawZBuffer[index + column] = depth;
+		}
+		index += span.Stride;
+	}
+}
+
+}
 
 /*
  * Array of pointers to the low-level voxel drawing functions.
@@ -792,22 +831,24 @@ void VoxelLibrary::Render_Object(VoxelRenderStruct & voxel, Vector3 & center)
 
 	// The drawer sums these deltas down the length of the model, so an error of
 	// one unit here becomes one unit per voxel by the far end.
-	arg.TransformMatrix[0].I = static_cast<unsigned short>(static_cast<int>(((double)corner_0.X + 128 - (double)center.X) * 256.0));
-	arg.TransformMatrix[0].J = static_cast<unsigned short>(static_cast<int>(((double)corner_0.Y + 128 - (double)center.Y) * 256.0));
-	arg.TransformMatrix[0].K = static_cast<unsigned short>(static_cast<int>(((double)corner_0.Z + 128 - (double)center.Z) * 256.0));
+	arg.TransformMatrix[0].I = static_cast<int>(((double)corner_0.X + Voxel_Bitmap_Center() - (double)center.X) * 256.0);
+	arg.TransformMatrix[0].J = static_cast<int>(((double)corner_0.Y + Voxel_Bitmap_Center() - (double)center.Y) * 256.0);
+	// The depth bias keeps the eight bit depth buffer positive and has nothing to do with
+	// the bitmap, so it does not follow the scale.
+	arg.TransformMatrix[0].K = static_cast<int>(((double)corner_0.Z + 128 - (double)center.Z) * 256.0);
 
-	arg.TransformMatrix[1].I = static_cast<unsigned short>(static_cast<int>((corner_x.X - corner_0.X) / (double)x_size * 256.0));
-	arg.TransformMatrix[2].I = static_cast<unsigned short>(static_cast<int>((corner_y.X - corner_0.X) / (double)y_size * 256.0));
-	arg.TransformMatrix[3].I = static_cast<unsigned short>(static_cast<int>((corner_z.X - corner_0.X) / (double)z_size * 256.0));
+	arg.TransformMatrix[1].I = static_cast<int>((corner_x.X - corner_0.X) / (double)x_size * 256.0);
+	arg.TransformMatrix[2].I = static_cast<int>((corner_y.X - corner_0.X) / (double)y_size * 256.0);
+	arg.TransformMatrix[3].I = static_cast<int>((corner_z.X - corner_0.X) / (double)z_size * 256.0);
 
-	arg.TransformMatrix[1].J = static_cast<unsigned short>(static_cast<int>((corner_x.Y - corner_0.Y) / (double)x_size * 256.0));
-	arg.TransformMatrix[2].J = static_cast<unsigned short>(static_cast<int>((corner_y.Y - corner_0.Y) / (double)y_size * 256.0));
-	arg.TransformMatrix[3].J = static_cast<unsigned short>(static_cast<int>((corner_z.Y - corner_0.Y) / (double)z_size * 256.0));
+	arg.TransformMatrix[1].J = static_cast<int>((corner_x.Y - corner_0.Y) / (double)x_size * 256.0);
+	arg.TransformMatrix[2].J = static_cast<int>((corner_y.Y - corner_0.Y) / (double)y_size * 256.0);
+	arg.TransformMatrix[3].J = static_cast<int>((corner_z.Y - corner_0.Y) / (double)z_size * 256.0);
 
 	if (VoxelDrawSystem::EnableZBuffer) {
-		arg.TransformMatrix[1].K = static_cast<unsigned short>(static_cast<int>((corner_x.Z - corner_0.Z) / (double)x_size * 256.0));
-		arg.TransformMatrix[2].K = static_cast<unsigned short>(static_cast<int>((corner_y.Z - corner_0.Z) / (double)y_size * 256.0));
-		arg.TransformMatrix[3].K = static_cast<unsigned short>(static_cast<int>((corner_z.Z - corner_0.Z) / (double)z_size * 256.0));
+		arg.TransformMatrix[1].K = static_cast<int>((corner_x.Z - corner_0.Z) / (double)x_size * 256.0);
+		arg.TransformMatrix[2].K = static_cast<int>((corner_y.Z - corner_0.Z) / (double)y_size * 256.0);
+		arg.TransformMatrix[3].K = static_cast<int>((corner_z.Z - corner_0.Z) / (double)z_size * 256.0);
 	}
 
 	int funcnum = VoxelRenderOrientations[orientation].Reversed;
@@ -837,27 +878,27 @@ void VoxelLibrary::Render_Object(VoxelRenderStruct & voxel, Vector3 & center)
 /// <param name="state">The projection, stride and voxel data setup for this object.</param>
 static void __cdecl _voxel_draw_shadow(VoxelFuncArgumentStruct * state)
 {
+	VoxelSpan const span = Voxel_Span();
+
 	/// Set starting 2D projection position
-	unsigned short pixel_x = state->TransformMatrix[0].I;
-	unsigned short pixel_y = state->TransformMatrix[0].J;
+	unsigned int pixel_x = state->TransformMatrix[0].I;
+	unsigned int pixel_y = state->TransformMatrix[0].J;
 
 	/// Iterate over voxel Y slices (rows)
 	for (unsigned int y = 0; y < state->YSize; y++) {
 		unsigned int base_index = state->StartIndex;
-		unsigned short row_start_x = pixel_x;
-		unsigned short row_start_y = pixel_y;
+		unsigned int row_start_x = pixel_x;
+		unsigned int row_start_y = pixel_y;
 
 		/// Iterate over voxel X columns (within the current Y row)
 		for (unsigned int x = 0; x < state->XSize; x++) {
 			unsigned int data_offset = ((unsigned int *)state->EndOffset)[state->StartIndex];
-			unsigned short column_start_x = pixel_x;
-			unsigned short column_start_y = pixel_y;
+			unsigned int column_start_x = pixel_x;
+			unsigned int column_start_y = pixel_y;
 
 			if (data_offset != UINT_MAX) {
 				unsigned char color_index = 1;
-				unsigned int buffer_index = (pixel_x >> 8) | (pixel_y & 0xFF00);
-				VoxelDrawBuffer[buffer_index] = color_index;
-				VoxelDrawBuffer[buffer_index + 1] = color_index;
+				Voxel_Put(span, Voxel_Buffer_Index(pixel_x, pixel_y, span.Mask, span.Shift), color_index);
 			}
 
 			/// Advance to next voxel in X direction
@@ -908,14 +949,14 @@ void VoxelLibrary::Render_Shadow(VoxelShadowRenderStruct & voxel, Vector3 & cent
 	arg.StrideY = x_size;
 	arg.StartIndex = 0;
 
-	arg.TransformMatrix[0].I = static_cast<unsigned short>(static_cast<int>((corner_0.X + 128 - center.X) * 256.0));
-	arg.TransformMatrix[0].J = static_cast<unsigned short>(static_cast<int>((corner_0.Y + 128 - center.Y) * 256.0));
+	arg.TransformMatrix[0].I = static_cast<int>((corner_0.X + Voxel_Bitmap_Center() - center.X) * 256.0);
+	arg.TransformMatrix[0].J = static_cast<int>((corner_0.Y + Voxel_Bitmap_Center() - center.Y) * 256.0);
 
-	arg.TransformMatrix[1].I = static_cast<unsigned short>(static_cast<int>((corner_x.X - corner_0.X) / x_size * 256.0));
-	arg.TransformMatrix[2].I = static_cast<unsigned short>(static_cast<int>((corner_y.X - corner_0.X) / y_size * 256.0));
+	arg.TransformMatrix[1].I = static_cast<int>((corner_x.X - corner_0.X) / x_size * 256.0);
+	arg.TransformMatrix[2].I = static_cast<int>((corner_y.X - corner_0.X) / y_size * 256.0);
 
-	arg.TransformMatrix[1].J = static_cast<unsigned short>(static_cast<int>((corner_x.Y - corner_0.Y) / x_size * 256.0));
-	arg.TransformMatrix[2].J = static_cast<unsigned short>(static_cast<int>((corner_y.Y - corner_0.Y) / y_size * 256.0));
+	arg.TransformMatrix[1].J = static_cast<int>((corner_x.Y - corner_0.Y) / x_size * 256.0);
+	arg.TransformMatrix[2].J = static_cast<int>((corner_y.Y - corner_0.Y) / y_size * 256.0);
 
 	_voxel_draw_shadow(&arg);
 }
@@ -966,12 +1007,12 @@ void VoxelLibrary::Compute_Bounding_Box(void)
 /// <param name="state">The projection setup for the object about to be drawn.</param>
 inline void Fill_Delta_Table1(VoxelFuncArgumentStruct * state)
 {
-	short (&ztable)[VOXEL_BITMAP_WIDTH][2] = VoxelPixelDeltaTable;
+	int (&ztable)[VOXEL_MAX_RUN][2] = VoxelPixelDeltaTable;
 
 	ztable[0][0] = 0;
 	ztable[0][1] = 0;
 
-	Vector3i16 & step_z = state->TransformMatrix[3];
+	Vector3i & step_z = state->TransformMatrix[3];
 
 	for (unsigned int z = 1; z < state->ZSize; z++) {
 		ztable[z][0] = ztable[z - 1][0] + step_z.I;
@@ -989,12 +1030,12 @@ inline void Fill_Delta_Table1(VoxelFuncArgumentStruct * state)
 /// <param name="state">The projection setup for the object about to be drawn.</param>
 inline void Fill_Delta_Table3(VoxelFuncArgumentStruct * state)
 {
-	short (&ztable)[VOXEL_BITMAP_WIDTH][2] = VoxelPixelDeltaTable;
+	int (&ztable)[VOXEL_MAX_RUN][2] = VoxelPixelDeltaTable;
 
 	ztable[0][0] = 0;
 	ztable[0][1] = 0;
 
-	Vector3i16 & step_z = state->TransformMatrix[3];
+	Vector3i & step_z = state->TransformMatrix[3];
 
 	for (unsigned int z = 1; z < state->ZSize; z++) {
 		ztable[z][0] = ztable[z - 1][0] + step_z.I;
@@ -1012,12 +1053,12 @@ inline void Fill_Delta_Table3(VoxelFuncArgumentStruct * state)
 /// <param name="state">The projection setup for the object about to be drawn.</param>
 inline void Fill_Delta_Table2(VoxelFuncArgumentStruct * state)
 {
-	short (&ztable)[VOXEL_BITMAP_WIDTH][2] = VoxelPixelDeltaTable;
+	int (&ztable)[VOXEL_MAX_RUN][2] = VoxelPixelDeltaTable;
 
 	ztable[0][0] = 0;
 	ztable[0][1] = 0;
 
-	Vector3i16 & step_z = state->TransformMatrix[3];
+	Vector3i & step_z = state->TransformMatrix[3];
 
 	for (unsigned int z = 1; z < state->ZSize; z++) {
 		VoxelPixelDeltaTable[z][0] = ztable[z - 1][0] + step_z.I;
@@ -1041,21 +1082,23 @@ void __cdecl Draw_Voxel_Regular_Normals(VoxelFuncArgumentStruct * state)
 	 */
 	Fill_Delta_Table2(state);
 
+	VoxelSpan const span = Voxel_Span();
+
 	/// Set starting 2D projection position
-	unsigned short pixel_x = state->TransformMatrix[0].I;
-	unsigned short pixel_y = state->TransformMatrix[0].J;
+	unsigned int pixel_x = state->TransformMatrix[0].I;
+	unsigned int pixel_y = state->TransformMatrix[0].J;
 
 	/// Iterate over voxel Y slices (rows)
 	for (unsigned int y = 0; y < state->YSize; y++) {
 		unsigned int base_index = state->StartIndex;
-		unsigned short row_start_x = pixel_x;
-		unsigned short row_start_y = pixel_y;
+		unsigned int row_start_x = pixel_x;
+		unsigned int row_start_y = pixel_y;
 
 		/// Iterate over voxel X columns (within the current Y row)
 		for (unsigned int x = 0; x < state->XSize; x++) {
 			unsigned int data_offset = ((unsigned int *)state->StartOffset)[state->StartIndex];
-			unsigned short column_start_x = pixel_x;
-			unsigned short column_start_y = pixel_y;
+			unsigned int column_start_x = pixel_x;
+			unsigned int column_start_y = pixel_y;
 
 			if (data_offset != UINT_MAX) {
 				unsigned char * ptr = state->DataOffset + data_offset;
@@ -1094,11 +1137,7 @@ void __cdecl Draw_Voxel_Regular_Normals(VoxelFuncArgumentStruct * state)
 							 */
 							ptr++;
 
-							/// Compute buffer index and write color. A voxel covers two
-							/// buffer bytes, so the colour goes down twice.
-							unsigned int buffer_index = (pixel_x >> 8) | (pixel_y & 0xFF00);
-							VoxelDrawBuffer[buffer_index] = color_index;
-							VoxelDrawBuffer[buffer_index + 1] = color_index;
+							Voxel_Put(span, Voxel_Buffer_Index(pixel_x, pixel_y, span.Mask, span.Shift), color_index);
 
 							pixel_x += state->TransformMatrix[3].I;
 							pixel_y += state->TransformMatrix[3].J;
@@ -1140,21 +1179,23 @@ void __cdecl Draw_Voxel_Reverse_Normals(VoxelFuncArgumentStruct * state)
 	 */
 	Fill_Delta_Table1(state);
 
+	VoxelSpan const span = Voxel_Span();
+
 	/// Set starting 2D projection position
-	unsigned short pixel_x = state->TransformMatrix[0].I;
-	unsigned short pixel_y = state->TransformMatrix[0].J;
+	unsigned int pixel_x = state->TransformMatrix[0].I;
+	unsigned int pixel_y = state->TransformMatrix[0].J;
 
 	/// Iterate over voxel Y slices (rows)
 	for (unsigned int y = 0; y < state->YSize; y++) {
 		unsigned int base_index = state->StartIndex;
-		unsigned short row_start_x = pixel_x;
-		unsigned short row_start_y = pixel_y;
+		unsigned int row_start_x = pixel_x;
+		unsigned int row_start_y = pixel_y;
 
 		/// Iterate over voxel X columns (within the current Y row)
 		for (unsigned int x = 0; x < state->XSize; x++) {
 			unsigned int data_offset = ((unsigned int *)state->EndOffset)[state->StartIndex];
-			unsigned short column_start_x = pixel_x;
-			unsigned short column_start_y = pixel_y;
+			unsigned int column_start_x = pixel_x;
+			unsigned int column_start_y = pixel_y;
 
 			if (data_offset != UINT_MAX) {
 				unsigned char * ptr = state->DataOffset + data_offset;
@@ -1182,11 +1223,7 @@ void __cdecl Draw_Voxel_Reverse_Normals(VoxelFuncArgumentStruct * state)
 							unsigned char color_index = *ptr;
 							ptr--;
 
-							/// Compute buffer index and write color. A voxel covers two
-							/// buffer bytes, so the colour goes down twice.
-							unsigned int buffer_index = (pixel_x >> 8) | (pixel_y & 0xFF00);
-							VoxelDrawBuffer[buffer_index] = color_index;
-							VoxelDrawBuffer[buffer_index + 1] = color_index;
+							Voxel_Put(span, Voxel_Buffer_Index(pixel_x, pixel_y, span.Mask, span.Shift), color_index);
 
 							pixel_x += state->TransformMatrix[3].I;
 							pixel_y += state->TransformMatrix[3].J;
@@ -1239,22 +1276,24 @@ void __cdecl Draw_Voxel_Regular_Normals_ZBuffer(VoxelFuncArgumentStruct * state)
 	 */
 	Fill_Delta_Table3(state);
 
+	VoxelSpan const span = Voxel_Span();
+
 	/// Set starting 2D projection position
-	unsigned short pixel_x = state->TransformMatrix[0].I;
-	unsigned short pixel_y = state->TransformMatrix[0].J;
+	unsigned int pixel_x = state->TransformMatrix[0].I;
+	unsigned int pixel_y = state->TransformMatrix[0].J;
 	unsigned short pixel_z = state->TransformMatrix[0].K;
 
 	/// Iterate over voxel Y slices (rows)
 	for (unsigned int y = 0; y < state->YSize; y++) {
 		unsigned int base_index = state->StartIndex;
-		unsigned short row_start_x = pixel_x;
-		unsigned short row_start_y = pixel_y;
+		unsigned int row_start_x = pixel_x;
+		unsigned int row_start_y = pixel_y;
 		unsigned short row_start_z = pixel_z;
 
 		/// Iterate over voxel X columns (within the current Y row)
 		for (unsigned int x = 0; x < state->XSize; x++) {
-			unsigned short column_start_x = pixel_x;
-			unsigned short column_start_y = pixel_y;
+			unsigned int column_start_x = pixel_x;
+			unsigned int column_start_y = pixel_y;
 			unsigned short column_start_z = pixel_z;
 			unsigned int data_offset = ((unsigned int *)state->StartOffset)[state->StartIndex];
 
@@ -1297,13 +1336,9 @@ void __cdecl Draw_Voxel_Regular_Normals_ZBuffer(VoxelFuncArgumentStruct * state)
 							 */
 							ptr++;
 
-							/// Compute buffer index and write color
-							unsigned int buffer_index = (pixel_x >> 8) | (pixel_y & 0xFF00);
+							unsigned int buffer_index = Voxel_Buffer_Index(pixel_x, pixel_y, span.Mask, span.Shift);
 							if ((pixel_z >> 8) > VoxelDrawZBuffer[buffer_index]) {
-								VoxelDrawZBuffer[buffer_index] = (pixel_z >> 8);
-								VoxelDrawBuffer[buffer_index] = value;
-								VoxelDrawBuffer[buffer_index + 1] = value;
-								VoxelDrawZBuffer[buffer_index + 1] = (pixel_z >> 8);
+								Voxel_Put_Z(span, buffer_index, value, (unsigned char)(pixel_z >> 8));
 							}
 
 							pixel_x += state->TransformMatrix[3].I;
@@ -1349,22 +1384,24 @@ void __cdecl Draw_Voxel_Reverse_Normals_ZBuffer(VoxelFuncArgumentStruct * state)
 	 */
 	Fill_Delta_Table2(state);
 
+	VoxelSpan const span = Voxel_Span();
+
 	/// Set starting 2D projection position
-	unsigned short pixel_x = state->TransformMatrix[0].I;
-	unsigned short pixel_y = state->TransformMatrix[0].J;
+	unsigned int pixel_x = state->TransformMatrix[0].I;
+	unsigned int pixel_y = state->TransformMatrix[0].J;
 	unsigned short pixel_z = state->TransformMatrix[0].K;
 
 	/// Iterate over voxel Y slices (rows)
 	for (unsigned int y = 0; y < state->YSize; y++) {
 		unsigned int base_index = state->StartIndex;
-		unsigned short row_start_x = pixel_x;
-		unsigned short row_start_y = pixel_y;
+		unsigned int row_start_x = pixel_x;
+		unsigned int row_start_y = pixel_y;
 		unsigned short row_start_z = pixel_z;
 
 		/// Iterate over voxel X columns (within the current Y row)
 		for (unsigned int x = 0; x < state->XSize; x++) {
-			unsigned short column_start_x = pixel_x;
-			unsigned short column_start_y = pixel_y;
+			unsigned int column_start_x = pixel_x;
+			unsigned int column_start_y = pixel_y;
 			unsigned short column_start_z = pixel_z;
 			unsigned int data_offset = ((unsigned int *)state->EndOffset)[state->StartIndex];
 
@@ -1400,13 +1437,9 @@ void __cdecl Draw_Voxel_Reverse_Normals_ZBuffer(VoxelFuncArgumentStruct * state)
 							value = *ptr;
 							ptr--;
 
-							/// Compute buffer index and write color
-							unsigned int buffer_index = (pixel_x >> 8) | (pixel_y & 0xFF00);
+							unsigned int buffer_index = Voxel_Buffer_Index(pixel_x, pixel_y, span.Mask, span.Shift);
 							if ((pixel_z >> 8) > VoxelDrawZBuffer[buffer_index]) {
-								VoxelDrawZBuffer[buffer_index] = (pixel_z >> 8);
-								VoxelDrawBuffer[buffer_index] = value;
-								VoxelDrawBuffer[buffer_index + 1] = value;
-								VoxelDrawZBuffer[buffer_index + 1] = (pixel_z >> 8);
+								Voxel_Put_Z(span, buffer_index, value, (unsigned char)(pixel_z >> 8));
 							}
 
 							pixel_x += state->TransformMatrix[3].I;
@@ -1464,21 +1497,23 @@ void __cdecl Draw_Voxel_Regular_Normals_Lighting(VoxelFuncArgumentStruct * state
 	 */
 	Fill_Delta_Table1(state);
 
+	VoxelSpan const span = Voxel_Span();
+
 	/// Set starting 2D projection position
-	unsigned short pixel_x = state->TransformMatrix[0].I;
-	unsigned short pixel_y = state->TransformMatrix[0].J;
+	unsigned int pixel_x = state->TransformMatrix[0].I;
+	unsigned int pixel_y = state->TransformMatrix[0].J;
 
 	/// Iterate over voxel Y slices (rows)
 	for (unsigned int y = 0; y < state->YSize; y++) {
 		unsigned int base_index = state->StartIndex;
-		unsigned short row_start_x = pixel_x;
-		unsigned short row_start_y = pixel_y;
+		unsigned int row_start_x = pixel_x;
+		unsigned int row_start_y = pixel_y;
 
 		/// Iterate over voxel X columns (within the current Y row)
 		for (unsigned int x = 0; x < state->XSize; x++) {
 			unsigned int data_offset = ((unsigned int *)state->StartOffset)[state->StartIndex];
-			unsigned short column_start_x = pixel_x;
-			unsigned short column_start_y = pixel_y;
+			unsigned int column_start_x = pixel_x;
+			unsigned int column_start_y = pixel_y;
 
 			if (data_offset != UINT_MAX) {
 				unsigned char * ptr = state->DataOffset + data_offset;
@@ -1519,12 +1554,10 @@ void __cdecl Draw_Voxel_Regular_Normals_Lighting(VoxelFuncArgumentStruct * state
 							unsigned char table_index = VoxelNormalTranslateTable[normal_index];
 							ptr++;
 
-							/// Compute buffer index and write color
-							unsigned int buffer_index = (pixel_x >> 8) | (pixel_y & 0xFF00);
+							unsigned int buffer_index = Voxel_Buffer_Index(pixel_x, pixel_y, span.Mask, span.Shift);
 							color_index = VoxelPaletteTranslateTable[table_index][color_index];
 
-							VoxelDrawBuffer[buffer_index] = color_index;
-							VoxelDrawBuffer[buffer_index + 1] = color_index;
+							Voxel_Put(span, buffer_index, color_index);
 
 							pixel_x += state->TransformMatrix[3].I;
 							pixel_y += state->TransformMatrix[3].J;
@@ -1566,21 +1599,23 @@ void __cdecl Draw_Voxel_Reverse_Normals_Lighting(VoxelFuncArgumentStruct * state
 	 */
 	Fill_Delta_Table2(state);
 
+	VoxelSpan const span = Voxel_Span();
+
 	/// Set starting 2D projection position
-	unsigned short pixel_x = state->TransformMatrix[0].I;
-	unsigned short pixel_y = state->TransformMatrix[0].J;
+	unsigned int pixel_x = state->TransformMatrix[0].I;
+	unsigned int pixel_y = state->TransformMatrix[0].J;
 
 	/// Iterate over voxel Y slices (rows)
 	for (unsigned int y = 0; y < state->YSize; y++) {
 		unsigned int base_index = state->StartIndex;
-		unsigned short row_start_x = pixel_x;
-		unsigned short row_start_y = pixel_y;
+		unsigned int row_start_x = pixel_x;
+		unsigned int row_start_y = pixel_y;
 
 		/// Iterate over voxel X columns (within the current Y row)
 		for (unsigned int x = 0; x < state->XSize; x++) {
 			unsigned int data_offset = ((unsigned int *)state->EndOffset)[state->StartIndex];
-			unsigned short column_start_x = pixel_x;
-			unsigned short column_start_y = pixel_y;
+			unsigned int column_start_x = pixel_x;
+			unsigned int column_start_y = pixel_y;
 
 			if (data_offset != UINT_MAX) {
 				unsigned char * ptr = state->DataOffset + data_offset;
@@ -1610,12 +1645,10 @@ void __cdecl Draw_Voxel_Reverse_Normals_Lighting(VoxelFuncArgumentStruct * state
 							unsigned char color_index = *ptr;
 							ptr--;
 
-							/// Compute buffer index and write color
-							unsigned int buffer_index = (pixel_x >> 8) | (pixel_y & 0xFF00);
+							unsigned int buffer_index = Voxel_Buffer_Index(pixel_x, pixel_y, span.Mask, span.Shift);
 							color_index = VoxelPaletteTranslateTable[table_index][color_index];
 
-							VoxelDrawBuffer[buffer_index] = color_index;
-							VoxelDrawBuffer[buffer_index + 1] = color_index;
+							Voxel_Put(span, buffer_index, color_index);
 
 							pixel_x += state->TransformMatrix[3].I;
 							pixel_y += state->TransformMatrix[3].J;
@@ -1668,22 +1701,24 @@ void __cdecl Draw_Voxel_Regular_Normals_ZBuffer_Lighting(VoxelFuncArgumentStruct
 	 */
 	Fill_Delta_Table2(state);
 
+	VoxelSpan const span = Voxel_Span();
+
 	/// Set starting 2D projection position
-	unsigned short pixel_x = state->TransformMatrix[0].I;
-	unsigned short pixel_y = state->TransformMatrix[0].J;
+	unsigned int pixel_x = state->TransformMatrix[0].I;
+	unsigned int pixel_y = state->TransformMatrix[0].J;
 	unsigned short pixel_z = state->TransformMatrix[0].K;
 
 	/// Iterate over voxel Y slices (rows)
 	for (unsigned int y = 0; y < state->YSize; y++) {
 		unsigned int base_index = state->StartIndex;
-		unsigned short row_start_x = pixel_x;
-		unsigned short row_start_y = pixel_y;
+		unsigned int row_start_x = pixel_x;
+		unsigned int row_start_y = pixel_y;
 		unsigned short row_start_z = pixel_z;
 
 		/// Iterate over voxel X columns (within the current Y row)
 		for (unsigned int x = 0; x < state->XSize; x++) {
-			unsigned short column_start_x = pixel_x;
-			unsigned short column_start_y = pixel_y;
+			unsigned int column_start_x = pixel_x;
+			unsigned int column_start_y = pixel_y;
 			unsigned short column_start_z = pixel_z;
 			unsigned int data_offset = ((unsigned int *)state->StartOffset)[state->StartIndex];
 
@@ -1714,8 +1749,7 @@ void __cdecl Draw_Voxel_Regular_Normals_ZBuffer_Lighting(VoxelFuncArgumentStruct
 						remaining -= run_length;
 						while (run_length) {
 
-							/// Compute buffer index and write color
-							unsigned int buffer_index = (pixel_x >> 8) | (pixel_y & 0xFF00);
+							unsigned int buffer_index = Voxel_Buffer_Index(pixel_x, pixel_y, span.Mask, span.Shift);
 							if ((pixel_z >> 8) > VoxelDrawZBuffer[buffer_index]) {
 
 								/*
@@ -1733,10 +1767,7 @@ void __cdecl Draw_Voxel_Regular_Normals_ZBuffer_Lighting(VoxelFuncArgumentStruct
 
 								color_index = VoxelPaletteTranslateTable[table_index][color_index];
 
-								VoxelDrawZBuffer[buffer_index] = (pixel_z >> 8);
-								VoxelDrawZBuffer[buffer_index + 1] = (pixel_z >> 8);
-								VoxelDrawBuffer[buffer_index] = color_index;
-								VoxelDrawBuffer[buffer_index + 1] = color_index;
+								Voxel_Put_Z(span, buffer_index, color_index, (unsigned char)(pixel_z >> 8));
 							} else {
 								/*
 								 * Byte 2 - color index
@@ -1792,22 +1823,24 @@ void __cdecl Draw_Voxel_Reverse_Normals_ZBuffer_Lighting(VoxelFuncArgumentStruct
 	 */
 	Fill_Delta_Table1(state);
 
+	VoxelSpan const span = Voxel_Span();
+
 	/// Set starting 2D projection position
-	unsigned short pixel_x = state->TransformMatrix[0].I;
-	unsigned short pixel_y = state->TransformMatrix[0].J;
+	unsigned int pixel_x = state->TransformMatrix[0].I;
+	unsigned int pixel_y = state->TransformMatrix[0].J;
 	unsigned short pixel_z = state->TransformMatrix[0].K;
 
 	/// Iterate over voxel Y slices (rows)
 	for (unsigned int y = 0; y < state->YSize; y++) {
 		unsigned int base_index = state->StartIndex;
-		unsigned short row_start_x = pixel_x;
-		unsigned short row_start_y = pixel_y;
+		unsigned int row_start_x = pixel_x;
+		unsigned int row_start_y = pixel_y;
 		unsigned short row_start_z = pixel_z;
 
 		/// Iterate over voxel X columns (within the current Y row)
 		for (unsigned int x = 0; x < state->XSize; x++) {
-			unsigned short column_start_x = pixel_x;
-			unsigned short column_start_y = pixel_y;
+			unsigned int column_start_x = pixel_x;
+			unsigned int column_start_y = pixel_y;
 			unsigned short column_start_z = pixel_z;
 			unsigned int data_offset = ((unsigned int *)state->EndOffset)[state->StartIndex];
 
@@ -1826,8 +1859,7 @@ void __cdecl Draw_Voxel_Reverse_Normals_ZBuffer_Lighting(VoxelFuncArgumentStruct
 						remaining -= run_length;
 						while (run_length) {
 
-							/// Compute buffer index and write color
-							unsigned int buffer_index = (pixel_x >> 8) | (pixel_y & 0xFF00);
+							unsigned int buffer_index = Voxel_Buffer_Index(pixel_x, pixel_y, span.Mask, span.Shift);
 							if ((pixel_z >> 8) > VoxelDrawZBuffer[buffer_index]) {
 
 								/*
@@ -1845,10 +1877,7 @@ void __cdecl Draw_Voxel_Reverse_Normals_ZBuffer_Lighting(VoxelFuncArgumentStruct
 
 								color_index = VoxelPaletteTranslateTable[table_index][color_index];
 
-								VoxelDrawZBuffer[buffer_index] = (pixel_z >> 8);
-								VoxelDrawZBuffer[buffer_index + 1] = (pixel_z >> 8);
-								VoxelDrawBuffer[buffer_index] = color_index;
-								VoxelDrawBuffer[buffer_index + 1] = color_index;
+								Voxel_Put_Z(span, buffer_index, color_index, (unsigned char)(pixel_z >> 8));
 							} else {
 
 								/*
@@ -1916,21 +1945,23 @@ void __cdecl Draw_Voxel_Regular(VoxelFuncArgumentStruct * state)
 	 */
 	Fill_Delta_Table1(state);
 
+	VoxelSpan const span = Voxel_Span();
+
 	/// Set starting 2D projection position
-	unsigned short pixel_x = state->TransformMatrix[0].I;
-	unsigned short pixel_y = state->TransformMatrix[0].J;
+	unsigned int pixel_x = state->TransformMatrix[0].I;
+	unsigned int pixel_y = state->TransformMatrix[0].J;
 
 	/// Iterate over voxel Y slices (rows)
 	for (unsigned int y = 0; y < state->YSize; y++) {
 		unsigned int base_index = state->StartIndex;
-		unsigned short row_start_x = pixel_x;
-		unsigned short row_start_y = pixel_y;
+		unsigned int row_start_x = pixel_x;
+		unsigned int row_start_y = pixel_y;
 
 		/// Iterate over voxel X columns (within the current Y row)
 		for (unsigned int x = 0; x < state->XSize; x++) {
 			unsigned int data_offset = ((unsigned int *)state->StartOffset)[state->StartIndex];
-			unsigned short column_start_x = pixel_x;
-			unsigned short column_start_y = pixel_y;
+			unsigned int column_start_x = pixel_x;
+			unsigned int column_start_y = pixel_y;
 
 			if (data_offset != UINT_MAX) {
 				unsigned char * ptr = state->DataOffset + data_offset;
@@ -1964,9 +1995,7 @@ void __cdecl Draw_Voxel_Regular(VoxelFuncArgumentStruct * state)
 							unsigned char color_index = *ptr;
 							ptr++;
 
-							/// Compute buffer index and write color. Unlike the shaded
-							/// drawers, this one covers a single buffer byte per voxel.
-							VoxelDrawBuffer[(pixel_x >> 8) | (pixel_y & 0xFF00)] = color_index;
+							Voxel_Put_Narrow(span, Voxel_Buffer_Index(pixel_x, pixel_y, span.Mask, span.Shift), color_index);
 
 							pixel_x += state->TransformMatrix[3].I;
 							pixel_y += state->TransformMatrix[3].J;
@@ -2007,21 +2036,23 @@ void __cdecl Draw_Voxel_Reverse(VoxelFuncArgumentStruct * state)
 	 */
 	Fill_Delta_Table2(state);
 
+	VoxelSpan const span = Voxel_Span();
+
 	/// Set starting 2D projection position
-	unsigned short pixel_x = state->TransformMatrix[0].I;
-	unsigned short pixel_y = state->TransformMatrix[0].J;
+	unsigned int pixel_x = state->TransformMatrix[0].I;
+	unsigned int pixel_y = state->TransformMatrix[0].J;
 
 	/// Iterate over voxel Y slices (rows)
 	for (unsigned int y = 0; y < state->YSize; y++) {
 		unsigned int base_index = state->StartIndex;
-		unsigned short row_start_x = pixel_x;
-		unsigned short row_start_y = pixel_y;
+		unsigned int row_start_x = pixel_x;
+		unsigned int row_start_y = pixel_y;
 
 		/// Iterate over voxel X columns (within the current Y row)
 		for (unsigned int x = 0; x < state->XSize; x++) {
 			unsigned int data_offset = ((unsigned int *)state->EndOffset)[state->StartIndex];
-			unsigned short column_start_x = pixel_x;
-			unsigned short column_start_y = pixel_y;
+			unsigned int column_start_x = pixel_x;
+			unsigned int column_start_y = pixel_y;
 
 			if (data_offset != UINT_MAX) {
 				unsigned char * ptr = state->DataOffset + data_offset;
@@ -2044,9 +2075,7 @@ void __cdecl Draw_Voxel_Reverse(VoxelFuncArgumentStruct * state)
 							unsigned char color_index = *ptr;
 							ptr--;
 
-							/// Compute buffer index and write color. Unlike the shaded
-							/// drawers, this one covers a single buffer byte per voxel.
-							VoxelDrawBuffer[(pixel_x >> 8) | (pixel_y & 0xFF00)] = color_index;
+							Voxel_Put_Narrow(span, Voxel_Buffer_Index(pixel_x, pixel_y, span.Mask, span.Shift), color_index);
 
 							pixel_x += state->TransformMatrix[3].I;
 							pixel_y += state->TransformMatrix[3].J;
@@ -2099,22 +2128,24 @@ void __cdecl Draw_Voxel_Regular_ZBuffer(VoxelFuncArgumentStruct * state)
 	 */
 	Fill_Delta_Table2(state);
 
+	VoxelSpan const span = Voxel_Span();
+
 	/// Set starting 2D projection position
-	unsigned short pixel_x = state->TransformMatrix[0].I;
-	unsigned short pixel_y = state->TransformMatrix[0].J;
+	unsigned int pixel_x = state->TransformMatrix[0].I;
+	unsigned int pixel_y = state->TransformMatrix[0].J;
 	unsigned short pixel_z = state->TransformMatrix[0].K;
 
 	/// Iterate over voxel Y slices (rows)
 	for (unsigned int y = 0; y < state->YSize; y++) {
 		unsigned int base_index = state->StartIndex;
-		unsigned short row_start_x = pixel_x;
-		unsigned short row_start_y = pixel_y;
+		unsigned int row_start_x = pixel_x;
+		unsigned int row_start_y = pixel_y;
 		unsigned short row_start_z = pixel_z;
 
 		/// Iterate over voxel X columns (within the current Y row)
 		for (unsigned int x = 0; x < state->XSize; x++) {
-			unsigned short column_start_x = pixel_x;
-			unsigned short column_start_y = pixel_y;
+			unsigned int column_start_x = pixel_x;
+			unsigned int column_start_y = pixel_y;
 			unsigned short column_start_z = pixel_z;
 			unsigned int data_offset = ((unsigned int *)state->StartOffset)[state->StartIndex];
 
@@ -2152,13 +2183,9 @@ void __cdecl Draw_Voxel_Regular_ZBuffer(VoxelFuncArgumentStruct * state)
 							value = *ptr;
 							ptr++;
 
-							/// Compute buffer index and write color
-							unsigned int buffer_index = (pixel_x >> 8) | (pixel_y & 0xFF00);
+							unsigned int buffer_index = Voxel_Buffer_Index(pixel_x, pixel_y, span.Mask, span.Shift);
 							if ((pixel_z >> 8) > VoxelDrawZBuffer[buffer_index]) {
-								VoxelDrawZBuffer[buffer_index] = (pixel_z >> 8);
-								VoxelDrawBuffer[buffer_index] = value;
-								VoxelDrawBuffer[buffer_index + 1] = value;
-								VoxelDrawZBuffer[buffer_index + 1] = (pixel_z >> 8);
+								Voxel_Put_Z(span, buffer_index, value, (unsigned char)(pixel_z >> 8));
 							}
 
 							pixel_x += state->TransformMatrix[3].I;
@@ -2204,22 +2231,24 @@ void __cdecl Draw_Voxel_Reverse_ZBuffer(VoxelFuncArgumentStruct * state)
 	 */
 	Fill_Delta_Table2(state);
 
+	VoxelSpan const span = Voxel_Span();
+
 	/// Set starting 2D projection position
-	unsigned short pixel_x = state->TransformMatrix[0].I;
-	unsigned short pixel_y = state->TransformMatrix[0].J;
+	unsigned int pixel_x = state->TransformMatrix[0].I;
+	unsigned int pixel_y = state->TransformMatrix[0].J;
 	unsigned short pixel_z = state->TransformMatrix[0].K;
 
 	/// Iterate over voxel Y slices (rows)
 	for (unsigned int y = 0; y < state->YSize; y++) {
 		unsigned int base_index = state->StartIndex;
-		unsigned short row_start_x = pixel_x;
-		unsigned short row_start_y = pixel_y;
+		unsigned int row_start_x = pixel_x;
+		unsigned int row_start_y = pixel_y;
 		unsigned short row_start_z = pixel_z;
 
 		/// Iterate over voxel X columns (within the current Y row)
 		for (unsigned int x = 0; x < state->XSize; x++) {
-			unsigned short column_start_x = pixel_x;
-			unsigned short column_start_y = pixel_y;
+			unsigned int column_start_x = pixel_x;
+			unsigned int column_start_y = pixel_y;
 			unsigned short column_start_z = pixel_z;
 			unsigned int data_offset = ((unsigned int *)state->EndOffset)[state->StartIndex];
 
@@ -2250,13 +2279,9 @@ void __cdecl Draw_Voxel_Reverse_ZBuffer(VoxelFuncArgumentStruct * state)
 							value = *ptr;
 							ptr--;
 
-							/// Compute buffer index and write color
-							unsigned int buffer_index = (pixel_x >> 8) | (pixel_y & 0xFF00);
+							unsigned int buffer_index = Voxel_Buffer_Index(pixel_x, pixel_y, span.Mask, span.Shift);
 							if ((pixel_z >> 8) > VoxelDrawZBuffer[buffer_index]) {
-								VoxelDrawZBuffer[buffer_index] = (pixel_z >> 8);
-								VoxelDrawBuffer[buffer_index] = value;
-								VoxelDrawBuffer[buffer_index + 1] = value;
-								VoxelDrawZBuffer[buffer_index + 1] = (pixel_z >> 8);
+								Voxel_Put_Z(span, buffer_index, value, (unsigned char)(pixel_z >> 8));
 							}
 
 							pixel_x += state->TransformMatrix[3].I;

@@ -149,6 +149,7 @@
 #include "vanimtype.h"
 #include "vector.h"
 #include "video.h"
+#include "voxelscale.h"
 #include "walk.h"
 #include "warhead.h"
 #include "wave.h"
@@ -595,6 +596,10 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 
 		// Wanted before the surfaces are allocated; the settings dialog never edits it, so it is read once.
 		Options.UIScale = ConfigINI.Get_Int("Video", "UIScale", Options.UIScale);
+
+		// Wanted before the voxel bitmap is built, and fixed for the run once it is.
+		Options.VoxelSupersample = ConfigINI.Get_Bool("Video", "VoxelSupersample", Options.VoxelSupersample);
+		Set_Voxel_Scale(Options.VoxelSupersample ? 2 : 1);
 
 		/*
 		 * The command line asks for a window regardless of what the settings say.

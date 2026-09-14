@@ -73,12 +73,17 @@ pixels are palette indices 16–31 in the unit palette; an upscaler must preserv
 
 ## 4. Voxels
 
+**Changed by 05a on `fork/voxel-scale`.** The rest of this section describes the
+rasteriser as of `0281b88`; the differences are listed at the end of it.
+
 Software rasteriser into a **fixed 256×256×8-bit buffer** (`VOXEL_BITMAP_WIDTH/HEIGHT`
 `code/voxdrsys.h:31-33`; buffers `voxdrsys.cpp:25-29`; region centred `:426-430` — a
-projected model over ~248 px clips). `VoxelDrawSystem::Render` `voxdrsys.cpp:369`;
-`Prep_For_Object :248`, `Prep_For_Shadow :204`, `Precalculate_Light :143/:163`.
+projected model over ~248 px wraps around the buffer). `VoxelDrawSystem::Render`
+`voxdrsys.cpp:369`; `Prep_For_Object :248`, `Prep_For_Shadow :204`,
+`Precalculate_Light :143/:163`.
 `VoxelLibrary::Render_Object` `code/voxlib.cpp:765` builds an 8.8 fixed-point transform
-with a `+128` centring bias `:795-810`; six drawers from `:1045`. Scale comes from the VXL
+with a `+128` centring bias `:795-810`; **twelve** drawers from `:1037`, of which
+`tests/voxeldraw` pins six. Scale comes from the VXL
 (`LayerInfoStruct::Scale` `code/voxlib.h:66`, applied `objtype.cpp:548, :569`). Camera
 `Init_Voxel_Matrices` `code/voxel.cpp:210-212` (`Rotate_X(-60°); Rotate_Z(-45°)`, no
 scale); `VoxelCameraMatrix` (`code/_voxel.cpp:22`) is identity — **the natural place to
@@ -88,8 +93,33 @@ inject a global voxel scale**. Call sites `code/techno.cpp:6123` (`Draw_Voxel`),
 Cache: `VoxelStaticBuffer(2000000)` `code/_voxel.cpp:23` — a fixed 2 MB arena of RLE
 images keyed by facing/frame (`VoxelIndexClass`, `_voxel.h:56`), `UseVoxelCache`
 (`init.cpp:2644`), overflow resets the index `techno.cpp:6195-6200`. 2× voxels ≈ 4×
-bytes. `tests/voxeldraw` pins the six drawers with golden vectors — any change to
-`voxlib.cpp` drawers must keep that test green or update the goldens deliberately.
+bytes. Any change to `voxlib.cpp` drawers must keep `tests/voxeldraw` green or update the
+goldens deliberately.
+
+What 05a changed, and what it left alone:
+
+- `code/voxelscale.h/.cpp` owns the scale. `Set_Voxel_Scale(1|2)` is called from
+  `startup.cpp` beside `UIScale`, and `VoxelDrawSystem::Init()` builds the surfaces from
+  `init.cpp` after the VPL is loaded. The scale is fixed for the process.
+- `VOXEL_BITMAP_WIDTH/HEIGHT` are gone. The bitmap is a fixed 512-square array with
+  padding past its last row, described by a `BSurface` built at the chosen size.
+- `VoxelFuncArgumentStruct::TransformMatrix` is `Vector3i`, not `Vector3i16`: the 8.8
+  screen position needs more than eight whole bits at 2×. The drawers index through
+  `Voxel_Buffer_Index(x, y, mask, shift)`, which reduces to the old `(x >> 8) | (y &
+  0xFF00)` at scale 1, and lay a voxel down as a `2 * scale` by `scale` block.
+- `VoxelPixelDeltaTable` is `int[256][2]`. Its 256 is the RLE skip byte's domain, **not**
+  bitmap geometry, so it does not follow the scale.
+- `VoxelCameraMatrix` carries `Scale(s, s, 1)`. View space Z is left alone because depth
+  lands in an 8-bit buffer with a fixed `+128` bias, and the `.K` row of the transform
+  keeps that literal.
+- `Prep_For_Shadow` scales `VoxelShadowLightVector` as it applies it, since the light is
+  added after the camera transform.
+- `[Video] VoxelSupersample=yes` renders at 2× and reduces each 2×2 block to one palette
+  index (`code/voxeldownsample.h/.cpp`) before `Get_Surface()` and the returned region are
+  handed back, so every caller still works at 1× and the cache still stores 1× images.
+  05b turns that reduction off and blits the 2× region instead.
+- Untouched and still true for 05b: the cache arena size, the cache keys, `Blit_Block`,
+  `Calculate_Sinking_Offset`, and `unit.cpp`'s turret composite at `Point2D(80, 80)`.
 
 ## 5. Formats and loaders
 
@@ -127,8 +157,8 @@ small, not blurry. That is what an asset-scale mode fixes.
 | 4 | Iso-tile rasteriser literal 48×24 mask and span tables | `code/isotype.cpp:57-61, :1602-1607, :1644-1667` |
 | 5 | Inverse projection literal `576` | `code/tactical.cpp:1790-1791, :1804-1805` |
 | 6 | `Z_Lepton_To_Pixel` statics | `code/tactical.cpp:259-260` |
-| 7 | Voxel buffer 256×256, `+128` bias | `code/voxdrsys.h:31-33`, `voxlib.cpp:795-810`, `voxdrsys.cpp:426-430` |
-| 8 | Voxel cache 2 MB | `code/_voxel.cpp:23` |
+| 7 | ~~Voxel buffer 256×256, `+128` bias~~ — done by 05a; `VoxelScale` drives both | `code/voxelscale.h` |
+| 8 | Voxel cache 2 MB — still 1× sized, because 05a stores reduced images | `code/_voxel.cpp:23` |
 | 9 | Blitters are 8-bit-index in, 565 out | `code/blitblit.h`; `dsurface.h:129` |
 | 10 | Shadow frames = second half of the SHP | `code/techno.cpp:6082` |
 | 11 | Many pixel offsets in art.ini / code assume 1× (e.g. `PixelSelectionBracketDelta`, cameo, muzzle flash `PrimaryFireFLH` are leptons — fine; but `Draw_It` local pixel nudges are not) | grep `Point2D(` literals in `*.cpp Draw_It` bodies |

@@ -14,6 +14,7 @@
 #include "rle.h"
 #include "surface.h"
 #include "voxdrsys.h"
+#include "voxelscale.h"
 
 #include <cstring>
 
@@ -46,11 +47,11 @@ StaticBufferClass::~StaticBufferClass(void)
 }
 
 /*
- * A 256-pixel voxel row can expand when RLE encodes isolated transparent pixels:
- * each such pixel takes two bytes, plus the row's length prefix. Reserve twice
- * the voxel-buffer width so every cached voxel row fits.
+ * A voxel row can expand when RLE encodes isolated transparent pixels: each such
+ * pixel takes two bytes, plus the row's length prefix. Reserve twice the widest
+ * bitmap any scale can hand over, so every cached voxel row fits.
  */
-static char CompressionBuffer[2 * VOXEL_BITMAP_WIDTH];
+static char CompressionBuffer[2 * VOXEL_SCALE_MAX_SIZE + 16];
 
 /// <summary>
 /// Adds a compressed copy of a surface region to the buffer.

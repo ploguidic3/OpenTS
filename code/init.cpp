@@ -183,6 +183,7 @@
 #include "vein.h"
 #include "voc.h"
 #include "vox.h"
+#include "voxdrsys.h"
 #include "vqoption.h"
 #include "wave.h"
 #include "waypoint.h"
@@ -2641,6 +2642,8 @@ static bool Bootstrap(void)
 	for (int i = 0; i < ARRAY_SIZE(VoxelRGBColors); i++) {
 		VoxelPalette[i] = RGBClass(VoxelRGBColors[i].Red, VoxelRGBColors[i].Green, VoxelRGBColors[i].Blue);
 	}
+
+	VoxelDrawSystem::Init();
 
 	UseVoxelCache = true;
 	Set_Voxel_Camera_Angle(DefaultCameraAngle);

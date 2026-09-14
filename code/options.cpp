@@ -142,6 +142,7 @@ OptionsClass::OptionsClass(void) :
 	CursorScale(0),
 	UIScale(0),
 	AssetOverrides(true),
+	VoxelSupersample(false),
 	SoundLatency(9),
 	KeyForceMove1(KN_LALT),
 	KeyForceMove2(KN_LALT),
@@ -428,6 +429,7 @@ void OptionsClass::Load_Settings(void)
 	CursorScale = ConfigINI.Get_Int("Video", "CursorScale", CursorScale);
 
 	DebugString("AssetOverrides are %s, %u loose bytes held\n", AssetOverrides ? "ON" : "OFF", Shape_Override_Bytes());
+	DebugString("VoxelSupersample is %s\n", VoxelSupersample ? "ON" : "OFF");
 
 	Set_Sound_Volume(ConfigINI.Get_Float("Audio", "SoundVolume", SoundVolume), false);
 	Set_Voice_Volume(ConfigINI.Get_Float("Audio", "VoiceVolume", VoiceVolume), false);
@@ -498,6 +500,7 @@ void OptionsClass::Save_Settings (void)
 	ConfigINI.Put_Int("Video", "CursorScale", CursorScale);
 	ConfigINI.Put_Int("Video", "UIScale", UIScale);
 	ConfigINI.Put_Bool("Video", "AssetOverrides", AssetOverrides);
+	ConfigINI.Put_Bool("Video", "VoxelSupersample", VoxelSupersample);
 	ConfigINI.Put_Float("Audio", "SoundVolume", SoundVolume);
 	ConfigINI.Put_Float("Audio", "VoiceVolume", VoiceVolume);
 	ConfigINI.Put_Float("Audio", "ScoreVolume", ScoreVolume);

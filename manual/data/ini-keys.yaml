@@ -25561,6 +25561,24 @@ VoxelIndex:
       source: code/vanimtype.cpp
       guard: null
     level: VoxelAnimTypeClass
+VoxelSupersample:
+  key: VoxelSupersample
+  scopes:
+  - applies_to:
+    - client settings
+    file: sun.ini
+    section:
+      kind: literal
+      name: Video
+    value_type: boolean
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: Startup
+      member: Options
+      source: code/startup.cpp
+      guard: null
+    level: Startup
 Wake:
   key: Wake
   scopes:
