@@ -404,18 +404,18 @@ static SurfaceRegion Resolve_Region(SurfaceRegion const & region)
 
 static SurfaceRegion Finish_Render(Vector3 const & center)
 {
-	int const scale = Voxel_Scale();
-
 	int width = MaxVoxelBounds.X - MinVoxelBounds.X;
 	int height = MaxVoxelBounds.Y - MinVoxelBounds.Y;
 
+	VoxelRegion placed = Voxel_Region(width, height, (int)center.X, (int)center.Y);
+
 	SurfaceRegion region;
-	region.Bounds.Width = width + 8 * scale;
-	region.Bounds.Height = height + 8 * scale;
-	region.Bounds.X = Voxel_Bitmap_Width() / 2 - width / 2 - 4 * scale;
-	region.Bounds.Y = Voxel_Bitmap_Height() / 2 - height / 2 - 4 * scale;
-	region.Point.X = (int)center.X - region.Bounds.Width / 2;
-	region.Point.Y = (int)center.Y - region.Bounds.Height / 2;
+	region.Bounds.Width = placed.Width;
+	region.Bounds.Height = placed.Height;
+	region.Bounds.X = placed.X;
+	region.Bounds.Y = placed.Y;
+	region.Point.X = placed.PointX;
+	region.Point.Y = placed.PointY;
 
 	if (VoxelResolveSurface == NULL) {
 		return(region);

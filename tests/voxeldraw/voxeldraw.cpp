@@ -355,6 +355,56 @@ int main(void)
 	}
 	Check(padclean, "Drawing stays within the buffer's padding");
 
+	/*
+	 * Where an object lands is arithmetic no recorded vector reaches, because the drawers
+	 * never see it. At scale 1 it must still be what the code computed before the scale was
+	 * threaded through it, so the expected values below are that original expression written
+	 * out rather than a rearrangement of the one under test.
+	 */
+	Set_Voxel_Scale(1);
+
+	struct PlacementCase { int Width; int Height; int CenterX; int CenterY; };
+	PlacementCase const placements[] = {
+		{ 0, 0, 0, 0 },
+		{ 40, 24, 100, 60 },
+		{ 41, 25, 101, 61 },
+		{ 247, 247, 4000, 3000 },
+		{ 13, 97, -50, -7 }
+	};
+
+	bool placed_as_before = true;
+	for (PlacementCase const & one : placements) {
+		VoxelRegion const got = Voxel_Region(one.Width, one.Height, one.CenterX, one.CenterY);
+
+		if (got.Width != one.Width + 8) placed_as_before = false;
+		if (got.Height != one.Height + 8) placed_as_before = false;
+		if (got.X != VOXEL_SCALE_BASE_SIZE / 2 - one.Width / 2 - 4) placed_as_before = false;
+		if (got.Y != VOXEL_SCALE_BASE_SIZE / 2 - one.Height / 2 - 4) placed_as_before = false;
+		if (got.PointX != one.CenterX - (one.Width + 8) / 2) placed_as_before = false;
+		if (got.PointY != one.CenterY - (one.Height + 8) / 2) placed_as_before = false;
+	}
+	Check(placed_as_before, "Placement at scale 1 is the original arithmetic");
+
+	/*
+	 * At scale 2 everything the object is measured in has doubled, so the margin has to
+	 * double with it or a scaled object would be cropped tighter than an unscaled one. The
+	 * screen offset stays in the bitmap's own terms; reducing it back to 1x is the resolve
+	 * step's job, not this one's.
+	 */
+	Set_Voxel_Scale(2);
+
+	VoxelRegion const small = Voxel_Region(40, 24, 100, 60);
+	Set_Voxel_Scale(1);
+	VoxelRegion const base = Voxel_Region(20, 12, 50, 30);
+
+	Check(small.Width == base.Width * 2 && small.Height == base.Height * 2,
+		"Placement at scale 2 doubles the drawn rectangle");
+	int const wide = VOXEL_SCALE_BASE_SIZE * VOXEL_SCALE_MAX;
+	Check(small.X == wide / 2 - 40 / 2 - 8 && small.Y == wide / 2 - 24 / 2 - 8,
+		"Placement at scale 2 centres in the larger bitmap");
+
+	Set_Voxel_Scale(1);
+
 	std::printf("checked %d cases, %d mismatches\n", Checked, Failures);
 
 	return(Failures == 0 ? 0 : 1);

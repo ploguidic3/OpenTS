@@ -75,3 +75,19 @@ VoxelSpan Voxel_Span(void)
 	span.Stride = CurrentWidth;
 	return(span);
 }
+
+
+VoxelRegion Voxel_Region(int width, int height, int center_x, int center_y)
+{
+	int const margin = 4 * CurrentScale;
+
+	VoxelRegion region;
+	region.Width = width + margin * 2;
+	region.Height = height + margin * 2;
+	region.X = CurrentWidth / 2 - width / 2 - margin;
+	region.Y = CurrentWidth / 2 - height / 2 - margin;
+	region.PointX = center_x - region.Width / 2;
+	region.PointY = center_y - region.Height / 2;
+
+	return(region);
+}

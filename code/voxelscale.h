@@ -55,6 +55,26 @@ struct VoxelSpan
 VoxelSpan Voxel_Span(void);
 
 
+// Where a drawn object sits in the bitmap, and the offset to blit it at. X, Y, Width and
+// Height are the rectangle to take out of the bitmap; PointX and PointY are added to the
+// object's draw position on screen.
+struct VoxelRegion
+{
+	int X;
+	int Y;
+	int Width;
+	int Height;
+	int PointX;
+	int PointY;
+};
+
+
+// Width and height are the object's extent in the bitmap and center its midpoint, both in
+// bitmap pixels. The slack left around the object grows with the scale, so a scaled object
+// keeps the same margin in the terms the caller measures it in.
+VoxelRegion Voxel_Region(int width, int height, int center_x, int center_y);
+
+
 // At mask 0xFF and shift 8 this is the drawers' original expression, wrap included.
 inline unsigned int Voxel_Buffer_Index(unsigned int pixel_x, unsigned int pixel_y, unsigned int mask, unsigned int shift)
 {

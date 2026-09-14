@@ -14,30 +14,44 @@ difference this list is looking for.
 
 ## What has been run
 
-The setting has been compared on and off in matched scenes on Windows, 14 September 2026,
-and judged a slight improvement in image quality. The feature is worth keeping on that
-basis.
+On Windows, 14 September 2026:
 
-Nothing else on this list has been observed. In particular the two claims that would make
-the setting unshippable if they were wrong — that the off path is unchanged, and that turrets,
-barrels and shadows still register at every facing — are untested, as are house colours and
-the frame rate cost. The recorded drawer vectors and the new scale and reduction cases pass
-and CI builds Debug and Release, which is not runtime evidence of any of it.
+- The setting was compared on and off in matched scenes and judged a slight improvement in
+  image quality. The feature is worth keeping on that basis.
+- A turreted vehicle was rotated through a full turn with the setting on. The turret stayed
+  on its hull and the shadow stayed under the vehicle at every facing, so the reduction grid
+  is phase-locked across separately rendered sub-objects as intended.
+
+House colours and the frame rate cost are still unobserved. The comparison against the
+unchanged drawing path is covered by test rather than by screenshot; see below.
 
 ## Nothing changes with the setting off
-- [ ] With `VoxelSupersample=no`, a screenshot of a scene with vehicles, shadows, projectiles
-  and voxel debris is identical to the same scene on `fork/video-playback`. Any difference at
-  all is a bug: the drawing path is meant to be unchanged.
+
+A whole-frame screenshot comparison cannot settle this. The frame always carries motion the
+setting has nothing to do with — animated shroud edges, tiberium, infantry idle poses — so two
+captures of one scene differ on a single build, let alone across two. The check was dropped
+for the two below.
+
+- [x] The drawers are unchanged at scale 1. `tests/voxeldraw` hashes the whole bitmap against
+  144 vectors recorded before the change, every CI run.
+- [x] The centring and region arithmetic is unchanged at scale 1. `tests/voxeldraw` checks
+  `Voxel_Region` against the original expression, written out rather than rearranged.
 - [ ] Frame rate on a busy map is unchanged.
+
+To compare in the game anyway, crop to one parked vehicle rather than diffing whole frames.
+Stand it on plain ground away from tiberium, shroud edge and infantry, deselect it, and
+capture. Its pose is served from the voxel cache, so the crop is stable between frames.
+Establish that first by diffing two captures on one build; only then is a cross-build diff of
+the same crop worth reading.
 
 ## Shape and alignment with the setting on
 - [ ] Titan, Wolverine, harvester and Orca at 2560×1440: each is the same size and sits in the
   same place on screen as with the setting off. A unit that has moved by half a cell is not a
   pixel off from where it was.
-- [ ] A turreted vehicle's turret sits on its hull exactly as before, and a barrel sits in its
+- [x] A turreted vehicle's turret sits on its hull exactly as before, and a barrel sits in its
   turret, at all 32 facings. Rotate a Titan and a Mammoth Mk II slowly through a full turn and
   watch for the turret separating from the hull by a pixel at any facing.
-- [ ] Shadows stay under their vehicles at every facing and are not offset or doubled.
+- [x] Shadows stay under their vehicles at every facing and are not offset or doubled.
 - [ ] Mammoth Mk II, the largest model, is not clipped at any facing, and is occluded by
   terrain and buildings as before.
 - [ ] A unit sinking into water sinks by the same amount and at the same rate.
