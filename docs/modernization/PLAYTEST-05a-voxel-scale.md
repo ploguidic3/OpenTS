@@ -6,14 +6,23 @@ of the settings. `VoxelSupersample=` goes under `[Video]` in `SUN.INI`; delete t
 set `no` for the stock drawing. The setting is read at startup only, so each pass needs a
 relaunch.
 
-Take every screenshot pair from the same saved game at the same scroll position, with the
-existing screenshot key, so an off and an on shot can be compared pixel for pixel.
+Take every screenshot pair from the same saved game at the same scroll position, using the
+`ScreenCapture` command, so an off and an on shot can be compared pixel for pixel. It writes
+`SCRNnnnn.pcx` at the frame's own resolution (`code/init.cpp:4862`) and its binding is in
+`KEYBOARD.INI [Hotkey]`. An external screenshot tool that resizes the frame destroys the
+difference this list is looking for.
 
 ## What has been run
 
-Nothing on Windows yet. The 144 recorded drawer vectors and the new scale and reduction
-cases pass, and CI builds Debug and Release — a build is not runtime evidence, and no part of
-this list has been observed in the game.
+The setting has been compared on and off in matched scenes on Windows, 14 September 2026,
+and judged a slight improvement in image quality. The feature is worth keeping on that
+basis.
+
+Nothing else on this list has been observed. In particular the two claims that would make
+the setting unshippable if they were wrong — that the off path is unchanged, and that turrets,
+barrels and shadows still register at every facing — are untested, as are house colours and
+the frame rate cost. The recorded drawer vectors and the new scale and reduction cases pass
+and CI builds Debug and Release, which is not runtime evidence of any of it.
 
 ## Nothing changes with the setting off
 - [ ] With `VoxelSupersample=no`, a screenshot of a scene with vehicles, shadows, projectiles
