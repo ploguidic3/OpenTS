@@ -159,6 +159,7 @@
 #include "savestream.h"
 #include "scheme.h"
 #include "session.h"
+#include "shapeexpand.h"
 #include "shapeset.h"
 #include "smudtype.h"
 #include "stimer.h"
@@ -867,14 +868,14 @@ void BuildingClass::Draw_It(Point2D const & xdrawpoint, Rect const & xcliprect) 
 	}
 
 	Point2D drawpoint = xdrawpoint;
-	int height = drawpoint.Y + shapefile->Get_Height() / 2;
+	int height = drawpoint.Y + (shapefile->Get_Height() * Shape_World_Factor(shapefile)) / 2;
 
 	Rect cliprect = xcliprect;
 	if (cliprect.Height > height) {
 		cliprect.Height = height;
 	}
 
-	zdrawpoint += Class->ZShapePointMove;
+	zdrawpoint += Point2D(AS(Class->ZShapePointMove.X), AS(Class->ZShapePointMove.Y));
 	Point2D zsizeoffset((Class->Width() * CELL_LEPTON) - CELL_LEPTON, (Class->Height() * CELL_LEPTON) - CELL_LEPTON);
 	zdrawpoint -= TacticalMap->Coord_To_Pixel_Absolute(zsizeoffset);
 
