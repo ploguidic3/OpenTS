@@ -39,6 +39,19 @@ StaticBufferClass::StaticBufferClass(int size)
 /// Every entry handed out by Add points into this one block, so none of them outlive the
 /// buffer they were cached in.
 /// </summary>
+void StaticBufferClass::Resize(int size)
+{
+	if (size <= 0 || (unsigned int)size == Size) {
+		return;
+	}
+
+	delete [] Buffer;
+	Size = size;
+	Buffer = new unsigned char[size];
+	Cursor = Buffer;
+}
+
+
 StaticBufferClass::~StaticBufferClass(void)
 {
 	if (Buffer != NULL) {

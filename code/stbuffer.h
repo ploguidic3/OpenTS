@@ -75,6 +75,10 @@ class StaticBufferClass
 
 		void Reset(void) { Cursor = Buffer; }
 
+		// Discards every cached entry and starts again at the given capacity. Every pointer
+		// handed out by Add is dangling afterwards, so nothing may still be indexing them.
+		void Resize(int size);
+
 	private:
 		/*
 		 * This is the capacity of the buffer, expressed in bytes and fixed when it was

@@ -13,6 +13,7 @@
 
 #include "matrix3d.h"
 #include "stbuffer.h"
+#include "voxelscale.h"
 
 bool UseVoxelCache;
 Vector3 VoxelShadowLightVector;
@@ -20,7 +21,7 @@ float VoxelLightAngle;
 Vector3 VoxelLightSource;
 float VoxelCameraAngle;
 Matrix3D VoxelCameraMatrix;
-StaticBufferClass VoxelStaticBuffer(2000000);
+StaticBufferClass VoxelStaticBuffer(VOXEL_CACHE_BASE_BYTES);
 
 /// Both use the truncated pi the voxel code carries, not M_PI.
 const float DefaultLightAngle = (float)(45 * (3.1415 / 180.0));

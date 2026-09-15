@@ -31,6 +31,10 @@ constexpr int VOXEL_MAX_RUN = 256;
 constexpr int VOXEL_BITMAP_PAD = VOXEL_SCALE_MAX_SIZE * VOXEL_SCALE_MAX + 2 * VOXEL_SCALE_MAX;
 constexpr int VOXEL_BITMAP_BYTES = VOXEL_SCALE_MAX_SIZE * VOXEL_SCALE_MAX_SIZE + VOXEL_BITMAP_PAD;
 
+// The cache arena the rasteriser was written around. A pose covers the square of the scale,
+// so the arena has to grow by that much to hold as many of them as it did before.
+constexpr int VOXEL_CACHE_BASE_BYTES = 2000000;
+
 // Clamped to one through VOXEL_SCALE_MAX. Call once, before the voxel buffers are allocated.
 void Set_Voxel_Scale(int scale);
 

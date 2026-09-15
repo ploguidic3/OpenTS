@@ -140,6 +140,13 @@ void VoxelDrawSystem::Init(void)
 	delete VoxelResolveSurface;
 	VoxelResolveSurface = NULL;
 
+	/*
+	 * Nothing has rendered yet, so no index is pointing into the arena and it is safe to
+	 * throw away. A pose at this scale covers the square of it, and an arena left at the
+	 * original size would overflow constantly and hand back part written entries.
+	 */
+	VoxelStaticBuffer.Resize(VOXEL_CACHE_BASE_BYTES * Voxel_Scale() * Voxel_Scale());
+
 	VoxelSurface = new BSurface(Voxel_Bitmap_Width(), Voxel_Bitmap_Height(), VOXEL_BITMAP_BPP, VoxelDrawBuffer);
 	VoxelZSurface = new BSurface(Voxel_Bitmap_Width(), Voxel_Bitmap_Height(), VOXEL_BITMAP_BPP, VoxelDrawZBuffer);
 

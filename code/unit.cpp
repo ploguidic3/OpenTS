@@ -2530,11 +2530,11 @@ void UnitClass::Unit_Draw_Voxel(Point2D xdrawpoint, Rect xcliprect, int brightne
 		case 6:
 		case 8:
 		case 14:
-			offset = Point2D(0, -1);
+			offset = Point2D(0, AS(-1));
 			break;
 
 		default:
-			offset = Point2D(0, -2);
+			offset = Point2D(0, AS(-2));
 			break;
 	}
 
