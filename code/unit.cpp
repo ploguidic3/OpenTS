@@ -2417,8 +2417,8 @@ void UnitClass::Unit_Blit_Voxel(Surface & surface, Point2D drawpoint, Rect clipr
 {
 	bool fudge = false;
 	Point2D pt;
-	pt.Y = (2 * (80 - UnitCompositeDirtyRect.Y) - UnitCompositeDirtyRect.Height) / 2;
-	pt.X = (2 * (80 - UnitCompositeDirtyRect.X) - UnitCompositeDirtyRect.Width) / 2;
+	pt.Y = (2 * (AS(80) - UnitCompositeDirtyRect.Y) - UnitCompositeDirtyRect.Height) / 2;
+	pt.X = (2 * (AS(80) - UnitCompositeDirtyRect.X) - UnitCompositeDirtyRect.Width) / 2;
 
 	if (Class->IsTooBigToFitUnderBridge) {
 		if (Is_Z_Fudge_Bridge() && Get_Z_Fudge_Column() == 0) {

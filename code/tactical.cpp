@@ -1128,6 +1128,8 @@ void Tactical::Render_Outside_Map(Surface & surface)
 /// <param name="drawpass">Which rendering pass to perform. See DrawPassType.</param>
 void Tactical::Render(Surface & surface, bool fullredraw, int drawpass)
 {
+	WorldDrawScope const worldscope;
+
 	/*
 	 * Set true when the view scrolled further than one screen, so the still-valid region can no
 	 * longer be blitted and a full redraw is forced. It persists across the passes of a frame.

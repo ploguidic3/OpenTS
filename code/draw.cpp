@@ -93,7 +93,7 @@ void Draw_Shape(Surface & surface, ConvertClass & convert, ShapeSet const * shap
 	int height = shapefile->Get_Height();
 
 	int const shapescale = Shape_Scale(shapefile);
-	int const factor = (shapescale > 0) ? Asset_Scale() / shapescale : 1;
+	int const factor = (shapescale > 0) ? Draw_Scale() / shapescale : 1;
 	bool scaled = false;
 
 	if (factor > 1) {
@@ -127,7 +127,7 @@ void Draw_Shape(Surface & surface, ConvertClass & convert, ShapeSet const * shap
 		z_rect = z_shapefile->Get_Rect(z_shapenum);
 
 		int const zscale = Shape_Scale(z_shapefile);
-		int const zfactor = (zscale > 0) ? Asset_Scale() / zscale : 1;
+		int const zfactor = (zscale > 0) ? Draw_Scale() / zscale : 1;
 		ExpandedFrame zframe;
 
 		if (zfactor > 1) {

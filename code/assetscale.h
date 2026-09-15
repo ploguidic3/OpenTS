@@ -26,6 +26,27 @@ void Set_Asset_Scale(int scale);
 
 int Asset_Scale(void);
 
+// The scale art is magnified by for whatever is being drawn now: the asset scale while the
+// tactical world is the target, and one everywhere else. The HUD, menus and dialogs are laid
+// out in their own pixels and have their own settings, so the world's scale must not reach
+// them.
+int Draw_Scale(void);
+
+
+// Makes the tactical world the draw target for as long as it is in scope.
+class WorldDrawScope
+{
+	public:
+		WorldDrawScope(void);
+		~WorldDrawScope(void);
+
+		WorldDrawScope(WorldDrawScope const &) = delete;
+		WorldDrawScope & operator = (WorldDrawScope const &) = delete;
+
+	private:
+		bool Previous;
+};
+
 // A pixel quantity written for the original tile, in the scaled view's pixels. Leptons and
 // cell counts are not pixel quantities and must not be passed through this.
 inline int AS(int pixels)

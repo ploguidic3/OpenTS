@@ -97,6 +97,28 @@ int main(void)
 	Asset_Rect_To_Iso(37, 61, Tile_W(), Tile_H(), scaledx, scaledy);
 	Check(scaledx == basex * 2 && scaledy == basey * 2, "Scale two projects to exactly twice scale one");
 
+	/*
+	 * The scale belongs to the world only. The HUD, the menus and the dialogs are laid out in
+	 * their own pixels, so art drawn outside a world scope must come back unmagnified.
+	 */
+	Check(Draw_Scale() == 1, "Art drawn outside the world is not magnified");
+	{
+		WorldDrawScope const worldscope;
+		Check(Draw_Scale() == 2, "Art drawn in the world takes the asset scale");
+		{
+			WorldDrawScope const nested;
+			Check(Draw_Scale() == 2, "A nested world scope stays in the world");
+		}
+		Check(Draw_Scale() == 2, "Leaving a nested scope stays in the world");
+	}
+	Check(Draw_Scale() == 1, "Leaving the world scope restores the unmagnified draw");
+
+	Set_Asset_Scale(1);
+	{
+		WorldDrawScope const worldscope;
+		Check(Draw_Scale() == 1, "The world draws unmagnified at scale one");
+	}
+
 	Set_Asset_Scale(0);
 	Check(Asset_Scale() == 1, "A scale below one is clamped up");
 
