@@ -16,6 +16,9 @@
 
 #include "isotype.h"
 
+#include "assetscale.h"
+#include "isotiletable.h"
+
 #include "_alpha.h"
 #include "_convert.h"
 #include "_map.h"
@@ -57,9 +60,21 @@
 enum {
 	ISO_WIDTH = 48,
 	ISO_HEIGHT = 24,
-	ISO_DRAW_WIDTH = ISO_WIDTH,
-	ISO_DRAW_HEIGHT = ISO_HEIGHT-1,
+	ISO_MAX_DRAW_WIDTH = ISO_WIDTH * ASSET_SCALE_MAX,
+	ISO_MAX_DRAW_HEIGHT = ISO_HEIGHT * ASSET_SCALE_MAX - 1,
+
+	// The span table's rows are addressed at this stride whatever the scale asks for, so a
+	// smaller diamond simply leaves the tail of each row unused.
+	ISO_RUN_STRIDE = ISO_MAX_DRAW_WIDTH * ISO_MAX_DRAW_HEIGHT,
 };
+
+
+/*
+ * The drawn diamond, sized from the asset scale before the span tables are built. They keep
+ * the names the rasteriser addresses its rows by, which every pointer step below advances by.
+ */
+int ISO_DRAW_WIDTH = ISO_WIDTH;
+int ISO_DRAW_HEIGHT = ISO_HEIGHT - 1;
 
 /// Handy macro to shorten all the tileset checks
 #define IS_SET_VALID(setname) (IsometricTileTypeClass::setname != ISOTILE_INVALID)
@@ -1436,8 +1451,8 @@ void IsometricTileTypeClass::Draw_Shadow_Caster(int index, Surface * surf, Point
 			frame = ShadowCasterSlopeInfo[caster_index].Frame;
 
 			if (frame != 0) {
-				x = (ISO_TILE_PIXEL_W / 2) + ShadowCasterSlopeInfo[caster_index].XOffset;
-				y = (ISO_TILE_PIXEL_H / 2) + ShadowCasterSlopeInfo[caster_index].YOffset;
+				x = (ISO_TILE_PIXEL_W / 2) + AS(ShadowCasterSlopeInfo[caster_index].XOffset);
+				y = (ISO_TILE_PIXEL_H / 2) + AS(ShadowCasterSlopeInfo[caster_index].YOffset);
 				can_draw = true;
 			}
 		}
@@ -1451,8 +1466,8 @@ void IsometricTileTypeClass::Draw_Shadow_Caster(int index, Surface * surf, Point
 					frame = ShadowCasterCliffInfo[caster_index].Frame;
 
 					if (frame != 0) {
-						x = (ISO_TILE_PIXEL_W / 2) + ShadowCasterCliffInfo[caster_index].XOffset;
-						y = (ISO_TILE_PIXEL_H / 2) + ShadowCasterCliffInfo[caster_index].YOffset;
+						x = (ISO_TILE_PIXEL_W / 2) + AS(ShadowCasterCliffInfo[caster_index].XOffset);
+						y = (ISO_TILE_PIXEL_H / 2) + AS(ShadowCasterCliffInfo[caster_index].YOffset);
 						can_draw = true;
 					}
 				}
@@ -1599,14 +1614,18 @@ struct IsoBlitState {
 
 
 IsoBlitState IsoDrawData;
-unsigned short _iso_row_offsets[ISO_DRAW_WIDTH*ISO_DRAW_HEIGHT];
-unsigned char _iso_start_cols[ISO_DRAW_WIDTH*ISO_DRAW_HEIGHT];
+
+// One magnified tile's pixels and depth, rebuilt per tile drawn and never held past the draw.
+unsigned char IsoTileScratch[ISO_TILE_BASE_PIXELS * ASSET_SCALE_MAX * ASSET_SCALE_MAX];
+unsigned char IsoDepthScratch[ISO_TILE_BASE_PIXELS * ASSET_SCALE_MAX * ASSET_SCALE_MAX];
+unsigned short _iso_row_offsets[ISO_RUN_STRIDE];
+unsigned char _iso_start_cols[ISO_RUN_STRIDE];
 /*
  * The run-length span table is indexed [right_clip_shift][row*ISO_DRAW_WIDTH + col]. The one-time span
  * builder fills it from the last row (shift (ISO_DRAW_WIDTH-1)) downward; the blit reads the row selected by
  * the tile's right-edge clip (shift (ISO_DRAW_WIDTH-1) == unclipped).
  */
-unsigned char _iso_run_lengths[ISO_DRAW_WIDTH][ISO_DRAW_WIDTH*ISO_DRAW_HEIGHT];
+unsigned char _iso_run_lengths[ISO_MAX_DRAW_WIDTH][ISO_RUN_STRIDE];
 char IsoSpanTablesBuilt;
 
 
@@ -1638,44 +1657,8 @@ char IsoSpanTablesBuilt;
 /// </remarks>
 void IsometricTileTypeClass::Draw_Tile(LightConvertClass * drawer, int subtile, Surface & surface, int x, int y, Rect cliprect, int height, int brightness, bool use_z, int cell_variation, bool fill, bool depth_only, bool fog, signed int fog_color) const
 {
-	static int const _iso_row_bases[ISO_HEIGHT] = {
-		0, 4, 12, 24, 40, 60, 84, 112, 144, 180, 220, 264, 312, 356, 396, 432, 464, 492, 516, 536, 552, 564, 572, 576
-	};
-
-	/// The table is spelled with literal 0x20 (space) and 0xDB (box) characters, written as
-	/// escapes here so that the file stays plain ASCII.
-	#define __ "\x20"
-	#define XX "\xDB"
-
-	static const unsigned char _tilemask[] = {
-		__ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ XX XX XX XX __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __
-		__ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __
-		__ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __
-		XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX
-		__ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __
-		__ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __
-		__ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ XX XX XX XX XX XX XX XX __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ XX XX XX XX __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __
-		__ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __
-	};
-
-	#undef __
-	#undef XX
+	int const * const _iso_row_bases = Iso_Tile_Row_Bases();
+	unsigned char const * const _tilemask = Iso_Tile_Mask();
 
 	LightConvertClass * drawtest = drawer;
 	IsometricTileTypeClass const * tileptr;
@@ -1721,6 +1704,9 @@ void IsometricTileTypeClass::Draw_Tile(LightConvertClass * drawer, int subtile, 
 		 * Driven by the diamond bitmap in _tilemask.
 		 */
 		if (!IsoSpanTablesBuilt) {
+			ISO_DRAW_WIDTH = ISO_WIDTH * Asset_Scale();
+			ISO_DRAW_HEIGHT = ISO_HEIGHT * Asset_Scale() - 1;
+
 			int cell_offset = 0;
 			const int * lut = _iso_row_bases;
 			int loop_pos = 0;
@@ -1772,7 +1758,7 @@ void IsometricTileTypeClass::Draw_Tile(LightConvertClass * drawer, int subtile, 
 							int run = span_count - std::max(0, i - first_col) - std::max(0, left_clip);
 							runp[i] = std::max(0, run);
 						}
-						runp -= (ISO_DRAW_WIDTH*ISO_DRAW_HEIGHT);
+						runp -= ISO_RUN_STRIDE;
 						++left_clip;
 					}
 				}
@@ -1888,17 +1874,37 @@ void IsometricTileTypeClass::Draw_Tile(LightConvertClass * drawer, int subtile, 
 						arow = AlphaBuffer->Get_Buffer_Offset(Point2D(lock_x, work.Y - TacticalRect.Y));
 						IsoDrawData.AlphaPtr = arow;
 						IsoDrawData.AlphaWidth = AlphaBuffer->Get_Buffer_Width();
-						IsoDrawData.SrcPixel = (unsigned char *)(record + 1);
+						unsigned char const * tilepixels = (unsigned char *)(record + 1);
+						unsigned char const * tiledepth = NULL;
+						if (use_z && record->IsHasZData) {
+							tiledepth = (unsigned char *)record + record->ZDataOffset;
+						}
+
+						/*
+						 * Tile artwork is packed for the original diamond, so at a larger scale
+						 * it is magnified into scratch first and the span tables, built for the
+						 * same scale, then address it unchanged.
+						 */
+						if (Asset_Scale() > 1) {
+							Iso_Expand_Tile(tilepixels, IsoTileScratch, Asset_Scale());
+							tilepixels = IsoTileScratch;
+							if (tiledepth != NULL) {
+								Iso_Expand_Tile(tiledepth, IsoDepthScratch, Asset_Scale());
+								tiledepth = IsoDepthScratch;
+							}
+						}
+
+						IsoDrawData.SrcPixel = (unsigned char *)tilepixels;
 						if (fill || fog) {
 							IsoDrawData.FillDepth = 0;
 						} else {
 							IsoDrawData.FillDepth = 0xFFFF;
 						}
 						IsoDrawData.FogColor = IsoDrawData.HalfbrightMask & (fog_color >> 1);
-						if (use_z && record->IsHasZData) {
-							IsoDrawData.SrcDepth = (unsigned char *)record + record->ZDataOffset;
+						if (tiledepth != NULL) {
+							IsoDrawData.SrcDepth = (unsigned char *)tiledepth;
 						}
-						IsoDrawData.ImageBase = (unsigned char *)(record + 1);
+						IsoDrawData.ImageBase = (unsigned char *)tilepixels;
 						IsoDrawData.DepthBase = IsoDrawData.SrcDepth;
 
 						if (use_z) {

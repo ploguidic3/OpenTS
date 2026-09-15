@@ -9,6 +9,8 @@
 
 #include "isotiletable.h"
 
+#include "assetscale.h"
+
 #include <cstring>
 
 
@@ -112,4 +114,57 @@ void Iso_Expand_Tile(unsigned char const * source, unsigned char * dest, int sca
 			out += scale;
 		}
 	}
+}
+
+
+namespace
+{
+
+constexpr int MAX_SCALE = ASSET_SCALE_MAX;
+constexpr int MAX_ROWS = ISO_TILE_BASE_ROWS * MAX_SCALE;
+constexpr int MAX_WIDTH = ISO_TILE_BASE_WIDTH * MAX_SCALE;
+
+unsigned char BuiltMask[MAX_WIDTH * MAX_ROWS];
+unsigned char BuiltMaskShifted[MAX_WIDTH * MAX_ROWS];
+int BuiltRowBases[MAX_ROWS];
+int BuiltScale = 0;
+
+
+void Build_For_Current_Scale(void)
+{
+	int const scale = Asset_Scale();
+	if (scale == BuiltScale) {
+		return;
+	}
+
+	Iso_Build_Mask(scale, 0, BuiltMask);
+
+	// The alpha shape's diamond sits one tile row lower, which follows the scale with it.
+	Iso_Build_Mask(scale, scale, BuiltMaskShifted);
+	Iso_Build_Row_Bases(scale, BuiltRowBases);
+
+	BuiltScale = scale;
+}
+
+}
+
+
+unsigned char const * Iso_Tile_Mask(void)
+{
+	Build_For_Current_Scale();
+	return(BuiltMask);
+}
+
+
+unsigned char const * Iso_Tile_Mask_Shifted(void)
+{
+	Build_For_Current_Scale();
+	return(BuiltMaskShifted);
+}
+
+
+int const * Iso_Tile_Row_Bases(void)
+{
+	Build_For_Current_Scale();
+	return(BuiltRowBases);
 }

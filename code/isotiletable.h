@@ -37,3 +37,10 @@ void Iso_Build_Mask(int scale, int row_offset, unsigned char * mask);
 // Magnifies packed diamond tile data, pixels or depth alike. Source holds ISO_TILE_BASE_PIXELS
 // bytes and dest holds that times the square of the scale.
 void Iso_Expand_Tile(unsigned char const * source, unsigned char * dest, int scale);
+
+
+// The tables for the asset scale in force, built the first time one is asked for. The shifted
+// mask is the same diamond a tile row lower, which is how the alpha shape's copy is drawn.
+unsigned char const * Iso_Tile_Mask(void);
+unsigned char const * Iso_Tile_Mask_Shifted(void);
+int const * Iso_Tile_Row_Bases(void);
