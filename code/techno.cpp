@@ -1490,7 +1490,7 @@ void TechnoClass::Draw_Health_Bar(Point2D const & xpoint, Rect const & cliprect)
 		coord.X = -coord.X;
 		Point2D p1 = TacticalMap->Coord_To_Pixel_Absolute(coord);
 
-		int barlen = (p0.Y - p1.Y) / 2;
+		int barlen = (p0.Y - p1.Y) / 2 / Asset_Scale();
 
 		int n = (int)(HealthRatio * (double)barlen);
 		if (n <= 1) {
@@ -1508,7 +1508,9 @@ void TechnoClass::Draw_Health_Bar(Point2D const & xpoint, Rect const & cliprect)
 			condcolor = 4;
 		}
 
-		int ybase = 2 - 2 * barlen;
+		int const step_x = AS(4);
+		int const step_y = AS(2);
+		int ybase = AS(2) - step_y * barlen;
 
 		Point2D point;
 		int index;
@@ -1516,25 +1518,25 @@ void TechnoClass::Draw_Health_Bar(Point2D const & xpoint, Rect const & cliprect)
 		int yoff = 0;
 		int xoff = 0;
 		for (index = 0; index < n; index++) {
-			point.X = xpoint.X + p0.X + 4 * barlen + 3;
-			point.Y = xpoint.Y + p0.Y + ybase + 2;
+			point.X = xpoint.X + p0.X + step_x * barlen + AS(3);
+			point.Y = xpoint.Y + p0.Y + ybase + AS(2);
 			point.X -= xoff;
 			point.Y -= yoff;
 			Draw_Shape(*LogicalSurface, *NormalDrawer, (ShapeSet const *)ObjectTypeClass::PipShapes, condcolor, point, cliprect, ShapeFlags_Type(SHAPE_WIN_REL|SHAPE_CENTER));
-			xoff += 4;
-			yoff -= 2;
+			xoff += step_x;
+			yoff -= step_y;
 		}
 
-		yoff = -2 * n;
-		xoff = 4 * n;
+		yoff = -step_y * n;
+		xoff = step_x * n;
 		for (index = n; index < barlen; index++) {
-			point.X = xpoint.X + p0.X + 4 * barlen + 3;
-			point.Y = xpoint.Y + p0.Y + ybase + 2;
+			point.X = xpoint.X + p0.X + step_x * barlen + AS(3);
+			point.Y = xpoint.Y + p0.Y + ybase + AS(2);
 			point.X -= xoff;
 			point.Y -= yoff;
 			Draw_Shape(*LogicalSurface, *NormalDrawer, (ShapeSet const *)ObjectTypeClass::PipShapes, 0, point, cliprect, ShapeFlags_Type(SHAPE_WIN_REL|SHAPE_CENTER));
-			xoff += 4;
-			yoff -= 2;
+			xoff += step_x;
+			yoff -= step_y;
 		}
 
 	} else {
@@ -1551,13 +1553,13 @@ void TechnoClass::Draw_Health_Bar(Point2D const & xpoint, Rect const & cliprect)
 			if (IsSelected) {
 				Draw_Shape(*LogicalSurface, *NormalDrawer, (ShapeSet const *)ObjectTypeClass::SelectShapes, powerup ? 6 : 2, xpoint, cliprect, ShapeFlags_Type(SHAPE_ALPHA|SHAPE_WIN_REL|SHAPE_CENTER));
 			}
-			offset = Point2D(-5, -24);
+			offset = Point2D(AS(-5), AS(-24));
 			health_bar_count = 8;
 		} else {
 			if (IsSelected) {
 				Draw_Shape(*LogicalSurface, *NormalDrawer, (ShapeSet const *)ObjectTypeClass::SelectShapes, (LimpetType != 0 ? 8 : 0) + (powerup ? 4 : 0) + 3, xpoint, cliprect, ShapeFlags_Type(SHAPE_ALPHA|SHAPE_WIN_REL|SHAPE_CENTER));
 			}
-			offset = Point2D(-15, -25);
+			offset = Point2D(AS(-15), AS(-25));
 			health_bar_count = 17;
 		}
 
@@ -1581,7 +1583,7 @@ void TechnoClass::Draw_Health_Bar(Point2D const & xpoint, Rect const & cliprect)
 		for (int index = 0; index < n; index++) {
 			point.X = xpoint.X + offset.X;
 			point.Y = offset.Y + xpoint.Y;
-			point.X += 2 * index;
+			point.X += AS(2) * index;
 			Draw_Shape(*LogicalSurface, *NormalDrawer, (ShapeSet const *)ObjectTypeClass::PipShapes, shapenum, point, cliprect, ShapeFlags_Type(SHAPE_WIN_REL|SHAPE_CENTER));
 		}
 	}

@@ -82,6 +82,7 @@
 #include "rules.h"
 #include "savestream.h"
 #include "scenario.h"
+#include "shapeexpand.h"
 #include "shapeload.h"
 #include "shapeset.h"
 #include "sun.h"
@@ -2059,9 +2060,10 @@ Rect BuildingTypeClass::Get_Draw_Rect(void)
 		rect = Union(rect, bibrect);
 	}
 
-	int x = rect.X - width / 2;
-	int y = rect.Y - height / 2;
-	DrawRect = Rect(x, y, rect.Width, rect.Height);
+	int const factor = Shape_World_Factor(shape);
+	int x = rect.X * factor - (width * factor) / 2;
+	int y = rect.Y * factor - (height * factor) / 2;
+	DrawRect = Rect(x, y, rect.Width * factor, rect.Height * factor);
 
 	return(DrawRect);
 }

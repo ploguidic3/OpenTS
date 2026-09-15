@@ -123,6 +123,7 @@
 #include "rules.h"
 #include "savestream.h"
 #include "session.h"
+#include "shapeexpand.h"
 #include "shapeset.h"
 #include "swizzle.h"
 #include "tactical.h"
@@ -1159,9 +1160,10 @@ Rect ObjectClass::Get_Render_Rect(void)
 		a = Union(a, rect2);
 	}
 
-	int x = drawpoint.X + a.X - width / 2;
-	int y = drawpoint.Y + a.Y - height / 2;
-	return(Rect(x, y, a.Width, a.Height));
+	int const factor = Shape_World_Factor(sdata);
+	int x = drawpoint.X + a.X * factor - (width * factor) / 2;
+	int y = drawpoint.Y + a.Y * factor - (height * factor) / 2;
+	return(Rect(x, y, a.Width * factor, a.Height * factor));
 }
 
 

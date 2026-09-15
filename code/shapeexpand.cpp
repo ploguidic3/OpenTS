@@ -79,15 +79,32 @@ void Trim_To_Budget(void)
 }
 
 
-int Shape_Draw_Factor(ShapeSet const * shapefile)
+namespace
+{
+
+int Factor_For(ShapeSet const * shapefile, int scale)
 {
 	if (shapefile == NULL) {
 		return(1);
 	}
 
 	int const shapescale = Shape_Scale(shapefile);
-	int const factor = (shapescale > 0) ? Draw_Scale() / shapescale : 1;
+	int const factor = (shapescale > 0) ? scale / shapescale : 1;
 	return((factor > 1) ? factor : 1);
+}
+
+}
+
+
+int Shape_Draw_Factor(ShapeSet const * shapefile)
+{
+	return(Factor_For(shapefile, Draw_Scale()));
+}
+
+
+int Shape_World_Factor(ShapeSet const * shapefile)
+{
+	return(Factor_For(shapefile, Asset_Scale()));
 }
 
 

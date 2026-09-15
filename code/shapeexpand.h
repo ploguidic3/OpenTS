@@ -36,6 +36,10 @@ ExpandedFrame Shape_Expanded_Frame(ShapeSet const * shapefile, int shapenum, int
 // the rectangle a draw covered has to apply this to match what was drawn.
 int Shape_Draw_Factor(ShapeSet const * shapefile);
 
+// How far this shape is magnified when the world is drawn, whichever target is current. Code
+// measuring the rectangle a world draw will cover uses this, since it may run before the draw.
+int Shape_World_Factor(ShapeSet const * shapefile);
+
 // Drops every held frame. Call when the shapes themselves are released.
 void Shape_Expansion_Reset(void);
 
