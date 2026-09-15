@@ -184,6 +184,7 @@
 #include "savestream.h"
 #include "scheme.h"
 #include "session.h"
+#include "shapeexpand.h"
 #include "shapeset.h"
 #include "stimer.h"
 #include "sun.h"
@@ -6060,12 +6061,13 @@ void TechnoClass::Techno_Draw_Object(ShapeSet const * shapefile, int shapenum, P
 		flags = ShapeFlags_Type(flags & ~negflags);
 
 		if (RTTI == RTTI_UNIT && ((UnitClass const *)this)->IsCompositingToEightBitSurface) {
+			int const factor = Shape_Draw_Factor(shapefile);
 			Rect shaperect = shapefile->Get_Rect(shapenum);
 			Rect drawrect;
-			drawrect.X = shaperect.X + drawpoint.X - shapefile->Get_Width() / 2;
-			drawrect.Y = shaperect.Y + drawpoint.Y - shapefile->Get_Height() / 2;
-			drawrect.Width = shaperect.Width;
-			drawrect.Height = shaperect.Height;
+			drawrect.X = shaperect.X * factor + drawpoint.X - (shapefile->Get_Width() * factor) / 2;
+			drawrect.Y = shaperect.Y * factor + drawpoint.Y - (shapefile->Get_Height() * factor) / 2;
+			drawrect.Width = shaperect.Width * factor;
+			drawrect.Height = shaperect.Height * factor;
 			UnitCompositeDirtyRect = Union(UnitCompositeDirtyRect, drawrect);
 		}
 

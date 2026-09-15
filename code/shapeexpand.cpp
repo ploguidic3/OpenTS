@@ -9,7 +9,9 @@
 
 #include "shapeexpand.h"
 
+#include "assetscale.h"
 #include "scaleblit.h"
+#include "shapeload.h"
 #include "shapeset.h"
 
 #include <list>
@@ -74,6 +76,18 @@ void Trim_To_Budget(void)
 	}
 }
 
+}
+
+
+int Shape_Draw_Factor(ShapeSet const * shapefile)
+{
+	if (shapefile == NULL) {
+		return(1);
+	}
+
+	int const shapescale = Shape_Scale(shapefile);
+	int const factor = (shapescale > 0) ? Draw_Scale() / shapescale : 1;
+	return((factor > 1) ? factor : 1);
 }
 
 

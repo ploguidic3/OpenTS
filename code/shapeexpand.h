@@ -32,6 +32,10 @@ struct ExpandedFrame
 // The frame magnified by factor and uncompressed, or an empty frame if it cannot be produced.
 ExpandedFrame Shape_Expanded_Frame(ShapeSet const * shapefile, int shapenum, int factor);
 
+// How far Draw_Shape magnifies this shape for the current draw target. A caller that records
+// the rectangle a draw covered has to apply this to match what was drawn.
+int Shape_Draw_Factor(ShapeSet const * shapefile);
+
 // Drops every held frame. Call when the shapes themselves are released.
 void Shape_Expansion_Reset(void);
 

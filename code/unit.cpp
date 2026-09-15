@@ -2484,14 +2484,15 @@ void UnitClass::Unit_Blit_Voxel(Surface & surface, Point2D drawpoint, Rect clipr
 
 	if (fudge) {
 		Rect source_rect;
-		rect.Height = 32;
+		int const split = AS(32);
+		rect.Height = split;
 		source_rect = UnitCompositeDirtyRect;
-		source_rect.Height = 32;
-		Bit_Blit(surface, cliprect, rect, *LogicalSurface, LogicalSurface->Get_Rect(), source_rect, *blitter, Get_Z_Adjust() - (UnitCompositeDirtyRect.Height - 32) / 3, ZGRAD_GROUND, brightness, predoffset);
-		rect.Y += 32;
-		rect.Height = UnitCompositeDirtyRect.Height - 32;
-		source_rect = Rect(UnitCompositeDirtyRect.X, UnitCompositeDirtyRect.Y + 32, UnitCompositeDirtyRect.Width, UnitCompositeDirtyRect.Height);
-		source_rect.Height -= 32;
+		source_rect.Height = split;
+		Bit_Blit(surface, cliprect, rect, *LogicalSurface, LogicalSurface->Get_Rect(), source_rect, *blitter, Get_Z_Adjust() - (UnitCompositeDirtyRect.Height - split) / 3, ZGRAD_GROUND, brightness, predoffset);
+		rect.Y += split;
+		rect.Height = UnitCompositeDirtyRect.Height - split;
+		source_rect = Rect(UnitCompositeDirtyRect.X, UnitCompositeDirtyRect.Y + split, UnitCompositeDirtyRect.Width, UnitCompositeDirtyRect.Height);
+		source_rect.Height -= split;
 		Bit_Blit(surface, cliprect, rect, *LogicalSurface, LogicalSurface->Get_Rect(), source_rect, *blitter, Get_Z_Adjust(), ZGRAD_90DEG, brightness, predoffset);
 	} else {
 		Bit_Blit(surface, cliprect, rect, *LogicalSurface, LogicalSurface->Get_Rect(), UnitCompositeDirtyRect, *blitter, Get_Z_Adjust(), Get_Z_Gradient(), brightness, predoffset);
