@@ -74,14 +74,16 @@ bool Scale_Decode_RLE_Frame(void const * data, int data_size, int width, int hei
 			inleft--;
 
 			if (value != 0) {
-				if (outleft == 0) {
-					return(false);
+
+				// A row may encode past its width; the blitter stops at the width and so does this.
+				if (outleft > 0) {
+					*out++ = value;
+					outleft--;
 				}
-				*out++ = value;
-				outleft--;
 				continue;
 			}
 
+			// A run code is always followed by its count.
 			if (inleft == 0) {
 				return(false);
 			}
@@ -89,7 +91,7 @@ bool Scale_Decode_RLE_Frame(void const * data, int data_size, int width, int hei
 			int run = *in++;
 			inleft--;
 			if (run > outleft) {
-				return(false);
+				run = outleft;
 			}
 
 			std::memset(out, 0, run);

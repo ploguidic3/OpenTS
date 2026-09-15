@@ -92,28 +92,42 @@ void Draw_Shape(Surface & surface, ConvertClass & convert, ShapeSet const * shap
 	int width = shapefile->Get_Width();
 	int height = shapefile->Get_Height();
 
+	/*
+	 * The blitter walks a shape and its depth shape in step, so magnifying one without the
+	 * other would run off the end of the one left alone. Either both are magnified or neither.
+	 */
 	int const factor = Shape_Draw_Factor(shapefile);
-	bool scaled = false;
+	ExpandedFrame frame;
+	ExpandedFrame zframe;
 
 	if (factor > 1) {
-		ExpandedFrame const frame = Shape_Expanded_Frame(shapefile, shapenum, factor);
-		if (frame.Data != NULL) {
-			buffer = frame.Data;
-			rect.X *= factor;
-			rect.Y *= factor;
-			rect.Width = frame.Width;
-			rect.Height = frame.Height;
-			width *= factor;
-			height *= factor;
+		frame = Shape_Expanded_Frame(shapefile, shapenum, factor);
 
-			/*
-			 * A magnified frame is uncompressed, so it draws through the plain blitters.
-			 * Those honour SHAPE_NOTRANS literally and paint the transparent index as a
-			 * colour, where the RLE blitters skip that index whatever the flag says.
-			 */
-			flags = ShapeFlags_Type(flags & ~SHAPE_NOTRANS);
-			scaled = true;
+		if (frame.Data != NULL && z_shapefile != NULL) {
+			zframe = Shape_Expanded_Frame(z_shapefile, z_shapenum, factor);
+			if (zframe.Data == NULL) {
+				frame = ExpandedFrame();
+			}
 		}
+	}
+
+	bool const scaled = frame.Data != NULL;
+
+	if (scaled) {
+		buffer = frame.Data;
+		rect.X *= factor;
+		rect.Y *= factor;
+		rect.Width = frame.Width;
+		rect.Height = frame.Height;
+		width *= factor;
+		height *= factor;
+
+		/*
+		 * A magnified frame is uncompressed, so it draws through the plain blitters. Those
+		 * honour SHAPE_NOTRANS literally and paint the transparent index as a colour, where
+		 * the RLE blitters skip that index whatever the flag says.
+		 */
+		flags = ShapeFlags_Type(flags & ~SHAPE_NOTRANS);
 	}
 
 	BSurface const shape(rect.Width, rect.Height, 1, (void *)buffer);
@@ -125,16 +139,9 @@ void Draw_Shape(Surface & surface, ConvertClass & convert, ShapeSet const * shap
 	if (z_shapefile != NULL) {
 		z_rect = z_shapefile->Get_Rect(z_shapenum);
 
-		int const zfactor = Shape_Draw_Factor(z_shapefile);
-		ExpandedFrame zframe;
-
-		if (zfactor > 1) {
-			zframe = Shape_Expanded_Frame(z_shapefile, z_shapenum, zfactor);
-		}
-
-		if (zframe.Data != NULL) {
-			z_rect.X *= zfactor;
-			z_rect.Y *= zfactor;
+		if (scaled) {
+			z_rect.X *= factor;
+			z_rect.Y *= factor;
 			z_rect.Width = zframe.Width;
 			z_rect.Height = zframe.Height;
 			z_shape = new BSurface(z_rect.Width, z_rect.Height, 1, (void *)zframe.Data);

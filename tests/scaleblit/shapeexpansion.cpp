@@ -128,17 +128,23 @@ int main(void)
 	}
 	Check(cleared, "A refused frame leaves the destination transparent");
 
+	/*
+	 * Real shape rows run past the frame width, most often with a trailing run of zeroes. The
+	 * blitter stops at the width and ignores the rest, so a row like that is ordinary data and
+	 * has to decode rather than be thrown out.
+	 */
 	std::vector<unsigned char> overrun;
 	Append_Row(overrun, {1, 2, 3, 4, 5});
-	Check(!Scale_Decode_RLE_Frame(overrun.data(), (int)overrun.size(), 3, 1, guard.data()), "A row wider than the frame is refused");
+	std::vector<unsigned char> clipped(3, 0xFF);
+	Check(Scale_Decode_RLE_Frame(overrun.data(), (int)overrun.size(), 3, 1, clipped.data()), "A row encoding past the frame width still decodes");
+	Check(clipped[0] == 1 && clipped[1] == 2 && clipped[2] == 3, "The row is clipped to the frame width");
 
 	std::vector<unsigned char> longrun;
-	Append_Row(longrun, {0, 200});
-	Check(!Scale_Decode_RLE_Frame(longrun.data(), (int)longrun.size(), 3, 1, guard.data()), "A zero run past the frame width is refused");
+	Append_Row(longrun, {17, 0, 200});
+	Check(Scale_Decode_RLE_Frame(longrun.data(), (int)longrun.size(), 3, 1, clipped.data()), "A trailing zero run past the width still decodes");
+	Check(clipped[0] == 17 && clipped[1] == 0 && clipped[2] == 0, "The trailing run fills only to the width");
 
-	std::vector<unsigned char> unboundedoverrun;
-	Append_Row(unboundedoverrun, {1, 2, 3, 4, 5});
-	Check(!Scale_Decode_RLE_Frame(unboundedoverrun.data(), 0, 3, 1, guard.data()), "An over-wide row is refused even with no declared size");
+	Check(Scale_Decode_RLE_Frame(overrun.data(), 0, 3, 1, clipped.data()), "An over-wide row decodes with no declared size too");
 
 	std::vector<unsigned char> danglingrun;
 	Append_Row(danglingrun, {17, 0});
