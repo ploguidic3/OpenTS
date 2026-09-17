@@ -13,7 +13,7 @@ The tactical view projects the world onto a diamond tile of 48 by 48 pixels, hal
 
 Artwork drawn for the original tile is magnified to fit rather than left small, each pixel becoming a square of four. That is a plain magnification and adds no detail, but it keeps every sprite in the right place at the right size, so the view works with no artwork made for the larger tile and artwork can then be replaced a piece at a time. A shape recognised at the larger size is drawn as it is. Magnified frames are held so that a sprite redrawn every frame is magnified once; that store is bounded and the least recently drawn frames are dropped when it fills.
 
-Terrain tiles are not yet drawn at the scale. Until they are, `AssetScale=2` leaves the ground at its original size while everything standing on it is doubled, so the view is not playable.
+Terrain is drawn against the doubled tile too: the ground, the cliff and overhang artwork attached to a tile, the shroud and the fog. Original tile artwork is magnified the same way sprites are, so the mode needs no artwork made for it.
 
 The setting changes only how the local picture is drawn. Distances, damage, sighting and movement are measured in leptons, which the scale does not touch, so a game saved, recorded or played over a network at one scale behaves the same at the other.
 

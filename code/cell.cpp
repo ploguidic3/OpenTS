@@ -117,6 +117,7 @@
 #include "savestream.h"
 #include "scheme.h"
 #include "session.h"
+#include "shapeexpand.h"
 #include "shapeload.h"
 #include "shapeset.h"
 #include "smudtype.h"
@@ -2030,6 +2031,17 @@ void CellClass::Draw_Shroud_Or_Fog_Shape(Point2D const & drawpoint, Rect const &
 
 	Rect shaperect = shapes->Get_Rect(shapenum);
 
+	// The shroud and fog frames are laid straight into the alpha buffer rather than drawn
+	// through Draw_Shape, so the magnified copy has to be fetched here.
+	int const factor = Shape_World_Factor(shapes);
+	ExpandedFrame frame;
+	if (factor > 1) {
+		frame = Shape_Expanded_Frame(shapes, shapenum, factor);
+		if (frame.Data != NULL) {
+			shaperect = Rect(shaperect.X * factor, shaperect.Y * factor, frame.Width, frame.Height);
+		}
+	}
+
 	if (drawpoint.Y + shaperect.Y + shaperect.Height < cliprect.Y + 1) return;
 	if (drawpoint.Y >= cliprect.Height + cliprect.Y) return;
 	if (drawpoint.X + shaperect.X + shaperect.Width < cliprect.X + 1) return;
@@ -2046,10 +2058,10 @@ void CellClass::Draw_Shroud_Or_Fog_Shape(Point2D const & drawpoint, Rect const &
 	int shape_skip = drawpoint.X - inter_right + shaperect.X + shaperect.Width + src_x;
 	int alpha_skip = inter_left - inter_right + AlphaBuffer->Get_Buffer_Width();
 
-	unsigned char * shapedata = (unsigned char *)shapes->Get_Data(shapenum);
+	unsigned char const * shapedata = (frame.Data != NULL) ? frame.Data : (unsigned char const *)shapes->Get_Data(shapenum);
 	unsigned short * alphaptr = AlphaBuffer->Get_Buffer_Offset(Point2D(inter_left, inter_top - TacticalRect.Y));
 
-	unsigned char * shapeptr = (unsigned char *)&shapedata[src_x + src_y * shaperect.Width];
+	unsigned char const * shapeptr = &shapedata[src_x + src_y * shaperect.Width];
 	if (&alphaptr[inter_right - inter_left + (inter_bottom - inter_top) * AlphaBuffer->Get_Buffer_Width() + 2] >= AlphaBuffer->Get_Buffer_End()) {
 		for (int i = inter_top; i < inter_bottom; i++) {
 			for (int j = inter_left; j < inter_right; j++) {
@@ -2101,6 +2113,17 @@ void CellClass::Draw_Fog_Shape(Point2D const & drawpoint, Rect const & cliprect,
 
 	Rect shaperect = shapes->Get_Rect(shapenum);
 
+	// The shroud and fog frames are laid straight into the alpha buffer rather than drawn
+	// through Draw_Shape, so the magnified copy has to be fetched here.
+	int const factor = Shape_World_Factor(shapes);
+	ExpandedFrame frame;
+	if (factor > 1) {
+		frame = Shape_Expanded_Frame(shapes, shapenum, factor);
+		if (frame.Data != NULL) {
+			shaperect = Rect(shaperect.X * factor, shaperect.Y * factor, frame.Width, frame.Height);
+		}
+	}
+
 	if (drawpoint.Y + shaperect.Y + shaperect.Height < cliprect.Y + 1) return;
 	if (drawpoint.Y >= cliprect.Height + cliprect.Y) return;
 	if (drawpoint.X + shaperect.X + shaperect.Width < cliprect.X + 1) return;
@@ -2117,10 +2140,10 @@ void CellClass::Draw_Fog_Shape(Point2D const & drawpoint, Rect const & cliprect,
 	int shape_skip = drawpoint.X - inter_right + shaperect.X + shaperect.Width + src_x;
 	int alpha_skip = inter_left - inter_right + AlphaBuffer->Get_Buffer_Width();
 
-	unsigned char * shapedata = (unsigned char *)shapes->Get_Data(shapenum);
+	unsigned char const * shapedata = (frame.Data != NULL) ? frame.Data : (unsigned char const *)shapes->Get_Data(shapenum);
 	unsigned short * alphaptr = AlphaBuffer->Get_Buffer_Offset(Point2D(inter_left, inter_top - TacticalRect.Y));
 
-	unsigned char * shapeptr = (unsigned char *)&shapedata[src_x + src_y * shaperect.Width];
+	unsigned char const * shapeptr = &shapedata[src_x + src_y * shaperect.Width];
 	if (&alphaptr[inter_right - inter_left + (inter_bottom - inter_top) * AlphaBuffer->Get_Buffer_Width() + 2] >= AlphaBuffer->Get_Buffer_End()) {
 		for (int i = inter_top; i < inter_bottom; i++) {
 			for (int j = inter_left; j < inter_right; j++) {

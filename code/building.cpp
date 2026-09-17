@@ -820,7 +820,7 @@ void BuildingClass::Draw_It(Point2D const & xdrawpoint, Rect const & xcliprect) 
 
 	if (Class->IsInvisibleInGame) return;
 
-	Point2D zdrawpoint(144, 172);
+	Point2D zdrawpoint(AS(144), AS(172));
 	int zadjust = Class->NormalZAdjust;
 
 	if (Mission == MISSION_OPEN && !Door.Is_Ready_To_Open()) {

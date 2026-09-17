@@ -18,6 +18,7 @@
 
 #include "assetscale.h"
 #include "isotiletable.h"
+#include "scaleblit.h"
 
 #include "_alpha.h"
 #include "_convert.h"
@@ -1618,6 +1619,21 @@ IsoBlitState IsoDrawData;
 // One magnified tile's pixels and depth, rebuilt per tile drawn and never held past the draw.
 unsigned char IsoTileScratch[ISO_TILE_BASE_PIXELS * ASSET_SCALE_MAX * ASSET_SCALE_MAX];
 unsigned char IsoDepthScratch[ISO_TILE_BASE_PIXELS * ASSET_SCALE_MAX * ASSET_SCALE_MAX];
+
+// A tile's rectangular extra image is any size, so its magnified copy grows to fit and is kept
+// between draws rather than reallocated per tile.
+std::vector<unsigned char> IsoExtraScratch;
+std::vector<unsigned char> IsoExtraDepthScratch;
+
+
+unsigned char const * Expand_Extra_Image(unsigned char const * source, int width, int height, int scale, std::vector<unsigned char> & scratch)
+{
+	scratch.resize((std::size_t)width * scale * height * scale);
+	Scale_Expand_8Bit(source, width, height, scratch.data(), scale);
+	return(scratch.data());
+}
+
+
 unsigned short _iso_row_offsets[ISO_RUN_STRIDE];
 unsigned char _iso_start_cols[ISO_RUN_STRIDE];
 /*
@@ -2306,16 +2322,31 @@ void IsometricTileTypeClass::Draw_Tile(LightConvertClass * drawer, int subtile, 
 
 				if (!skip_extra) {
 					if (record->IsHasExtraData && !fill && !depth_only && !fog) {
-						int ex = record->ExtraX - record->X + x;
-						int ey = record->ExtraY - record->Y + y;
-						IsoDrawData.SpanWidth = record->ExtraWidth;
-						IsoDrawData.SpanHeight = record->ExtraHeight;
+						int const extrascale = Asset_Scale();
+						unsigned char const * extrapixels = (unsigned char const *)record + record->ExtraOffset;
+						unsigned char const * extradepth = (unsigned char const *)record + record->ExtraZOffset;
+						int extrawidth = record->ExtraWidth;
+						int extraheight = record->ExtraHeight;
+
+						if (extrascale > 1) {
+							extrapixels = Expand_Extra_Image(extrapixels, extrawidth, extraheight, extrascale, IsoExtraScratch);
+							if (use_z) {
+								extradepth = Expand_Extra_Image(extradepth, extrawidth, extraheight, extrascale, IsoExtraDepthScratch);
+							}
+							extrawidth *= extrascale;
+							extraheight *= extrascale;
+						}
+
+						int ex = AS(record->ExtraX - record->X) + x;
+						int ey = AS(record->ExtraY - record->Y) + y;
+						IsoDrawData.SpanWidth = extrawidth;
+						IsoDrawData.SpanHeight = extraheight;
 						IsoDrawData.ClipLeft = 0;
 						IsoDrawData.ClipTop = 0;
 						bool extra_ok = true;
 
 						if (ex < cliprect.X) {
-							IsoDrawData.SpanWidth = ex - cliprect.X + record->ExtraWidth;
+							IsoDrawData.SpanWidth = ex - cliprect.X + extrawidth;
 							IsoDrawData.ClipLeft = cliprect.X - ex;
 							ex = cliprect.X;
 							if (IsoDrawData.SpanWidth <= 0) {
@@ -2343,7 +2374,7 @@ void IsometricTileTypeClass::Draw_Tile(LightConvertClass * drawer, int subtile, 
 							}
 						}
 						if (extra_ok) {
-							IsoDrawData.ImageRowStep = record->ExtraWidth - IsoDrawData.SpanWidth;
+							IsoDrawData.ImageRowStep = extrawidth - IsoDrawData.SpanWidth;
 							IsoDrawData.SurfacePitch = surface.Stride() - IsoDrawData.SpanWidth * surface.Bytes_Per_Pixel();
 							if (use_z) {
 								IsoDrawData.DepthPtr = DepthBuffer->Get_Buffer_Offset(Point2D(ex, ey - TacticalRect.Y));
@@ -2353,11 +2384,11 @@ void IsometricTileTypeClass::Draw_Tile(LightConvertClass * drawer, int subtile, 
 							IsoDrawData.AlphaWidth = AlphaBuffer->Get_Buffer_Width() - IsoDrawData.SpanWidth;
 							IsoDrawData.DestPtr = (unsigned short *)surface.Lock(Point2D(ex, ey));
 							if (IsoDrawData.DestPtr != NULL) {
-								IsoDrawData.SrcPixel = (unsigned char *)record + record->ExtraOffset + IsoDrawData.ClipLeft;
-								IsoDrawData.SrcPixel = IsoDrawData.ClipTop * record->ExtraWidth + IsoDrawData.SrcPixel;
+								IsoDrawData.SrcPixel = (unsigned char *)extrapixels + IsoDrawData.ClipLeft;
+								IsoDrawData.SrcPixel = IsoDrawData.ClipTop * extrawidth + IsoDrawData.SrcPixel;
 								if (use_z) {
-									IsoDrawData.SrcDepth = (unsigned char *)record + record->ExtraZOffset + IsoDrawData.ClipLeft;
-									IsoDrawData.SrcDepth = IsoDrawData.ClipTop * record->ExtraWidth + IsoDrawData.SrcDepth;
+									IsoDrawData.SrcDepth = (unsigned char *)extradepth + IsoDrawData.ClipLeft;
+									IsoDrawData.SrcDepth = IsoDrawData.ClipTop * extrawidth + IsoDrawData.SrcDepth;
 									if (&IsoDrawData.DepthPtr[IsoDrawData.SpanWidth + 2 + IsoDrawData.SpanHeight * DepthBuffer->BufferWidth] >= DepthBuffer->Get_Buffer_End()) {
 
 										/*
