@@ -3961,7 +3961,7 @@ void MapClass::Set_Bridge_End_State(Cell const & cell, bool damaged, bool recurs
 		Point2D point;
 		TacticalMap->Coord_To_Pixel((Coord)cell, point);
 		point.Y -= LEVEL_PIXEL_H * cellptr->Height;
-		TacticalMap->Register_Dirty_Area(Rect(point - Point2D(128, 128), 256, 256));
+		TacticalMap->Register_Dirty_Area(Rect(point - Point2D(AS(128), AS(128)), AS(256), AS(256)));
 	}
 
 	if (damaged != (bool)cellptr->IsBridgeDamaged) {
@@ -4002,7 +4002,7 @@ void MapClass::Set_Bridge_Middle_State(Cell const & cell, IsometricTileType new_
 		Point2D point;
 		TacticalMap->Coord_To_Pixel((Coord)cell, point);
 		point.Y -= LEVEL_PIXEL_H * cellptr->Height;
-		TacticalMap->Register_Dirty_Area(Rect(point - Point2D(128, 128), 256, 256));
+		TacticalMap->Register_Dirty_Area(Rect(point - Point2D(AS(128), AS(128)), AS(256), AS(256)));
 		old_tile = cellptr->ITType;
 		if (new_tile == old_tile) {
 			return;

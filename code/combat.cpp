@@ -495,7 +495,7 @@ void Explosion_Damage(Coord const & coord, int strength, TechnoClass * source, W
 					}
 					Point2D point;
 					TacticalMap->Coord_To_Pixel(coord, point);
-					TacticalMap->Register_Dirty_Area(Rect(point.X - 128, point.Y - 128, 256, 256), false);
+					TacticalMap->Register_Dirty_Area(Rect(point.X - AS(128), point.Y - AS(128), AS(256), AS(256)), false);
 				}
 			}
 		}
@@ -524,7 +524,7 @@ void Explosion_Damage(Coord const & coord, int strength, TechnoClass * source, W
 					}
 					Point2D point;
 					TacticalMap->Coord_To_Pixel(coord, point);
-					TacticalMap->Register_Dirty_Area(Rect(point.X - 96, point.Y - 96, 192, 192), false);
+					TacticalMap->Register_Dirty_Area(Rect(point.X - AS(96), point.Y - AS(96), AS(192), AS(192)), false);
 				}
 			}
 		}

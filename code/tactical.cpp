@@ -278,6 +278,25 @@ Coord Tactical::Classic_Pixel_To_Coord_Absolute(Point2D const & pixel)
 
 
 /// <summary>
+/// Projects a world Coord to an absolute pixel measured against the original tile.
+/// </summary>
+/// <remarks>
+/// This is the forward companion to Classic_Pixel_To_Coord_Absolute. State that a sync check
+/// or a save compares between machines is measured with it, so that the answer does not
+/// follow whatever asset scale each machine is drawing at.
+/// </remarks>
+Point2D Tactical::Classic_Coord_To_Pixel_Absolute(Coord const & coord)
+{
+	Point2D pixel;
+	Asset_Rect_To_Iso(coord.X, coord.Y, ASSET_TILE_BASE_W, ASSET_TILE_BASE_H, pixel.X, pixel.Y);
+	pixel.X /= CELL_LEPTON;
+	pixel.Y /= CELL_LEPTON;
+	pixel.Y -= Z_Lepton_To_Pixel_At(coord.Z, ASSET_TILE_BASE_W);
+	return(pixel);
+}
+
+
+/// <summary>
 /// Converts a height in leptons into a vertical pixel lift.
 /// This routine is used by the coordinate conversions to raise an object off the ground plane
 /// of the isometric view by its height.

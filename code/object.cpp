@@ -1348,9 +1348,12 @@ bool ObjectClass::Limbo(void)
 			TacticalMap->Coord_To_Pixel(coord, point);
 
 			ShapeSet const * alpha = (ShapeSet const *)Class_Of()->AlphaImageData;
-			point -= Point2D(alpha->Get_Width()/2, alpha->Get_Height()/2);
+			int const factor = Shape_World_Factor(alpha);
+			int const width = alpha->Get_Width() * factor;
+			int const height = alpha->Get_Height() * factor;
+			point -= Point2D(width / 2, height / 2);
 
-			TacticalMap->Register_Dirty_Area(Rect(point, alpha->Get_Width(), alpha->Get_Height()), true);
+			TacticalMap->Register_Dirty_Area(Rect(point, width, height), true);
 		}
 
 		Hidden();
@@ -1416,19 +1419,25 @@ bool ObjectClass::Unlimbo(Coord const & coord, Dir256 )
 
 						if (objclass->AlphaImageData != NULL) {
 
-							Point2D point;
 							Coord coord = Center_Coord();
-							TacticalMap->Coord_To_Pixel(coord, point);
-							point += Point2D(TacticalMap->TacPixelX, TacticalMap->TacPixelY);
 
 							ShapeSet const * alpha = (ShapeSet const *)Class_Of()->AlphaImageData;
-							point -= Point2D(alpha->Get_Width()/2, alpha->Get_Height()/2);
+
+							/*
+							 * The shape's position goes in measured against the original tile,
+							 * because the sync check compares it between machines that may be
+							 * drawing at different asset scales.
+							 */
+							Point2D point = TacticalMap->Classic_Coord_To_Pixel_Absolute(coord);
+							point -= Point2D(alpha->Get_Width() / 2, alpha->Get_Height() / 2);
 
 							new AlphaShapeClass(this, point.X, point.Y);
 
 							if (!ScenarioInit) {
-								Point2D dpoint = point - Point2D(TacticalMap->TacPixelX, TacticalMap->TacPixelY);
-								TacticalMap->Register_Dirty_Area(Rect(dpoint, alpha->Get_Width(), alpha->Get_Height()), true);
+								int const factor = Shape_World_Factor(alpha);
+								Point2D dpoint(AS(point.X), AS(point.Y));
+								dpoint -= Point2D(TacticalMap->TacPixelX, TacticalMap->TacPixelY);
+								TacticalMap->Register_Dirty_Area(Rect(dpoint, alpha->Get_Width() * factor, alpha->Get_Height() * factor), true);
 							}
 						}
 					}

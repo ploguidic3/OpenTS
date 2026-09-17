@@ -131,6 +131,10 @@ class Tactical : public AbstractClass
 		Point2D Classic_Pixel_To_Lepton(Point2D const & pixel);
 		Coord Classic_Pixel_To_Coord_Absolute(Point2D const & pixel);
 
+		// The absolute pixel a Coord projects to against the original tile, for state the
+		// simulation compares between machines rather than only draws.
+		static Point2D Classic_Coord_To_Pixel_Absolute(Coord const & coord);
+
 		bool Coord_To_Pixel(Coord const & coord, Point2D & pixel);
 		Coord Pixel_To_Coord(Point2D const & pixel);
 		Coord Pixel_To_Coord_Absolute(Point2D const & pixel);

@@ -20,6 +20,7 @@
 #include "object.h"
 #include "objtype.h"
 #include "savestream.h"
+#include "shapeexpand.h"
 #include "shapeset.h"
 #include "sun.h"
 #include "tactical.h"
@@ -32,6 +33,32 @@ DynamicVectorClass<AlphaShapeClass *> AlphaShapes;
 
 unsigned char AlphaShapeClass::BrightnessTable[256][256];
 static bool BrightnessCalculated = false;
+
+
+namespace
+{
+
+/*
+ * An alpha shape is laid straight into the alpha buffer rather than drawn through Draw_Shape,
+ * so the magnified frame is fetched here. The rect comes back in drawn pixels.
+ */
+unsigned char const * Alpha_Frame(ShapeSet const * shape, Rect & rect)
+{
+	rect = shape->Get_Rect(0);
+
+	int const factor = Shape_World_Factor(shape);
+	if (factor > 1) {
+		ExpandedFrame const frame = Shape_Expanded_Frame(shape, 0, factor);
+		if (frame.Data != NULL) {
+			rect = Rect(rect.X * factor, rect.Y * factor, frame.Width, frame.Height);
+			return(frame.Data);
+		}
+	}
+
+	return((unsigned char const *)shape->Get_Data(0));
+}
+
+}
 
 
 /// <summary>
@@ -199,6 +226,7 @@ void AlphaShapeClass::Draw_In_Area(Point2D const & point, Rect const & cliprect)
 	for (int i = 0; i < AlphaShapes.Count(); i++) {
 		if (!AlphaShapes[i]->IsToDelete) {
 			Rect r1 = AlphaShapes[i]->DrawRect;
+			r1 = Rect(AS(r1.X), AS(r1.Y), AS(r1.Width), AS(r1.Height));
 			r1 -= Point2D(TacticalMap->TacPixelX, TacticalMap->TacPixelY);
 			r1 += TacticalRect.Top_Left();
 
@@ -211,7 +239,8 @@ void AlphaShapeClass::Draw_In_Area(Point2D const & point, Rect const & cliprect)
 				int dy = r4.Y - r3.Y;
 
 				ShapeSet const * shape = AlphaShapes[i]->ImageData;
-				Rect shape_rect = shape->Get_Rect(0);
+				Rect shape_rect;
+				unsigned char const * shapedata = Alpha_Frame(shape, shape_rect);
 
 				int top = std::max(r4.Y, shape_rect.Y + r1.Y);
 				int src_y = top - shape_rect.Y - r1.Y;
@@ -225,10 +254,9 @@ void AlphaShapeClass::Draw_In_Area(Point2D const & point, Rect const & cliprect)
 				int mask_skip = ISO_TILE_PIXEL_W - r4.Width;
 
 				const unsigned char * maskptr = &_tilemask[ISO_TILE_PIXEL_W * dy + dx];
-				unsigned char * shapedata = (unsigned char *)shape->Get_Data(0);
 
 				unsigned short * alphaptr = AlphaBuffer->Get_Buffer_Offset(Point2D(left, top - TacticalRect.Y));
-				unsigned char * shapeptr = (unsigned char *)&shapedata[src_x + src_y * shape_rect.Width];
+				unsigned char const * shapeptr = &shapedata[src_x + src_y * shape_rect.Width];
 				if (&alphaptr[right - left + (bottom - top) * AlphaBuffer->Get_Buffer_Width() + 2] >= AlphaBuffer->Get_Buffer_End()) {
 					for (int i = top; i < bottom; i++) {
 						for (int j = left; j < right; j++) {
@@ -276,6 +304,7 @@ void AlphaShapeClass::Draw_All(Rect const & cliprect)
 	for (int i = 0; i < AlphaShapes.Count(); i++) {
 		{
 			Rect r1 = AlphaShapes[i]->DrawRect;
+			r1 = Rect(AS(r1.X), AS(r1.Y), AS(r1.Width), AS(r1.Height));
 			r1 -= Point2D(TacticalMap->TacPixelX, TacticalMap->TacPixelY);
 			r1 += TacticalRect.Top_Left();
 
@@ -291,7 +320,8 @@ void AlphaShapeClass::Draw_All(Rect const & cliprect)
 					AlphaShapes[i]->ImageData = (ShapeSet const *)AlphaShapes[i]->Owner->Class_Of()->AlphaImageData;
 					shape = AlphaShapes[i]->ImageData;
 				}
-				Rect shape_rect = shape->Get_Rect(0);
+				Rect shape_rect;
+				unsigned char const * shapedata = Alpha_Frame(shape, shape_rect);
 
 				int top = std::max(r2.Y, shape_rect.Y + y1);
 				int src_y = top - shape_rect.Y - y1;
@@ -303,11 +333,9 @@ void AlphaShapeClass::Draw_All(Rect const & cliprect)
 				int shape_skip = shape_rect.Width - right + shape_rect.X + x1 + src_x;
 				int alpha_skip = AlphaBuffer->Get_Buffer_Width() - right + left;
 
-				unsigned char * shapedata = (unsigned char *)shape->Get_Data(0);
-
 				unsigned short * alphaptr = AlphaBuffer->Get_Buffer_Offset(Point2D(left - TacticalRect.X, top - TacticalRect.Y));
 
-				unsigned char * shapeptr = (unsigned char *)&shapedata[src_x + src_y * shape_rect.Width];
+				unsigned char const * shapeptr = &shapedata[src_x + src_y * shape_rect.Width];
 				if (&alphaptr[right - left + (bottom - top) * AlphaBuffer->Get_Buffer_Width() + 2] >= AlphaBuffer->Get_Buffer_End()) {
 					for (int i = top; i < bottom; i++) {
 						for (int j = left; j < right; j++) {
