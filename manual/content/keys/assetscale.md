@@ -15,6 +15,12 @@ Artwork drawn for the original tile is magnified to fit rather than left small, 
 
 Terrain is drawn against the doubled tile too: the ground, the cliff and overhang artwork attached to a tile, the shroud and the fog. Original tile artwork is magnified the same way sprites are, so the mode needs no artwork made for it.
 
+An object standing against a building is drawn in front of it rather than behind it at
+`AssetScale=2`. Depth is measured in rows, and the per-pixel depth that building artwork
+carries is measured against the original tile, so the two are still weighed against each
+other wrongly at the larger scale. Nothing else in the view depends on it, and
+`AssetScale=1` is unaffected.
+
 The setting changes only how the local picture is drawn. Distances, damage, sighting and movement are measured in leptons, which the scale does not touch, so a game saved, recorded or played over a network at one scale behaves the same at the other.
 
 Values below one are raised to one and values above two are lowered to two. The setting is read when the game starts and is not read again, so a change takes effect the next time the game is launched.
