@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "assetscale.h"
 #include "rect.h"
 
 class Surface;
@@ -25,7 +26,13 @@ class ZBuffer
 
 		unsigned short Get_Scroll(void) const { return(ScrollOffset); }
 		void Set_Scroll(int position) { ScrollOffset = position; }
-		int Get_Scroll_Delta(int position) const { return(ScrollOffset - position); }
+		/*
+		 * The depth value a screen row sits at. Depth is measured against the original tile
+		 * rather than the drawn pixel, so that the per-pixel depth carried by tile and shape
+		 * artwork, and the offsets the draw calls add to it, keep their meaning at any asset
+		 * scale. Callers that need the row count itself use Get_Scroll instead.
+		 */
+		int Get_Scroll_Delta(int position) const { return(Asset_Depth(ScrollOffset - position)); }
 
 		void Copy_To(Surface * surface, Rect rect);
 

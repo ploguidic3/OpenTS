@@ -354,7 +354,7 @@ void Draw_Fogged_Objects(Rect const & rect)
 				TacticalMap->Coord_To_Pixel((Coord)*position, xy);
 				xy += Point2D(TacticalRect.X - cliprect.X, TacticalRect.Y - cliprect.Y);
 
-				int zadjust = -TacticalMap->Z_Lepton_To_Pixel(((Coord)*position).Z);
+				int zadjust = -TacticalMap->Classic_Z_Lepton_To_Pixel(((Coord)*position).Z);
 
 				if (cellptr->Drawer == NULL) {
 					cellptr->Init_Drawer(NULL, 0x10000, 0, NORMAL_LIGHT, NORMAL_LIGHT, NORMAL_LIGHT);
@@ -468,9 +468,9 @@ void Draw_Fogged_Objects(Rect const & rect)
 						int zadjust = data->Records[record].ZAdjust;
 
 						if (anim->IsFlat) {
-							Draw_Shape(*LogicalSurface, *animconvert, shape, shapenum, drawpoint, cliprect, ShapeFlags_Type(SHAPE_CENTER|SHAPE_WIN_REL|SHAPE_ALPHA|SHAPE_ZGRAD), NULL, zadjust - TacticalMap->Z_Lepton_To_Pixel(((Coord)*position).Z) - 2, ZGRAD_GROUND, brightness);
+							Draw_Shape(*LogicalSurface, *animconvert, shape, shapenum, drawpoint, cliprect, ShapeFlags_Type(SHAPE_CENTER|SHAPE_WIN_REL|SHAPE_ALPHA|SHAPE_ZGRAD), NULL, zadjust - TacticalMap->Classic_Z_Lepton_To_Pixel(((Coord)*position).Z) - 2, ZGRAD_GROUND, brightness);
 						} else {
-							Draw_Shape(*LogicalSurface, *animconvert, shape, shapenum, drawpoint, cliprect, ShapeFlags_Type(SHAPE_CENTER|SHAPE_WIN_REL|SHAPE_ALPHA|SHAPE_ZGRAD), NULL, zadjust - TacticalMap->Z_Lepton_To_Pixel(((Coord)*position).Z) - 2, ZGRAD_90DEG, brightness);
+							Draw_Shape(*LogicalSurface, *animconvert, shape, shapenum, drawpoint, cliprect, ShapeFlags_Type(SHAPE_CENTER|SHAPE_WIN_REL|SHAPE_ALPHA|SHAPE_ZGRAD), NULL, zadjust - TacticalMap->Classic_Z_Lepton_To_Pixel(((Coord)*position).Z) - 2, ZGRAD_90DEG, brightness);
 						}
 					}
 				}

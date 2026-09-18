@@ -119,6 +119,27 @@ int main(void)
 		Check(Draw_Scale() == 1, "The world draws unmagnified at scale one");
 	}
 
+	/*
+	 * The depth buffer is kept in the original tile's units, so that the per-pixel depth that
+	 * tile and shape artwork carries keeps its meaning however many pixels a row covers.
+	 */
+	Set_Asset_Scale(1);
+	Check(Asset_Depth(37) == 37 && Asset_Depth(-37) == -37, "Scale one leaves a depth unchanged");
+
+	Set_Asset_Scale(2);
+	Check(Asset_Depth(0) == 0, "The buffer origin is the same depth at either scale");
+	Check(Asset_Depth(2) == 1, "Two drawn rows are one row of the original tile");
+	Check(Asset_Depth(3) == 1, "An odd span rounds down");
+	Check(Asset_Depth(-2) == -1 && Asset_Depth(-3) == -2, "A span above the origin rounds towards negative");
+
+	bool evenstep = true;
+	for (int row = -20; row < 20; row++) {
+		if (Asset_Depth(row + 2) - Asset_Depth(row) != 1) {
+			evenstep = false;
+		}
+	}
+	Check(evenstep, "Every two drawn rows step the depth by exactly one");
+
 	Set_Asset_Scale(0);
 	Check(Asset_Scale() == 1, "A scale below one is clamped up");
 

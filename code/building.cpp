@@ -855,7 +855,7 @@ void BuildingClass::Draw_It(Point2D const & xdrawpoint, Rect const & xcliprect) 
 		}
 
 		shapenum += (HealthRatio <= Rule->ConditionYellow ? (Class->GateStages + 1) : 0);
-		Techno_Draw_Object(shapefile, shapenum, xdrawpoint, xcliprect, DIR_N, 256, zadjust - TacticalMap->Z_Lepton_To_Pixel(Height), zgrad, true, Map[cell].Brightness);
+		Techno_Draw_Object(shapefile, shapenum, xdrawpoint, xcliprect, DIR_N, 256, zadjust - TacticalMap->Classic_Z_Lepton_To_Pixel(Height), zgrad, true, Map[cell].Brightness);
 
 		return;
 	}
@@ -892,7 +892,7 @@ void BuildingClass::Draw_It(Point2D const & xdrawpoint, Rect const & xcliprect) 
 		if ((Class->IsLaserFence && (LaserFenceFrame == 12 || LaserFenceFrame == 8)) || Class->IsFirestormWall) {
 			Techno_Draw_Object(shapefile, Shape_Number(), drawpoint, cliprect, DIR_N, 256, -1 - TacticalMap->Z_Lepton_To_Pixel(Height), ZGRAD_GROUND, true, Map[cell].Brightness + Class->ExtraLight);
 		} else {
-			Techno_Draw_Object(shapefile, Shape_Number() < shapefile->Get_Count() / 2 ? Shape_Number() : shapefile->Get_Count() / 2, drawpoint, cliprect, DIR_N, 256, zadjust - TacticalMap->Z_Lepton_To_Pixel(Height), ZGRAD_90DEG, true, Map[cell].Brightness + Class->ExtraLight, zshapefile, 0, zdrawpoint);
+			Techno_Draw_Object(shapefile, Shape_Number() < shapefile->Get_Count() / 2 ? Shape_Number() : shapefile->Get_Count() / 2, drawpoint, cliprect, DIR_N, 256, zadjust - TacticalMap->Classic_Z_Lepton_To_Pixel(Height), ZGRAD_90DEG, true, Map[cell].Brightness + Class->ExtraLight, zshapefile, 0, zdrawpoint);
 		}
 	}
 
@@ -968,7 +968,7 @@ void BuildingClass::Draw_Extras(Point2D & xy, Rect & rect)
 				shapenum += Class->DoorStages;
 			}
 
-			int zadjust = -5 - Tactical::Z_Lepton_To_Pixel(Height);
+			int zadjust = -5 - Tactical::Classic_Z_Lepton_To_Pixel(Height);
 			Techno_Draw_Object(Class->DoorAnim, shapenum, xy, rect, DIR_N, 256, zadjust, ZGRAD_GROUND, false, Map[cell].Brightness);
 
 			if (Door.Is_Door_Closing() && shapenum == 0) {

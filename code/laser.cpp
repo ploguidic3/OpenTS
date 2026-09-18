@@ -193,7 +193,7 @@ void LaserDrawClass::Draw_It(void)
 			Point2D end_pixel;
 			TacticalMap->Coord_To_Pixel(End, end_pixel);
 
-			int start_z = ZAdjust - TacticalMap->Z_Lepton_To_Pixel(Start.Z) - 2;
+			int start_z = ZAdjust - TacticalMap->Classic_Z_Lepton_To_Pixel(Start.Z) - 2;
 			int end_z = -TacticalMap->Z_Lepton_To_Pixel(End.Z) - 2;
 
 			RGBClass outer_color;

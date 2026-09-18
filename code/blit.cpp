@@ -38,6 +38,7 @@
 
 #include "always.h"
 
+#include "assetscale.h"
 #include "blit.h"
 
 #include "_alpha.h"
@@ -214,6 +215,7 @@ bool Bit_Blit(Surface & dest, Rect const & dcliprect, Rect const & ddrect, Surfa
 	int z_step_denominator = 0;
 	int z_step_numerator = 0;
 	int z_step_ratio = 0;
+	int z_row_phase = 0;
 	ZGradStruct * gradient = &ZGradients[zgrad];
 	Rect origdrect = ddrect;
 
@@ -274,9 +276,10 @@ bool Bit_Blit(Surface & dest, Rect const & dcliprect, Rect const & ddrect, Surfa
 			 * Pre-adjust so that the first scanline starts with the correct fraction.
 			 * Initialize the fractional counter based on how many lines are in the region.
 			 */
+			int const z_rows = Asset_Depth(drect.Height);
 			current_z = (current_z / z_step_ratio) * z_step_ratio;
-			current_z -= drect.Height / z_step_ratio;
-			z_fraction = z_step_numerator - drect.Height % z_step_ratio;
+			current_z -= z_rows / z_step_ratio;
+			z_fraction = z_step_numerator - z_rows % z_step_ratio;
 
 			/*
 			 * If the fraction wrapped exactly, reset and carry one full increment.
@@ -328,7 +331,7 @@ bool Bit_Blit(Surface & dest, Rect const & dcliprect, Rect const & ddrect, Surfa
 			if (DepthBuffer != NULL) {
 				zbuffer_offset = (zbuffer_offset + srect.Height) - DepthBuffer->Get_Buffer_Width();
 				zbuffer_offset = DepthBuffer->Wrap_Overflow(zbuffer_offset);
-				current_z -= srect.Height - 1;
+				current_z -= Asset_Depth(srect.Height - 1);
 			}
 			if (AlphaBuffer != NULL) {
 				abuffer_offset = (abuffer_offset + srect.Height) - AlphaBuffer->Get_Buffer_Width();
@@ -348,10 +351,13 @@ bool Bit_Blit(Surface & dest, Rect const & dcliprect, Rect const & ddrect, Surfa
 				if (DepthBuffer != NULL) {
 					zbuffer_offset += zbuffer_pitch;
 					zbuffer_offset = DepthBuffer->Wrap_Underflow(zbuffer_offset);
-					z_fraction += z_step_denominator;
-					if (z_fraction >= z_step_numerator) {
-						current_z += gradient->WrapIncrement;
-						z_fraction -= z_step_numerator;
+					if (++z_row_phase >= Asset_Scale()) {
+						z_row_phase = 0;
+						z_fraction += z_step_denominator;
+						if (z_fraction >= z_step_numerator) {
+							current_z += gradient->WrapIncrement;
+							z_fraction -= z_step_numerator;
+						}
 					}
 				}
 				if (AlphaBuffer != NULL) {
@@ -367,10 +373,13 @@ bool Bit_Blit(Surface & dest, Rect const & dcliprect, Rect const & ddrect, Surfa
 				if (DepthBuffer != NULL) {
 					zbuffer_offset += zbuffer_pitch;
 					zbuffer_offset = DepthBuffer->Wrap_Overflow(zbuffer_offset);
-					z_fraction += z_step_denominator;
-					if (z_fraction >= z_step_numerator) {
-						current_z += gradient->WrapIncrement;
-						z_fraction -= z_step_numerator;
+					if (++z_row_phase >= Asset_Scale()) {
+						z_row_phase = 0;
+						z_fraction += z_step_denominator;
+						if (z_fraction >= z_step_numerator) {
+							current_z += gradient->WrapIncrement;
+							z_fraction -= z_step_numerator;
+						}
 					}
 				}
 				if (AlphaBuffer != NULL) {
@@ -478,6 +487,7 @@ bool RLE_Blit(Surface & dest, Rect const & dcliprect, Rect const & ddrect, Surfa
 	int z_step_denominator = 0;
 	int z_step_numerator = 0;
 	int z_step_ratio = 0;
+	int z_row_phase = 0;
 
 	int zshapew = 0;
 	int zshapelocky = 0;
@@ -523,7 +533,7 @@ bool RLE_Blit(Surface & dest, Rect const & dcliprect, Rect const & ddrect, Surfa
 			current_z += zdepth;
 			if (zshape == NULL) {
 				current_z = (current_z / z_step_ratio) * z_step_ratio;
-				int zy = ddrect.Y + ddrect.Height - drect.Y;
+				int zy = Asset_Depth(ddrect.Y + ddrect.Height - drect.Y);
 				current_z -= zy / z_step_ratio;
 				z_fraction = z_step_numerator - zy % z_step_ratio;
 				if (z_fraction == z_step_numerator) {
@@ -600,10 +610,13 @@ bool RLE_Blit(Surface & dest, Rect const & dcliprect, Rect const & ddrect, Surfa
 			if (zshape != NULL) {
 				zshapelock += zshapew;
 			} else {
-				z_fraction += z_step_denominator;
-				if (z_fraction >= z_step_numerator) {
-					current_z += grad->WrapIncrement;
-					z_fraction -= z_step_numerator;
+				if (++z_row_phase >= Asset_Scale()) {
+					z_row_phase = 0;
+					z_fraction += z_step_denominator;
+					if (z_fraction >= z_step_numerator) {
+						current_z += grad->WrapIncrement;
+						z_fraction -= z_step_numerator;
+					}
 				}
 			}
 			abuffer_offset += abuffer_pitch;

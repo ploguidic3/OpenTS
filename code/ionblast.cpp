@@ -409,7 +409,7 @@ void IonBlastClass::Draw_It(void)
 			char * source_row = sbuffer;
 
 			int depth_z = TacticalMap->Z_Lepton_To_Pixel(Position.Z);
-			short base_z = (short)DepthBuffer->Get_Scroll() - depth_z;
+			short base_z = (short)Asset_Depth((short)DepthBuffer->Get_Scroll()) - depth_z;
 			unsigned short draw_z = base_z - drect.Y - 3;
 
 			unsigned short * zbuffer_base = DepthBuffer->Get_Buffer_Offset(Point2D(0, drect.Y));

@@ -55,6 +55,23 @@ inline int AS(int pixels)
 }
 
 
+/*
+ * The depth a span of drawn pixels amounts to. The depth buffer is kept in the original
+ * tile's units, so that the per-pixel depth carried by tile and shape artwork, and the
+ * offsets the draw calls add to it, mean the same thing at any scale. Rounds towards
+ * negative, so a row either side of the buffer's origin steps evenly.
+ */
+inline int Asset_Depth(int pixels)
+{
+	int const scale = Asset_Scale();
+	if (scale <= 1) {
+		return(pixels);
+	}
+
+	return((pixels >= 0) ? (pixels / scale) : -((-pixels + scale - 1) / scale));
+}
+
+
 // The isometric rotation, parameterised by the tile it projects onto so that it can be
 // exercised away from the engine's globals. The result keeps whatever units went in.
 inline void Asset_Rect_To_Iso(int xin, int yin, int tile_w, int tile_h, int & xout, int & yout)

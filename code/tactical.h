@@ -14,6 +14,7 @@
 #pragma once
 
 #include "abstract.h"
+#include "assetscale.h"
 #include "matrix3d.h"
 #include "rect.h"
 #include "stimer.h"
@@ -122,6 +123,9 @@ class Tactical : public AbstractClass
 
 		// Pass ASSET_TILE_BASE_W from simulation code, so the result does not follow the view.
 		static int Z_Lepton_To_Pixel_At(LEPTON lepton, int tile_width);
+
+		// The height lift in original-tile pixels, which is the unit the depth buffer keeps.
+		static int Classic_Z_Lepton_To_Pixel(LEPTON lepton) { return(Z_Lepton_To_Pixel_At(lepton, ASSET_TILE_BASE_W)); }
 		static LEPTON Pixel_To_Z_Lepton(int pixel);
 
 		// Pass ASSET_TILE_BASE_W from simulation code, so the result does not follow the view.

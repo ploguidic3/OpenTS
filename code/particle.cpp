@@ -665,7 +665,7 @@ void ParticleClass::Draw_It(Point2D const & point, Rect const & cliprect) const
 		if (Debug_Map || MainWindow == 0 || !Scen->Special.IsFogOfWar || !Map.Is_Fogged((Coord const &)PositionCoord)) {
 
 			if (Class->BehavesLike != BEHAVIOR_SPARK && Class->BehavesLike != BEHAVIOR_RAILGUN) {
-				int height_offset = -15 - TacticalMap->Z_Lepton_To_Pixel(Height);
+				int height_offset = -15 - TacticalMap->Classic_Z_Lepton_To_Pixel(Height);
 				ShapeSet const * shape = (ShapeSet const *)Get_Image_Data();
 				if (shape != NULL) {
 					ShapeFlags_Type flags = ShapeFlags_Type(SHAPE_ALPHA|SHAPE_ZGRAD);
@@ -690,7 +690,7 @@ void ParticleClass::Draw_It(Point2D const & point, Rect const & cliprect) const
 					int alpha = *AlphaBuffer->Get_Buffer_Offset(alpha_point);
 					if (alpha != 0) {
 						Point2D depth_point = pixel - Point2D(0, DepthBuffer->Get_Bounds().Y);
-						int zdepth = (unsigned short)(DepthBuffer->Get_Bounds().Y + DepthBuffer->Get_Scroll_Delta(pixel.Y)) - TacticalMap->Z_Lepton_To_Pixel(PositionCoord.Z) - 50;
+						int zdepth = (unsigned short)(DepthBuffer->Get_Bounds().Y + DepthBuffer->Get_Scroll_Delta(pixel.Y)) - TacticalMap->Classic_Z_Lepton_To_Pixel(PositionCoord.Z) - 50;
 						int depth = *DepthBuffer->Get_Buffer_Offset(depth_point);
 						if (zdepth < depth) {
 							RGBClass color1 = ColorIndex == 0 ? Color : Class->ColorList[ColorIndex];

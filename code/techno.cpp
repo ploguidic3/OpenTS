@@ -6020,20 +6020,20 @@ void TechnoClass::Techno_Draw_Object(ShapeSet const * shapefile, int shapenum, P
 				if (HeightAGL == 0) {
 					zadjust += Get_Z_Adjust();
 				} else {
-					zadjust -= TacticalMap->Z_Lepton_To_Pixel(Height);
+					zadjust -= TacticalMap->Classic_Z_Lepton_To_Pixel(Height);
 				}
 				break;
 
 			case RTTI_AIRCRAFT:
 				drawpoint.Y -= TacticalMap->Z_Lepton_To_Pixel(Height);
-				zadjust -= TacticalMap->Z_Lepton_To_Pixel(Height);
+				zadjust -= TacticalMap->Classic_Z_Lepton_To_Pixel(Height);
 				break;
 
 			case RTTI_INFANTRY:
 				if (HeightAGL == 0) {
 					zadjust += Get_Z_Adjust();
 				} else {
-					zadjust -= TacticalMap->Z_Lepton_To_Pixel(Height);
+					zadjust -= TacticalMap->Classic_Z_Lepton_To_Pixel(Height);
 					shadow = false;
 				}
 				break;
@@ -6079,7 +6079,7 @@ void TechnoClass::Techno_Draw_Object(ShapeSet const * shapefile, int shapenum, P
 			case VISUAL_NORMAL:
 				Draw_Shape(*LogicalSurface, *converter, shapefile, shapenum, drawpoint, rect, ShapeFlags_Type(flags|SHAPE_CENTER|SHAPE_WIN_REL), NULL, zadjust - 2, zgrad, brightness, zshapefile, zshapenum, zoff);
 				if (shadow) {
-					zadjust = -2 - TacticalMap->Z_Lepton_To_Pixel(Height);
+					zadjust = -2 - TacticalMap->Classic_Z_Lepton_To_Pixel(Height);
 					if (IsInTransport) {
 						drawpoint.Y -= 14;
 					}
@@ -6090,7 +6090,7 @@ void TechnoClass::Techno_Draw_Object(ShapeSet const * shapefile, int shapenum, P
 			case VISUAL_INDISTINCT:
 				Draw_Shape(*LogicalSurface, *converter, shapefile, shapenum, drawpoint, rect, ShapeFlags_Type(flags|SHAPE_CENTER|SHAPE_WIN_REL), NULL, zadjust - 2, zgrad, brightness, zshapefile, zshapenum, zoff);
 				if (DrawShapeShadows) {
-					zadjust = -2 - TacticalMap->Z_Lepton_To_Pixel(Height);
+					zadjust = -2 - TacticalMap->Classic_Z_Lepton_To_Pixel(Height);
 					flags = ShapeFlags_Type(flags & ~SHAPE_TRANSLUCENT75);
 					if (IsInTransport) {
 						drawpoint.Y -= 14;

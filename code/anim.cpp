@@ -588,7 +588,7 @@ void AnimClass::Draw_It(Point2D const & point, Rect const & cliprect) const
 				Point2D origin = point;
 				Point2D drawpoint = origin - Point2D(0, frameheight / 2);
 				bool done = false;
-				int height_offset = ZAdjust + Class->YDrawOffset - TacticalMap->Z_Lepton_To_Pixel(Height) - 2;
+				int height_offset = ZAdjust + Class->YDrawOffset - TacticalMap->Classic_Z_Lepton_To_Pixel(Height) - 2;
 				while (!done) {
 					Draw_Shape(*LogicalSurface, *AnimDrawer, shapefile, shapenum, Point2D(origin.X, drawpoint.Y + Class->YDrawOffset), TacticalRect, flags, NULL, height_offset, ZGRAD_90DEG, brightness);
 					if (drawpoint.Y < 0) done = true;
@@ -596,14 +596,14 @@ void AnimClass::Draw_It(Point2D const & point, Rect const & cliprect) const
 					drawpoint.Y -= frameheight;
 				}
 			} else if (Class->IsFlat) {
-				Draw_Shape(*LogicalSurface, *convert, shapefile, shapenum, Point2D(point.X, point.Y + Class->YDrawOffset), cliprect, ShapeFlags_Type(flags|SHAPE_ZGRAD), NULL, ZAdjust + Class->YDrawOffset - TacticalMap->Z_Lepton_To_Pixel(Height) - 2, ZGRAD_GROUND, brightness);
+				Draw_Shape(*LogicalSurface, *convert, shapefile, shapenum, Point2D(point.X, point.Y + Class->YDrawOffset), cliprect, ShapeFlags_Type(flags|SHAPE_ZGRAD), NULL, ZAdjust + Class->YDrawOffset - TacticalMap->Classic_Z_Lepton_To_Pixel(Height) - 2, ZGRAD_GROUND, brightness);
 			} else {
-				Draw_Shape(*LogicalSurface, *convert, shapefile, shapenum, Point2D(point.X, point.Y + Class->YDrawOffset), cliprect, ShapeFlags_Type(flags|SHAPE_ZGRAD), NULL, ZAdjust + Class->YDrawOffset - TacticalMap->Z_Lepton_To_Pixel(Height) - 2, ZGRAD_90DEG, brightness);
+				Draw_Shape(*LogicalSurface, *convert, shapefile, shapenum, Point2D(point.X, point.Y + Class->YDrawOffset), cliprect, ShapeFlags_Type(flags|SHAPE_ZGRAD), NULL, ZAdjust + Class->YDrawOffset - TacticalMap->Classic_Z_Lepton_To_Pixel(Height) - 2, ZGRAD_90DEG, brightness);
 			}
 
 			if (Class->IsFlamingGuy && !IsFalling) {
 				shapenum += shapefile->Get_Count() / 2;
-				Draw_Shape(*LogicalSurface, *convert, shapefile, shapenum, Point2D(point.X, point.Y + Class->YDrawOffset), cliprect, ShapeFlags_Type(SHAPE_DARKEN|SHAPE_CENTER|SHAPE_WIN_REL|SHAPE_ZGRAD), NULL, ZAdjust + Class->YDrawOffset - TacticalMap->Z_Lepton_To_Pixel(Height) - 3, ZGRAD_GROUND, brightness);
+				Draw_Shape(*LogicalSurface, *convert, shapefile, shapenum, Point2D(point.X, point.Y + Class->YDrawOffset), cliprect, ShapeFlags_Type(SHAPE_DARKEN|SHAPE_CENTER|SHAPE_WIN_REL|SHAPE_ZGRAD), NULL, ZAdjust + Class->YDrawOffset - TacticalMap->Classic_Z_Lepton_To_Pixel(Height) - 3, ZGRAD_GROUND, brightness);
 			}
 		}
 		BEnd(BENCH_ANIMS);
