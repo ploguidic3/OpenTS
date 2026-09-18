@@ -18,6 +18,8 @@ related:
     id: opents-ini
   - type: format
     id: mix
+  - type: format
+    id: hdpack-ini
 ---
 
 An SHP file opens with a short header carrying the frame count and the logical width and height every frame is placed within, followed by one record per frame and then the frame data itself. Each record holds that frame's offset inside the logical box, its own width and height, the position of its pixels in the file, one color standing in for the whole frame so the radar can draw a cell without examining it, and two flags marking whether the frame carries transparent pixels and whether its pixels are run length encoded.
@@ -40,6 +42,6 @@ A loose file is given a scale, which is 1 unless one of the following applies, i
 SIDE1.SHP=2
 ```
 
-The scale is recorded with the shape and does not change how it is drawn on its own. A theater or a side that mounts and drops its own archives changes nothing here: a loose file is found regardless of what is mounted, and is not released when a theater's archives are.
+The scale is recorded with the shape. On its own it changes nothing; the interface artwork is the one place it is acted on, as [`HDPACK.INI`](/formats/hdpack-ini/) describes. A theater or a side that mounts and drops its own archives changes nothing here: a loose file is found regardless of what is mounted, and is not released when a theater's archives are.
 
 For a BuildingType, `Image=` in `art.ini [<Image ID>]` selects the basename of the main SHP. It does not change the building's Image ID or the section used by other building art keys.

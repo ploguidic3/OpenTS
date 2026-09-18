@@ -1,7 +1,7 @@
 ---
 key: CursorScale
 summary: How many times larger than its artwork the mouse pointer is drawn.
-see_also: [UIScale]
+see_also: [UIScale, AssetOverrides]
 when_omitted:
   kind: value
   value: "0"
@@ -11,5 +11,7 @@ when_omitted:
 The pointer is a real system cursor built from the game's own artwork, so the system keeps drawing and moving it even while the game is busy. It is drawn over the picture rather than inside it, which means it does not grow with the picture on its own and needs its own size.
 
 Left at `0` it follows the picture: the enlargement is rounded to the nearest whole number and used as the pointer's size, so a picture displayed at roughly double size gets a double-size pointer. The pointer is never drawn smaller than the HUD multiple [`UIScale`](/keys/uiscale/) resolves to, so on a 1920×1080 screen shown at its own size the pointer is drawn twice as large to match the sidebar. A value above zero sets the size directly, and eight is the largest accepted. A value below zero draws the pointer at the size the artwork was drawn at, however large the picture is displayed.
+
+Pointer artwork a [replacement folder](/formats/hdpack-ini/) supplies at a larger scale already carries part of the enlargement, so the multiple is divided by that scale, at zero and at a value set directly alike. The pointer comes out the same size on screen and is drawn from the finer artwork.
 
 The pointer is rebuilt whenever the size it should be drawn at changes, so resizing the window resizes the pointer with it.
