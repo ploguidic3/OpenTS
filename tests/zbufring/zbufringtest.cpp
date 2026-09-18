@@ -25,6 +25,7 @@
 #include "point.h"
 #include "rect.h"
 #include "surface.h"
+#include "assetscale.h"
 #include "zbuffer.h"
 
 ABuffer * AlphaBuffer;
@@ -283,6 +284,27 @@ void Run(char const * name, unsigned short reset)
 	Check((unsigned)wholesale.Get_Scroll() == 0x8000u, what);
 }
 
+/*
+ * A depth keeps its bias at whatever asset scale the view draws at, because the constants
+ * written straight into the buffer are stored against that bias. Only the rows scrolled past
+ * and the row itself are counted, and those are counted in rows of the original tile.
+ */
+void Check_Depth_Scale(void)
+{
+	ZBuffer buffer(Rect(0, 0, BUFFER_W, BUFFER_H));
+	buffer.Set_Scroll(0x8000);
+
+	Set_Asset_Scale(1);
+	Check(buffer.Get_Scroll_Delta(40) == 0x8000 - 40, "depth: a drawn row counts once at scale one");
+
+	Set_Asset_Scale(2);
+	Check(buffer.Get_Scroll_Delta(0) == 0x8000, "depth: the bias is the same at either scale");
+	Check(buffer.Get_Scroll_Delta(40) == 0x8000 - 20, "depth: forty drawn rows are twenty of the original tile");
+	Check(buffer.Get_Scroll_Delta(40) - buffer.Get_Scroll_Delta(44) == 2, "depth: four drawn rows step the depth by two");
+
+	Set_Asset_Scale(1);
+}
+
 } // namespace
 
 
@@ -290,6 +312,7 @@ int main(void)
 {
 	Run<ZBuffer>("depth", 0xFFFF);
 	Run<ABuffer>("alpha", 0x007F);
+	Check_Depth_Scale();
 
 	std::printf("%-52s %s\n", "Ring addressing in the depth and alpha buffers",
 		Failures == 0 ? "ok" : "FAILED");

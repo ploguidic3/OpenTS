@@ -905,7 +905,7 @@ bool DSurface::Draw_Depth_Glow_Line(Rect const & cliprect, Point2D const & start
 	int start_y = start.Y;
 	int zwrap = -1;
 	ZBuffer * depth_buffer = DepthBuffer;
-	unsigned short z = (unsigned short)(zstart + Asset_Depth((short)(depth_buffer->Get_Bounds().Y + depth_buffer->Get_Scroll()) - start_y - rect.Y));
+	unsigned short z = (unsigned short)(zstart + depth_buffer->Get_Scroll_Delta(start_y + rect.Y - depth_buffer->Get_Bounds().Y));
 	int zwidth = depth_buffer->Get_Buffer_Width();
 
 	if (buffer != NULL) {
@@ -1233,7 +1233,7 @@ bool DSurface::Draw_Depth_Antialiased_Line(Rect const & cliprect, Point2D const 
 
 	int zwidth = DepthBuffer->Get_Buffer_Width();
 	int zwrap = -1;
-	unsigned short z = (unsigned short)(alpha_start + Asset_Depth((short)(DepthBuffer->Get_Bounds().Y + DepthBuffer->Get_Scroll()) - start.Y - clip.Y));
+	unsigned short z = (unsigned short)(alpha_start + DepthBuffer->Get_Scroll_Delta(start.Y + clip.Y - DepthBuffer->Get_Bounds().Y));
 
 	if (buffer == NULL) {
 		Unlock();

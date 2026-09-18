@@ -27,12 +27,14 @@ class ZBuffer
 		unsigned short Get_Scroll(void) const { return(ScrollOffset); }
 		void Set_Scroll(int position) { ScrollOffset = position; }
 		/*
-		 * The depth value a screen row sits at. Depth is measured against the original tile
-		 * rather than the drawn pixel, so that the per-pixel depth carried by tile and shape
-		 * artwork, and the offsets the draw calls add to it, keep their meaning at any asset
-		 * scale. Callers that need the row count itself use Get_Scroll instead.
+		 * The depth value a screen row sits at. A depth is ZBUFFER_MAX less the rows scrolled
+		 * past and the row itself, which keeps it mid range in the entry it is stored in. Only
+		 * that row count follows the asset scale: it is counted in rows of the original tile,
+		 * so the per-pixel depth carried by tile and shape artwork, the offsets the draw calls
+		 * add to it and the constants stored straight into the buffer all keep their meaning
+		 * at any scale. Callers that need the bias itself use Get_Scroll instead.
 		 */
-		int Get_Scroll_Delta(int position) const { return(Asset_Depth(ScrollOffset - position)); }
+		int Get_Scroll_Delta(int position) const { return(ZBUFFER_MAX + Asset_Depth((int)ScrollOffset - ZBUFFER_MAX - position)); }
 
 		void Copy_To(Surface * surface, Rect rect);
 
