@@ -14,6 +14,6 @@ credit:
 
 Terrain is drawn at the scale as well. The isometric tile rasteriser builds its span geometry for the scale in force rather than from the tables written for the original tile, and a tile's pixels, its depth data and the rectangular artwork attached to it for cliffs and overhangs are magnified with it. The shroud and the fog are magnified the same way.
 
-The simulation is unchanged. Leptons, cells and the values derived from them keep their meanings, and the places where a screen measurement used to reach game state now take the original tile rather than the view's: shroud sighting, warhead damage falloff, the step a walking or crawling unit climbs, and the world position an artwork offset names. Those give the same answer at either scale, so a save, a recording and a network game carry across.
+The simulation is unchanged. Leptons, cells and the values derived from them keep their meanings, and the places where a screen measurement used to reach game state now take the original tile rather than the view's: shroud sighting, warhead damage falloff, the step a walking or crawling unit climbs, the world position an artwork offset names, and the position a light-casting shape records. Those give the same answer at either scale, so a save, a recording and a network game carry across.
 
 The setting is read when the game starts and needs a restart to change, because the view geometry, the tile tables and the voxel bitmap are all built from it.
