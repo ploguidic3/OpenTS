@@ -6,6 +6,7 @@ opents_add_test(ZBufRing
     NAME zbufring
     SOURCES zbufringtest.cpp
     ENGINE
+        assetscale.cpp
         zbuffer.cpp
         abuffer.cpp
         xsurface.cpp
