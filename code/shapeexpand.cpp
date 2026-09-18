@@ -47,6 +47,7 @@ struct FrameKeyHash
 struct FrameEntry
 {
 	std::vector<unsigned char> Pixels;
+	std::vector<unsigned char> Encoded;
 	int Width = 0;
 	int Height = 0;
 };
@@ -69,7 +70,7 @@ void Trim_To_Budget(void)
 		FrameKey const & oldest = Order.back();
 		auto found = Frames.find(oldest);
 		if (found != Frames.end()) {
-			HeldBytes -= (unsigned)found->second.first.Pixels.size();
+			HeldBytes -= (unsigned)(found->second.first.Pixels.size() + found->second.first.Encoded.size());
 			Frames.erase(found);
 		}
 		Order.pop_back();
@@ -108,12 +109,13 @@ int Shape_World_Factor(ShapeSet const * shapefile)
 }
 
 
-ExpandedFrame Shape_Expanded_Frame(ShapeSet const * shapefile, int shapenum, int factor)
+namespace
 {
-	ExpandedFrame result;
 
+FrameEntry * Entry_For(ShapeSet const * shapefile, int shapenum, int factor)
+{
 	if (shapefile == NULL || factor < 1) {
-		return(result);
+		return(NULL);
 	}
 
 	FrameKey const key{shapefile, shapenum, factor};
@@ -122,17 +124,13 @@ ExpandedFrame Shape_Expanded_Frame(ShapeSet const * shapefile, int shapenum, int
 	if (found != Frames.end()) {
 		Order.splice(Order.begin(), Order, found->second.second);
 		found->second.second = Order.begin();
-
-		result.Data = found->second.first.Pixels.data();
-		result.Width = found->second.first.Width;
-		result.Height = found->second.first.Height;
-		return(result);
+		return(&found->second.first);
 	}
 
 	Rect const rect = shapefile->Get_Rect(shapenum);
 	void const * data = shapefile->Get_Data(shapenum);
 	if (data == NULL || rect.Width <= 0 || rect.Height <= 0) {
-		return(result);
+		return(NULL);
 	}
 
 	unsigned char const * source = (unsigned char const *)data;
@@ -143,7 +141,7 @@ ExpandedFrame Shape_Expanded_Frame(ShapeSet const * shapefile, int shapenum, int
 		// The shape format's per-frame size is not populated by anything here, so the row
 		// framing is trusted exactly as the engine's RLE blitter trusts it.
 		if (!Scale_Decode_RLE_Frame(data, 0, rect.Width, rect.Height, decoded.data())) {
-			return(result);
+			return(NULL);
 		}
 		source = decoded.data();
 	}
@@ -161,9 +159,53 @@ ExpandedFrame Shape_Expanded_Frame(ShapeSet const * shapefile, int shapenum, int
 
 	Trim_To_Budget();
 
-	result.Data = inserted->second.first.Pixels.data();
-	result.Width = inserted->second.first.Width;
-	result.Height = inserted->second.first.Height;
+	return(&inserted->second.first);
+}
+
+}
+
+
+ExpandedFrame Shape_Expanded_Frame(ShapeSet const * shapefile, int shapenum, int factor)
+{
+	ExpandedFrame result;
+
+	FrameEntry const * entry = Entry_For(shapefile, shapenum, factor);
+	if (entry == NULL) {
+		return(result);
+	}
+
+	result.Data = entry->Pixels.data();
+	result.Width = entry->Width;
+	result.Height = entry->Height;
+	return(result);
+}
+
+
+ExpandedFrame Shape_Expanded_RLE_Frame(ShapeSet const * shapefile, int shapenum, int factor)
+{
+	ExpandedFrame result;
+
+	FrameEntry * entry = Entry_For(shapefile, shapenum, factor);
+	if (entry == NULL) {
+		return(result);
+	}
+
+	if (entry->Encoded.empty()) {
+		entry->Encoded.resize((std::size_t)Scale_Encoded_RLE_Bound(entry->Width, entry->Height));
+
+		int const written = Scale_Encode_RLE_Frame(entry->Pixels.data(), entry->Width, entry->Height, entry->Encoded.data());
+		if (written <= 0) {
+			entry->Encoded.clear();
+			return(result);
+		}
+
+		entry->Encoded.resize((std::size_t)written);
+		HeldBytes += (unsigned)written;
+	}
+
+	result.Data = entry->Encoded.data();
+	result.Width = entry->Width;
+	result.Height = entry->Height;
 	return(result);
 }
 

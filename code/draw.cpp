@@ -93,17 +93,22 @@ void Draw_Shape(Surface & surface, ConvertClass & convert, ShapeSet const * shap
 	int height = shapefile->Get_Height();
 
 	/*
-	 * The blitter walks a shape and its depth shape in step, so magnifying one without the
-	 * other would run off the end of the one left alone. Either both are magnified or neither.
+	 * Only the RLE blitter can take a depth shape, so a compressed frame is magnified back
+	 * into the row format rather than into plain pixels. The blitter walks a shape and its
+	 * depth shape in step, so either both are magnified or neither.
 	 */
+	bool const compressed = shapefile->Is_RLE_Compressed(shapenum);
 	int const factor = Shape_Draw_Factor(shapefile);
 	ExpandedFrame frame;
 	ExpandedFrame zframe;
 
 	if (factor > 1) {
-		frame = Shape_Expanded_Frame(shapefile, shapenum, factor);
+		frame = compressed ? Shape_Expanded_RLE_Frame(shapefile, shapenum, factor)
+		                   : Shape_Expanded_Frame(shapefile, shapenum, factor);
 
 		if (frame.Data != NULL && z_shapefile != NULL) {
+
+			// The depth shape is indexed as a rectangle whatever the shape it accompanies.
 			zframe = Shape_Expanded_Frame(z_shapefile, z_shapenum, factor);
 			if (zframe.Data == NULL) {
 				frame = ExpandedFrame();
@@ -122,12 +127,15 @@ void Draw_Shape(Surface & surface, ConvertClass & convert, ShapeSet const * shap
 		width *= factor;
 		height *= factor;
 
-		/*
-		 * A magnified frame is uncompressed, so it draws through the plain blitters. Those
-		 * honour SHAPE_NOTRANS literally and paint the transparent index as a colour, where
-		 * the RLE blitters skip that index whatever the flag says.
-		 */
-		flags = ShapeFlags_Type(flags & ~SHAPE_NOTRANS);
+		if (!compressed) {
+
+			/*
+			 * An uncompressed frame draws through the plain blitters, which honour
+			 * SHAPE_NOTRANS literally and paint the transparent index as a colour where the
+			 * RLE blitters skip that index whatever the flag says.
+			 */
+			flags = ShapeFlags_Type(flags & ~SHAPE_NOTRANS);
+		}
 	}
 
 	BSurface const shape(rect.Width, rect.Height, 1, (void *)buffer);
@@ -194,7 +202,7 @@ void Draw_Shape(Surface & surface, ConvertClass & convert, ShapeSet const * shap
 	**	an RLE compressed shape. RLE compression uses different blitter routines
 	**	than the normal method.
 	*/
-	if (!scaled && shapefile->Is_RLE_Compressed(shapenum)) {
+	if (compressed) {
 		RLEBlitter const * blitter = convert.RLEBlitter_From_Flags(flags);
 		if (blitter != NULL) {
 			RLE_Blit(surface, window, Rect(x, y, rect.Width, rect.Height), shape, rect, rect, *blitter, height_offset, zgrad, intensity, 0, z_shape, zpoint);

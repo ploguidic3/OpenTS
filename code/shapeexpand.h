@@ -32,6 +32,11 @@ struct ExpandedFrame
 // The frame magnified by factor and uncompressed, or an empty frame if it cannot be produced.
 ExpandedFrame Shape_Expanded_Frame(ShapeSet const * shapefile, int shapenum, int factor);
 
+// The same frame re-encoded in the row format the shape files carry. Width and Height still
+// describe the magnified frame; only Data is encoded. The RLE blitter is the only one that
+// can take a depth shape, so a shape drawn with one has to reach it in this form.
+ExpandedFrame Shape_Expanded_RLE_Frame(ShapeSet const * shapefile, int shapenum, int factor);
+
 // How far Draw_Shape magnifies this shape for the current draw target. A caller that records
 // the rectangle a draw covered has to apply this to match what was drawn.
 int Shape_Draw_Factor(ShapeSet const * shapefile);

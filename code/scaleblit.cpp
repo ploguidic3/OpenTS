@@ -35,6 +35,64 @@ void Scale_Expand_8Bit(unsigned char const * source, int width, int height, unsi
 }
 
 
+int Scale_Encoded_RLE_Bound(int width, int height)
+{
+	if (width <= 0 || height <= 0) {
+		return(0);
+	}
+
+	// A row is at worst alternating literals and single-byte runs, each run costing its code
+	// and its count, plus the row's own length prefix.
+	return(height * (width * 2 + (int)sizeof(unsigned short)));
+}
+
+
+int Scale_Encode_RLE_Frame(unsigned char const * source, int width, int height, unsigned char * dest)
+{
+	if (source == NULL || dest == NULL || width <= 0 || height <= 0) {
+		return(0);
+	}
+
+	unsigned char * out = dest;
+
+	for (int y = 0; y < height; y++) {
+		unsigned char const * in = source + (std::size_t)y * width;
+		unsigned char * prefix = out;
+		out += sizeof(unsigned short);
+
+		int x = 0;
+		while (x < width) {
+			if (in[x] != 0) {
+				*out++ = in[x];
+				x++;
+				continue;
+			}
+
+			// The transparent index is the run code, so a run of it carries its own count and
+			// a count over 255 is emitted as several runs.
+			int run = 0;
+			while (x + run < width && in[x + run] == 0 && run < 255) {
+				run++;
+			}
+
+			*out++ = 0;
+			*out++ = (unsigned char)run;
+			x += run;
+		}
+
+		std::size_t const rowbytes = (std::size_t)(out - prefix);
+		if (rowbytes > 0xFFFF) {
+			return(0);
+		}
+
+		unsigned short const stored = (unsigned short)rowbytes;
+		std::memcpy(prefix, &stored, sizeof(stored));
+	}
+
+	return((int)(out - dest));
+}
+
+
 bool Scale_Decode_RLE_Frame(void const * data, int data_size, int width, int height, unsigned char * dest)
 {
 	if (dest == NULL || width <= 0 || height <= 0) {

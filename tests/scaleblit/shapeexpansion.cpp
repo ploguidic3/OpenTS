@@ -152,6 +152,41 @@ int main(void)
 
 	Check(!Scale_Decode_RLE_Frame(NULL, 0, 3, 1, guard.data()), "A frame with no data is refused");
 
+	/*
+	 * A magnified frame has to go back into the row format, because the RLE blitter is the only
+	 * one that can take a depth shape alongside the shape it draws.
+	 */
+	std::vector<unsigned char> reencoded((std::size_t)Scale_Encoded_RLE_Bound(3, 4), 0xFF);
+	int written = Scale_Encode_RLE_Frame(frame, 3, 4, reencoded.data());
+	Check(written > 0 && written <= (int)reencoded.size(), "A frame encodes within the stated bound");
+
+	std::vector<unsigned char> roundtripped(3 * 4, 0xFF);
+	Check(Scale_Decode_RLE_Frame(reencoded.data(), written, 3, 4, roundtripped.data()), "The encoded frame decodes again");
+	Check(std::memcmp(roundtripped.data(), frame, sizeof(frame)) == 0, "Encoding then decoding returns the original frame");
+
+	/*
+	 * The run count is one byte, so a row wider than a single run has to split into several.
+	 */
+	std::vector<unsigned char> wide_blank(300, 0);
+	wide_blank[299] = 7;
+	std::vector<unsigned char> blankenc((std::size_t)Scale_Encoded_RLE_Bound(300, 1), 0xFF);
+	written = Scale_Encode_RLE_Frame(wide_blank.data(), 300, 1, blankenc.data());
+	Check(written > 0, "A row longer than one run encodes");
+
+	std::vector<unsigned char> blankout(300, 0xFF);
+	Check(Scale_Decode_RLE_Frame(blankenc.data(), written, 300, 1, blankout.data()), "A split run decodes");
+	Check(std::memcmp(blankout.data(), wide_blank.data(), wide_blank.size()) == 0, "A run split across codes keeps every pixel");
+
+	std::vector<unsigned char> doubled(3 * 2 * 4 * 2, 0xFF);
+	Scale_Expand_8Bit(frame, 3, 4, doubled.data(), 2);
+	std::vector<unsigned char> doubledenc((std::size_t)Scale_Encoded_RLE_Bound(6, 8), 0xFF);
+	written = Scale_Encode_RLE_Frame(doubled.data(), 6, 8, doubledenc.data());
+	std::vector<unsigned char> doubledout(6 * 8, 0xFF);
+	Check(written > 0 && Scale_Decode_RLE_Frame(doubledenc.data(), written, 6, 8, doubledout.data()), "A magnified frame encodes and decodes");
+	Check(std::memcmp(doubledout.data(), doubled.data(), doubled.size()) == 0, "The magnified frame survives the round trip");
+
+	Check(Scale_Encode_RLE_Frame(NULL, 3, 4, reencoded.data()) == 0, "Encoding refuses a frame with no data");
+
 	std::printf("\n%d failure(s)\n", Failures);
 	return(Failures == 0 ? 0 : 1);
 }
