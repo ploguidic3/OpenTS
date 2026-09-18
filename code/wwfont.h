@@ -45,7 +45,7 @@ class WWFontClass : public FontClass
 		typedef FontClass BASECLASS;
 
 	public:
-		WWFontClass(void const * fontdata, bool isoutlined=false, int shadow=0);
+		WWFontClass(void const * fontdata, bool isoutlined=false, int shadow=0, int scale=1);
 		virtual ~WWFontClass(void) override {}
 
 		void *Set_Font_Data(void const * fontdata)
@@ -65,6 +65,7 @@ class WWFontClass : public FontClass
 		virtual void String_Pixel_Bounds(const char * string, Rect & bounds) const override;
 		virtual int Get_Width(void) const override;
 		virtual int Get_Height(void) const override;
+		virtual int Get_Scale(void) const override {return(Scale);}
 		virtual Point2D Print(char const * string, Surface & surface, Rect const & cliprect, Point2D const & point, ConvertClass const & converter, unsigned char const * remap=NULL) const override;
 
 		virtual int Set_XSpacing(int x) override;
@@ -93,6 +94,9 @@ class WWFontClass : public FontClass
 		**	Override font Y spacing value.
 		*/
 		int FontYSpacing;
+
+		// Pixels this font's glyphs carry per classic pixel.
+		int Scale;
 
 		/*
 		**	Header structure of the font data file.

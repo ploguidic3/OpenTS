@@ -112,6 +112,7 @@
 #include "expand.h"
 #include "factory.h"
 #include "fog.h"
+#include "fontload.h"
 #include "gamedirs.h"
 #include "gamedlg.h"
 #include "getcpu.h"
@@ -2186,49 +2187,33 @@ static bool Init_One_Time_Systems(void)
  *=============================================================================================*/
 static bool Init_Fonts(void)
 {
-	const void * ptr;
+	struct FontEntry
+	{
+		char const * Name;
+		FontClass ** Font;
+		bool IsOutlined;
+		int Spacing;
+	};
 
-	ptr = MFCD::Retrieve("12METFNT.FNT");
-	if (ptr == NULL) {
-		return(false);
-	}
-	Metal12FontPtr = new WWFontClass(ptr);
-	Metal12FontPtr->Set_XSpacing(1);
+	FontEntry const entries[] = {
+		{"12METFNT.FNT", &Metal12FontPtr, false, 1},
+		{"KIA6PT.FNT", &MapFontPtr, false, 1},
+		{"6POINT.FNT", &Font6Ptr, true, 1},
+		{"EDITFNT.FNT", &EditorFont, true, 1},
+		{"8POINT.FNT", &Font8Ptr, true, 1},
+		{"GRAD6FNT.FNT", &GradFont6Ptr, true, 2},
+	};
 
-	ptr = MFCD::Retrieve("KIA6PT.FNT");
-	if (ptr == NULL) {
-		return(false);
-	}
-	MapFontPtr = new WWFontClass(ptr);
-	MapFontPtr->Set_XSpacing(1);
+	for (FontEntry const & entry : entries) {
+		FontSource source = Fetch_Font_Source(entry.Name);
+		if (source.Data == NULL) {
+			return(false);
+		}
 
-	ptr = MFCD::Retrieve("6POINT.FNT");
-	if (ptr == NULL) {
-		return(false);
+		WWFontClass * font = new WWFontClass(source.Data, entry.IsOutlined, 0, source.Scale);
+		font->Set_XSpacing(entry.Spacing * source.Scale);
+		*entry.Font = font;
 	}
-	Font6Ptr = new WWFontClass(ptr, true);
-	Font6Ptr->Set_XSpacing(1);
-
-	ptr = MFCD::Retrieve("EDITFNT.FNT");
-	if (ptr == NULL) {
-		return(false);
-	}
-	EditorFont = new WWFontClass(ptr, true);
-	EditorFont->Set_XSpacing(1);
-
-	ptr = MFCD::Retrieve("8POINT.FNT");
-	if (ptr == NULL) {
-		return(false);
-	}
-	Font8Ptr = new WWFontClass(ptr, true);
-	Font8Ptr->Set_XSpacing(1);
-
-	ptr = MFCD::Retrieve("GRAD6FNT.FNT");
-	if (ptr == NULL) {
-		return(false);
-	}
-	GradFont6Ptr = new WWFontClass(ptr, true);
-	GradFont6Ptr->Set_XSpacing(2);
 
 	return(true);
 }

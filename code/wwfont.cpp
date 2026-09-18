@@ -78,11 +78,12 @@
  * HISTORY:                                                                                    *
  *   05/26/1997 JLB : Created.                                                                 *
  *=============================================================================================*/
-WWFontClass::WWFontClass(void const * fontdata, bool isoutlined, int shadow) :
+WWFontClass::WWFontClass(void const * fontdata, bool isoutlined, int shadow, int scale) :
 	IsOutlinedData(isoutlined),
 	Shadow(shadow),
 	FontXSpacing(0),
 	FontYSpacing(0),
+	Scale(scale > 0 ? scale : 1),
 	FontData((FontType *)fontdata),
 	IsWindows1252(false)
 {

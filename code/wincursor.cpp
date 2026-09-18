@@ -17,6 +17,7 @@
 #include "globals.h"
 #include "goptions.h"
 #include "shapeset.h"
+#include "shapeload.h"
 #include "uilayout.h"
 #include "video.h"
 #include "win.h"
@@ -49,17 +50,26 @@ static bool _CursorVisible = true;
 
 
 /// <summary>
-/// Works out how much larger than its shape the cursor should be drawn.
+/// Works out how much larger than its shape the cursor should be drawn. A shape an HD pack
+/// supplies at a larger scale needs correspondingly less of it, so the pointer comes out the
+/// same size whichever artwork is installed.
 /// </summary>
 /// <returns>int; A whole multiple between one and eight.</returns>
-static int Cursor_Scale(void)
+static int Cursor_Scale(ShapeSet const * shape)
 {
+	int art = shape != NULL ? Shape_Scale(shape) : 1;
+	if (art < 1) {
+		art = 1;
+	}
+
 	if (Options.CursorScale < 0) {
 		return(1);
 	}
 
 	if (Options.CursorScale > 0) {
-		return(Options.CursorScale > 8 ? 8 : Options.CursorScale);
+		int wanted = Options.CursorScale > 8 ? 8 : Options.CursorScale;
+		wanted /= art;
+		return(wanted < 1 ? 1 : wanted);
 	}
 
 	VideoScaleInfo const & scale = Video_Get_Scale_Info();
@@ -67,6 +77,10 @@ static int Cursor_Scale(void)
 
 	int result = (int)(smaller + 0.5f);
 	if (result < UI_Scale()) result = UI_Scale();
+
+	// The cursor artwork already carries part of the enlargement.
+	result /= art;
+
 	if (result < 1) result = 1;
 	if (result > 8) result = 8;
 	return(result);
@@ -197,7 +211,7 @@ static void Flush_Cursor_Cache(void)
 /// <param name="apply">Should the cursor be shown straight away?</param>
 void Win_Cursor_Set(ShapeSet const * shape, int frame, int hotx, int hoty, bool apply)
 {
-	int scale = Cursor_Scale();
+	int scale = Cursor_Scale(shape);
 
 	if (scale != _CacheScale) {
 		Flush_Cursor_Cache();
@@ -286,7 +300,7 @@ bool Win_Cursor_Handle_Set_Cursor(void)
 /// </summary>
 void Win_Cursor_Refresh(void)
 {
-	if (_CurrentShape != NULL && Cursor_Scale() != _CacheScale) {
+	if (_CurrentShape != NULL && Cursor_Scale(_CurrentShape) != _CacheScale) {
 		Win_Cursor_Set(_CurrentShape, _CurrentFrame, _CurrentHotX, _CurrentHotY,
 			MouseCursor != NULL && MouseCursor->Is_Captured());
 	}
