@@ -91,6 +91,7 @@
 #include "conquer.h"
 #include "convert.h"
 #include "data.h"
+#include "dbgprint.h"
 #include "dialog.h"
 #include "draw.h"
 #include "event.h"
