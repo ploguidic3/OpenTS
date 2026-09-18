@@ -65,8 +65,8 @@ bool CCToolTip::Update(ToolTipText * text)
 
 		if (trect != NULL) {
 
-			// The box is measured in HUD pixels and placed in frame pixels.
-			int scale = UI_Scale();
+			// The box is measured in the font's own pixels and placed in frame pixels.
+			int scale = UI_Text_Factor(font);
 
 			if (text->TextWidth * scale >= trect->Width) {
 				Format_Window_String(string, font, trect->Width / scale - 4, text->TextWidth, text->TextHeight);
@@ -82,9 +82,9 @@ bool CCToolTip::Update(ToolTipText * text)
 				text->Pos.x -= x;
 			}
 
-			text->Pos.y += 16 * scale;
+			text->Pos.y += 16 * UI_Scale();
 			if (text->Pos.y + text->TextHeight * scale - trect->Height - trect->Y > 0) {
-				text->Pos.y = text->Pos.y - text->TextHeight * scale - 16 * scale;
+				text->Pos.y = text->Pos.y - text->TextHeight * scale - 16 * UI_Scale();
 			}
 			if (text->Pos.y < trect->Y) {
 				text->Pos.y = trect->Y;
@@ -152,7 +152,8 @@ void CCToolTip::Draw(const ToolTipText * text)
 {
 	Point2D point = Point2D(text->Pos.x, text->Pos.y);
 	Surface * surface = NULL;
-	int framewidth = text->TextWidth * UI_Scale();
+	int factor = UI_Text_Factor(Font_From_TPF(Style));
+	int framewidth = text->TextWidth * factor;
 
 	if (Options.IsSidebarOnRight == true) {
 		int offset = TacticalRect.X + TacticalRect.Width;
@@ -187,7 +188,7 @@ void CCToolTip::Draw(const ToolTipText * text)
 		if (surface == SidebarSurface) {
 			paint(*surface, point);
 		} else {
-			UI_Draw_Scaled(*surface, point, text->TextWidth, text->TextHeight, false, paint);
+			UI_Draw_Scaled(*surface, point, text->TextWidth, text->TextHeight, false, factor, paint);
 		}
 	}
 }

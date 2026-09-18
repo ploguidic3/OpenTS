@@ -43,6 +43,7 @@
 #include "dbgprint.h"
 #include "draw.h"
 #include "shapeset.h"
+#include "uilayout.h"
 
 
 /***********************************************************************************************
@@ -126,9 +127,10 @@ void ShapeButtonClass::Set_Shape(ShapeSet const * data, int override_width, int 
 {
 	ShapeData = data;
 	if (ShapeData) {
-		int scale = DrawScale > 1 ? DrawScale : 1;
-		Width = ShapeData->Get_Width() * scale;
-		Height = ShapeData->Get_Height() * scale;
+		ShapeSet const * art = DrawOnSidebar ? UI_Art_Shape(ShapeData) : ShapeData;
+		int scale = DrawOnSidebar ? UI_Present_Scale() : (DrawScale > 1 ? DrawScale : 1);
+		Width = art->Get_Width() * scale;
+		Height = art->Get_Height() * scale;
 	}
 	if (override_width != 0) {
 		Width = override_width;
@@ -182,8 +184,9 @@ int ShapeButtonClass::Draw_Me(int forced)
 			surf = LogicalSurface;
 		}
 
-		int scale = DrawScale > 1 ? DrawScale : 1;
-		Draw_Shape(*surf, *ShapeDrawer, ShapeData, shapenum, Point2D((DrawOffsetX + X) / scale, (DrawOffsetY + Y) / scale), VisibleRect, DrawFaded != 0 ? SHAPE_ALPHA : SHAPE_NORMAL);
+		ShapeSet const * art = DrawOnSidebar ? UI_Art_Shape(ShapeData) : ShapeData;
+		int scale = DrawOnSidebar ? UI_Present_Scale() : (DrawScale > 1 ? DrawScale : 1);
+		Draw_Shape(*surf, *ShapeDrawer, art, shapenum, Point2D((DrawOffsetX + X) / scale, (DrawOffsetY + Y) / scale), VisibleRect, DrawFaded != 0 ? SHAPE_ALPHA : SHAPE_NORMAL);
 		IsDrawn = true;
 		return(true);
 	}

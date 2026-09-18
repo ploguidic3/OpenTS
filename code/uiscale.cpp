@@ -64,15 +64,50 @@ int UI_Floor_Div(int value, int divisor)
 }
 
 
-int UI_Sidebar_Surface_Height(int frame_height, int scale)
+int UI_Art_Scale_For(int pack, int scale)
 {
-	return(UI_Floor_Div(frame_height, scale));
+	if (pack < 1) {
+		return(1);
+	}
+	if (pack > UI_SCALE_MAX) {
+		pack = UI_SCALE_MAX;
+	}
+	if (scale < pack) {
+		return(1);
+	}
+	return(pack);
 }
 
 
-int UI_Tab_Surface_Width(int composite_width, int scale)
+int UI_Scale_For_Art(int scale, int art)
 {
-	return(UI_Floor_Div(composite_width, scale));
+	if (art < 1 || scale < art) {
+		return(scale);
+	}
+	return((scale / art) * art);
+}
+
+
+int UI_Present_Scale_For(int scale, int art)
+{
+	if (art < 1) {
+		return(scale);
+	}
+
+	int present = scale / art;
+	return(present < 1 ? 1 : present);
+}
+
+
+int UI_Sidebar_Surface_Height(int frame_height, int present)
+{
+	return(UI_Floor_Div(frame_height, present));
+}
+
+
+int UI_Tab_Surface_Width(int composite_width, int present)
+{
+	return(UI_Floor_Div(composite_width, present));
 }
 
 

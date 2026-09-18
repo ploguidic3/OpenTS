@@ -58,8 +58,21 @@ int UI_Scale_For(int setting, int width, int height);
 // not fold back onto its first column.
 int UI_Floor_Div(int value, int divisor);
 
-int UI_Sidebar_Surface_Height(int frame_height, int scale);
-int UI_Tab_Surface_Width(int composite_width, int scale);
+// The scale the interface artwork is drawn at. A pack declares it; it is honoured only when
+// the HUD scale is a whole multiple of it, since every offset and hit test would otherwise
+// land between pixels. One means the classic artwork, magnified by the HUD scale as before.
+int UI_Art_Scale_For(int pack, int scale);
+
+// The HUD scale reduced to a whole multiple of the art scale. A 2x pack at a screen asking
+// for three therefore draws its artwork at two rather than at one and a half.
+int UI_Scale_For_Art(int scale, int art);
+
+// How far the surfaces the HUD is drawn into are magnified on their way to the frame. One
+// when the artwork is already at the HUD scale.
+int UI_Present_Scale_For(int scale, int art);
+
+int UI_Sidebar_Surface_Height(int frame_height, int present);
+int UI_Tab_Surface_Width(int composite_width, int present);
 
 // The frame rectangle a HUD-space rectangle occupies once magnified about the given origin.
 UIBox UI_HUD_To_Frame(UIBox const & box, UIPoint const & origin, int scale);

@@ -30,6 +30,8 @@ constexpr int ShapeRecordSize = 24;
 
 char const * const PackName = "HDPACK.INI";
 char const * const PackSection = "Scale";
+char const * const PackUISection = "UI";
+char const * const PackUIEntry = "Scale";
 
 struct LooseShape
 {
@@ -184,6 +186,22 @@ LooseShape const & Load_Loose(std::string & key)
 }
 
 
+// The interface scale the first HDPACK.INI in the searched folders declares, or 0 for none.
+int Read_Pack_UI_Scale(void)
+{
+	CDFileClass file(PackName);
+
+	if (!file.Is_Available()) {
+		return(0);
+	}
+
+	INIClass ini;
+	ini.Load(file);
+
+	return(ini.Get_Int(PackUISection, PackUIEntry, 0));
+}
+
+
 // The archive lookup writes the name in place, so it is handed the copy this file made.
 ShapeSource Archived_Source(std::string & key)
 {
@@ -230,6 +248,24 @@ ShapeSource Fetch_Shape_Source(char const * name)
 ShapeSet const * Fetch_Shape(char const * name)
 {
 	return(Fetch_Shape_Source(name).Shape);
+}
+
+
+int Pack_UI_Scale(void)
+{
+	static int _scale = -1;
+
+	if (!OverridesEnabled) {
+		return(1);
+	}
+
+	if (_scale < 0) {
+		_scale = Read_Pack_UI_Scale();
+		_scale = _scale > 0 ? _scale : 1;
+		DebugString("[ShapeLoad] HD pack declares interface scale %d\n", _scale);
+	}
+
+	return(_scale);
 }
 
 

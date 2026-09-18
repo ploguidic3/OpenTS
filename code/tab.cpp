@@ -133,20 +133,21 @@ void TabClass::Draw_It(bool complete)
 
 		if ((complete || IsToRedraw) && tab != NULL) {
 
-			int width  = tab->Get_Width() + SidebarClass::SIDE_WIDTH;
+			ShapeSet const * strip = UI_Art_Shape(TabShape);
+			int width  = tab->Get_Width() + UI_Art(SidebarClass::SIDE_WIDTH);
 			int rightx = width - 1;
-			int tab_height = TAB_HEIGHT * 2/*RESFACTOR*/;
+			int tab_height = UI_Art(TAB_HEIGHT * 2/*RESFACTOR*/);
 
-			for (int x = TabShape->Get_Width(); x < tab->Get_Width(); x += TabShape->Get_Width()) {
-				Draw_Shape(*tab, *SidebarDrawer, TabShape, 1, Point2D(x, 0), tab->Get_Rect());
+			for (int x = strip->Get_Width(); x < tab->Get_Width(); x += strip->Get_Width()) {
+				Draw_Shape(*tab, *SidebarDrawer, strip, 1, Point2D(x, 0), tab->Get_Rect());
 			}
 
-			int sidex = Options.IsSidebarOnRight ? 0 : tab->Get_Width() - EVA_WIDTH * 2/*RESFACTOR*/;
+			int sidex = Options.IsSidebarOnRight ? 0 : tab->Get_Width() - UI_Art(EVA_WIDTH * 2/*RESFACTOR*/);
 
-			Draw_Shape(*tab, *SidebarDrawer, TabShape, 0, Point2D(sidex, 0), tab->Get_Rect());
+			Draw_Shape(*tab, *SidebarDrawer, strip, 0, Point2D(sidex, 0), tab->Get_Rect());
 			Draw_Credits_Tab();
-			tab->Draw_Line(Point2D(0, tab_height-(1* 2)), Point2D(rightx, tab_height-(1 * 2/*RESFACTOR*/)), TBLACK);
-			Fancy_Text_Print(TXT_TAB_BUTTON_CONTROLS, *tab, tab->Get_Rect(), Point2D(sidex + (EVA_WIDTH/2) * 2/*RESFACTOR*/, 0), ColorSchemes[0], TBLACK, TextPrintType(TPF_USE_GRAD_PAL | TPF_CENTER | TPF_METAL12));
+			tab->Draw_Line(Point2D(0, tab_height - UI_Art(1 * 2)), Point2D(rightx, tab_height - UI_Art(1 * 2/*RESFACTOR*/)), TBLACK);
+			Fancy_Text_Print(TXT_TAB_BUTTON_CONTROLS, *tab, tab->Get_Rect(), Point2D(sidex + UI_Art((EVA_WIDTH/2) * 2/*RESFACTOR*/), 0), ColorSchemes[0], TBLACK, TextPrintType(TPF_USE_GRAD_PAL | TPF_CENTER | TPF_METAL12));
 
 			UI_Present_Tab_Strip();
 		}
@@ -169,13 +170,15 @@ void TabClass::Draw_It(bool complete)
 /// </summary>
 void TabClass::Draw_Credits_Tab(void)
 {
-	Draw_Shape(*SidebarSurface, *SidebarDrawer, TabShape, 2, Point2D(0, 0), SidebarSurface->Get_Rect());
+	ShapeSet const * strip = UI_Art_Shape(TabShape);
+
+	Draw_Shape(*SidebarSurface, *SidebarDrawer, strip, 2, Point2D(0, 0), SidebarSurface->Get_Rect());
 
 	Surface * tab = UI_Tab_Surface();
 
 	if (Scen->MissionTimer.Is_Active() && tab != NULL) {
 		bool light = ((int)Scen->MissionTimer < TICKS_PER_MINUTE * Rule->TimerWarning) || Map.FlasherTimer > 0;
-		Draw_Shape(*tab, *SidebarDrawer, TabShape, /*light ? 4 :*/ 2, Point2D(tab->Get_Width() - TabShape->Get_Width(), 0), tab->Get_Rect());
+		Draw_Shape(*tab, *SidebarDrawer, strip, /*light ? 4 :*/ 2, Point2D(tab->Get_Width() - strip->Get_Width(), 0), tab->Get_Rect());
 
 		int time = Scen->MissionTimer;
 
@@ -188,14 +191,14 @@ void TabClass::Draw_Credits_Tab(void)
 
 		if (hours != 0) {
 			Fancy_Text_Print(TXT_TIME_FORMAT_HOURS, *tab, tab->Get_Rect(),
-				Point2D(tab->Get_Width() - TabShape->Get_Width() / 2, 0), ColorSchemes[0], TBLACK,
+				Point2D(tab->Get_Width() - strip->Get_Width() / 2, 0), ColorSchemes[0], TBLACK,
 				TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL), hours, minutes, seconds);
 		} else {
 			Fancy_Text_Print(TXT_TIME_FORMAT_NO_HOURS, *tab, tab->Get_Rect(),
-				Point2D(tab->Get_Width() - TabShape->Get_Width() / 2, 0), ColorSchemes[0], TBLACK,
+				Point2D(tab->Get_Width() - strip->Get_Width() / 2, 0), ColorSchemes[0], TBLACK,
 				TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL), minutes, seconds);
 		}
-		UI_Present_Tab_Strip(Rect(tab->Get_Width() - TabShape->Get_Width(), 0, TabShape->Get_Width(), tab->Get_Height()));
+		UI_Present_Tab_Strip(Rect(tab->Get_Width() - strip->Get_Width(), 0, strip->Get_Width(), tab->Get_Height()));
 	}
 	BASECLASS::IsToBlitSidebar = true;
 }
@@ -212,11 +215,11 @@ void TabClass::Hilite_Tab(int tab)
 {
 	int xpos = 0;
 	int text = TXT_TAB_BUTTON_CONTROLS;
-	int textx = (EVA_WIDTH/2) * 2;
+	int textx = UI_Art((EVA_WIDTH/2) * 2);
 
 	bool tab_selected = tab != 0;
 	if (tab_selected) {
-		xpos = (320-EVA_WIDTH) * 2;
+		xpos = UI_Art((320-EVA_WIDTH) * 2);
 		//text = TXT_TAB_SIDEBAR;
 		//textx = (320-(EVA_WIDTH/2)) * 2;
 	}
@@ -229,7 +232,7 @@ void TabClass::Hilite_Tab(int tab)
 		xpos = Options.IsSidebarOnRight ? 0 : strip->Get_Width() - textx*2;
 	}
 
-	Draw_Shape(*strip, *SidebarDrawer, TabShape, 1, Point2D(xpos, 0), strip->Get_Rect());
+	Draw_Shape(*strip, *SidebarDrawer, UI_Art_Shape(TabShape), 1, Point2D(xpos, 0), strip->Get_Rect());
 	Fancy_Text_Print(text, *strip, strip->Get_Rect(), Point2D(xpos + textx, 0), ColorSchemes[0], TBLACK, TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL));
 	UI_Present_Tab_Strip();
 }

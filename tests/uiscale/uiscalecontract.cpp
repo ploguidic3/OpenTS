@@ -159,6 +159,44 @@ void Test_Mapping(void)
 	}
 }
 
+void Check_Art(int pack, int setting, int width, int height, int expectedscale, int expectedart, char const * what)
+{
+	int scale = UI_Scale_For(setting, width, height);
+	int art = UI_Art_Scale_For(pack, scale);
+	scale = UI_Scale_For_Art(scale, art);
+
+	Check(scale == expectedscale && art == expectedart, what);
+	if (scale != expectedscale || art != expectedart) {
+		std::printf("    got scale %d art %d, expected scale %d art %d\n", scale, art, expectedscale, expectedart);
+	}
+}
+
+
+void Test_Art_Scale(void)
+{
+	Check_Art(1, 0, 1920, 1080, 2, 1, "no pack: 1080p keeps scale 2 on classic artwork");
+	Check_Art(2, 0, 1920, 1080, 2, 2, "2x pack: 1080p draws the artwork 1:1");
+	Check_Art(2, 0, 2560, 1440, 2, 2, "2x pack: 1440p draws the artwork 1:1");
+	Check_Art(2, 0, 3840, 2160, 2, 2, "2x pack: 4K rounds the auto 3 down to 2");
+	Check_Art(2, 4, 3840, 2160, 4, 2, "2x pack: setting 4 magnifies the artwork twice");
+	Check_Art(2, 3, 3840, 2160, 2, 2, "2x pack: setting 3 rounds down rather than half stepping");
+	Check_Art(2, 1, 3840, 2160, 1, 1, "2x pack: setting 1 falls back to the classic artwork");
+	Check_Art(2, 0, 1280, 720, 1, 1, "2x pack: a frame that only holds scale 1 uses classic artwork");
+	Check_Art(3, 0, 1920, 1080, 2, 1, "3x pack: a scale of 2 cannot carry it, so artwork stays classic");
+	Check_Art(0, 0, 1920, 1080, 2, 1, "a pack declaring nothing leaves the artwork classic");
+	Check_Art(9, 0, 1920, 1080, 2, 1, "a pack declaring more than the maximum is clamped, then unused");
+
+	Check(UI_Present_Scale_For(2, 2) == 1, "present: 2x artwork at scale 2 is copied 1:1");
+	Check(UI_Present_Scale_For(4, 2) == 2, "present: 2x artwork at scale 4 is doubled");
+	Check(UI_Present_Scale_For(3, 1) == 3, "present: classic artwork is magnified by the whole scale");
+	Check(UI_Present_Scale_For(1, 1) == 1, "present: scale 1 copies 1:1");
+	Check(UI_Present_Scale_For(1, 2) == 1, "present: never below one");
+
+	Check(UI_Sidebar_Surface_Height(1440, 1) == 1440, "sidebar surface: 2x artwork at 1440p fills the frame height");
+	Check(UI_Tab_Surface_Width(2560 - 336, 1) == 2224, "tab surface: 2x artwork at 1440p spans the composite");
+}
+
+
 } // namespace
 
 
@@ -168,6 +206,7 @@ int main(void)
 	Test_Setting();
 	Test_Fit();
 	Test_Surfaces();
+	Test_Art_Scale();
 	Test_Mapping();
 
 	std::printf("%d failure(s)\n", Failures);

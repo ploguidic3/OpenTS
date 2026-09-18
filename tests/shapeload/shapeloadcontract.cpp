@@ -174,7 +174,7 @@ bool Make_Root(void)
 
 	// The pack file is read once per folder, on the first loose file found there, so it is
 	// in place before any test fetches.
-	Write_Text(Root + "\\HD\\HDPACK.INI", "[Scale]\npacked.shp=2\nPACKED3.SHP=3\nOTHER.SHP=2\n");
+	Write_Text(Root + "\\HD\\HDPACK.INI", "[UI]\nScale=2\n\n[Scale]\npacked.shp=2\nPACKED3.SHP=3\nOTHER.SHP=2\n");
 
 	if (SetCurrentDirectory(Root.c_str()) == 0) {
 		return(false);
@@ -250,6 +250,8 @@ void Test_The_Pack_File_States_The_Scale(void)
 	// A pack file in another folder says nothing about a file found beside the game.
 	Write_Bytes(Root + "\\OTHER.SHP", Make_Shape(48, 48, 9));
 	Check(Fetch_Shape_Source("OTHER.SHP").Scale == 1, "the pack file speaks only for its own folder");
+
+	Check(Pack_UI_Scale() == 2, "the pack states the scale it draws the interface at");
 }
 
 
@@ -282,6 +284,7 @@ void Test_The_Switch_Turns_Loose_Files_Off(void)
 	Check(!Shape_Overrides_Enabled(), "the switch reports itself off");
 	Check(Fetch_Shape("BOTH.SHP") == Archived_Shape("BOTH.SHP"), "with overrides off the archived copy answers");
 	Check(Fetch_Shape("ONLYLOOSE.SHP") == NULL, "with overrides off a loose file alone is not found");
+	Check(Pack_UI_Scale() == 1, "with overrides off the pack's interface scale is not taken");
 
 	Enable_Shape_Overrides(true);
 	Check(Same_Bytes(Fetch_Shape("BOTH.SHP"), loose), "with overrides on again the loose file answers");

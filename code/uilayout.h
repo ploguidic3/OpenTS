@@ -13,9 +13,29 @@
 #include "rect.h"
 #include "surface.h"
 
+class FontClass;
+class ShapeSet;
+
 
 // The HUD scale in force. One until UI_Scale_Update has run.
 int UI_Scale(void);
+
+// The scale the interface artwork is drawn at: what an HD pack declares, or one for the
+// classic artwork. The HUD scale is always a whole multiple of it.
+int UI_Art_Scale(void);
+
+// What the HUD surfaces are magnified by on their way into the frame.
+int UI_Present_Scale(void);
+
+// A layout distance in artwork pixels rather than in the classic pixels it is written in.
+int UI_Art(int value);
+
+// The shape as the interface draws it: enlarged when the pack left this one at the classic
+// size, so a pack that replaces part of the interface still lays out as one picture.
+ShapeSet const * UI_Art_Shape(ShapeSet const * shape);
+
+// What text drawn in this font is magnified by to reach the frame.
+int UI_Text_Factor(FontClass const * font);
 
 // Resolves the HUD scale from the video settings. Call it before the surfaces are
 // allocated for a resolution, since the layout below follows it.
@@ -32,7 +52,8 @@ Rect UI_Sidebar_Surface_Rect(void);
 // Where the sidebar's top left corner lands in the frame.
 Point2D UI_Sidebar_Origin(void);
 
-// Conversions between sidebar surface pixels and frame pixels.
+// Conversions between sidebar surface pixels, which are artwork pixels, and frame pixels.
+// A layout constant written in classic pixels passes through UI_Art on the way in.
 Rect Sidebar_To_Frame(Rect const & rect);
 Point2D Sidebar_To_Frame(Point2D const & point);
 Point2D Frame_To_Sidebar(Point2D const & point);
@@ -53,16 +74,16 @@ Surface * UI_Scratch_Surface(int width, int height);
 constexpr unsigned short UI_SCRATCH_KEY = 0xF81F;
 
 // Copies a scratch drawing of the given size into the destination, each pixel grown to a
-// square of the HUD scale. Pixels still holding UI_SCRATCH_KEY are skipped when transparent is set.
-void UI_Scratch_Present(Surface & dest, Point2D const & at, int width, int height, bool transparent);
+// square of the given factor. Pixels still holding UI_SCRATCH_KEY are skipped when transparent is set.
+void UI_Scratch_Present(Surface & dest, Point2D const & at, int width, int height, bool transparent, int factor);
 
 
 // Draws through the callable at the HUD's own scale and lands the result magnified at a
 // frame position; the callable receives the surface and the content's top left corner.
 template<class Draw>
-void UI_Draw_Scaled(Surface & dest, Point2D const & at, int width, int height, bool transparent, Draw && draw)
+void UI_Draw_Scaled(Surface & dest, Point2D const & at, int width, int height, bool transparent, int factor, Draw && draw)
 {
-	if (UI_Scale() == 1) {
+	if (factor <= 1) {
 		draw(dest, at);
 		return;
 	}
@@ -74,5 +95,5 @@ void UI_Draw_Scaled(Surface & dest, Point2D const & at, int width, int height, b
 	}
 
 	draw(*scratch, Point2D(0, 0));
-	UI_Scratch_Present(dest, at, width, height, transparent);
+	UI_Scratch_Present(dest, at, width, height, transparent, factor);
 }

@@ -128,6 +128,9 @@ class RadarClass: public DisplayClass
 		virtual void Set_Tactical_Position(Coord const & coord);
 		virtual void Init_For_House(void);
 
+		// Measures the radar pane in the pixels the sidebar artwork is drawn in.
+		void Set_Radar_Geometry(void);
+
 		void Radar_Activate(int control);
 		void Radar_Background(Cell const & cell);
 		Point2D Coord_To_Radar_Pixel(Coord const & coord, bool clip);

@@ -1249,9 +1249,9 @@ void MessageListClass::Draw(void)
 		FontClass *font = Font_From_TPF(this->EditLabel->Style);
 		if (CursorChar && (EditCurPos - EditInitPos) < (MaxChars - 1) && EditLabel->Has_Focus()) {
 			txt[0] = CursorChar;
-			int scale = UI_Scale();
+			int scale = UI_Text_Factor(font);
 			Point2D at(EditLabel->X + font->String_Pixel_Width(EditLabel->Text) * scale, EditLabel->Y);
-			UI_Draw_Scaled(*LogicalSurface, at, font->String_Pixel_Width(txt) + 2, font->Get_Height() + 2, true, [&](Surface & surface, Point2D const & point) {
+			UI_Draw_Scaled(*LogicalSurface, at, font->String_Pixel_Width(txt) + 2, font->Get_Height() + 2, true, scale, [&](Surface & surface, Point2D const & point) {
 				Fancy_Text_Print(txt,
 					surface,
 					surface.Get_Rect(),

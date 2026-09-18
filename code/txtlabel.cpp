@@ -110,7 +110,7 @@ int TextLabelClass::Draw_Me(int forced)
 		if (DrawScale > 1) {
 			FontClass * font = Font_From_TPF(Style);
 			int width = (PixWidth == -1 ? font->String_Pixel_Width(Text) : PixWidth) + 2;
-			UI_Draw_Scaled(*LogicalSurface, Point2D(X, Y), width, font->Get_Height() + 2, true, print);
+			UI_Draw_Scaled(*LogicalSurface, Point2D(X, Y), width, font->Get_Height() + 2, true, UI_Text_Factor(font), print);
 		} else {
 			print(*LogicalSurface, Point2D(X, Y));
 		}

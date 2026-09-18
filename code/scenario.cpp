@@ -93,6 +93,7 @@
 #include "convert.h"
 #include "crc.h"
 #include "data.h"
+#include "dialog.h"
 #include "dbgprint.h"
 #include "deploymentconfig.h"
 #include "egos.h"
@@ -785,7 +786,7 @@ bool Read_Scenario(char const * fname)
 		0,//BG		1,							// enable edit overflow
 		20,										// min,
 		MAX_MESSAGE_LENGTH - 14,			// max for trimming overflow
-		TacticalRect.Width / UI_Scale());	// Width in pixels of buffer
+		TacticalRect.Width / UI_Text_Factor(Font_From_TPF(TPF_6POINT)));	// Width in pixels of buffer
 
 	Fill_In_Data();
 

@@ -103,6 +103,7 @@
 #include "shapeload.h"
 #include "tactical.h"
 #include "uilayout.h"
+#include "uiscale.h"
 #include "voc.h"
 #include "vox.h"
 #include "vqa.h"
@@ -208,16 +209,7 @@ RadarClass::~RadarClass(void)
 void RadarClass::One_Time(void)
 {
 	DebugString("RadarClass::One_Time()\n");
-	RadX				 = 0;
-	RadY				 = 8 * 2/*RESFACTOR*/;
-	RadWidth			 = SidebarSurface->Get_Width();
-	RadHeight			 = 70 * 2/*RESFACTOR*/;
-	RadOffX				 = 15;
-	RadOffY				 = 12;
-	RadPWidth			 = 70 * 2/*RESFACTOR*/;
-	RadPHeight			 = 54 * 2/*RESFACTOR*/;
-	RadIWidth			 = 70 * 2/*RESFACTOR*/;
-	RadIHeight			 = 54 * 2/*RESFACTOR*/;
+	Set_Radar_Geometry();
 
 	BASECLASS::One_Time();
 
@@ -333,7 +325,7 @@ void RadarClass::Draw_It(bool forced)
 
 		if (IsToRedraw == true) {
 			IsToRedraw = (FullRedraw == true);
-			Draw_Shape(*SidebarSurface, *SidebarDrawer, (ShapeSet const *)RadarAnim, RadarAnimFrame, Point2D(RadX, RadY), SidebarSurface->Get_Rect());
+			Draw_Shape(*SidebarSurface, *SidebarDrawer, UI_Art_Shape((ShapeSet const *)RadarAnim), RadarAnimFrame, Point2D(RadX, RadY), SidebarSurface->Get_Rect());
 			LastDrawRect = Rect(RadX, RadY, RadWidth, RadHeight);
 		}
 	}
@@ -350,7 +342,7 @@ void RadarClass::Draw_It(bool forced)
 				if (IsToRedraw == true) {
 					IsToRedraw = false;
 					if (FullRedraw) {
-						Draw_Shape(*SidebarSurface, *SidebarDrawer, (ShapeSet const *)RadarAnim, MAX_RADAR_FRAMES, Point2D(RadX, RadY), SidebarSurface->Get_Rect());
+						Draw_Shape(*SidebarSurface, *SidebarDrawer, UI_Art_Shape((ShapeSet const *)RadarAnim), MAX_RADAR_FRAMES, Point2D(RadX, RadY), SidebarSurface->Get_Rect());
 						Draw_Names();
 						LastDrawRect = Rect(RadX, RadY, RadWidth, RadHeight);
 					} else {
@@ -367,7 +359,7 @@ void RadarClass::Draw_It(bool forced)
 			default:
 				if (IsToRedraw == true) {
 					IsToRedraw = false;
-					Draw_Shape(*SidebarSurface, *SidebarDrawer, (ShapeSet const *)RadarAnim, 0, Point2D(RadX, RadY), SidebarSurface->Get_Rect());
+					Draw_Shape(*SidebarSurface, *SidebarDrawer, UI_Art_Shape((ShapeSet const *)RadarAnim), 0, Point2D(RadX, RadY), SidebarSurface->Get_Rect());
 					LastDrawRect = Rect(RadX, RadY, RadWidth, RadHeight);
 				}
 				break;
@@ -781,16 +773,16 @@ void RadarClass::Draw_Names(void)
 		return;
 	}
 
-	Draw_Shape(*SidebarSurface, *SidebarDrawer, (ShapeSet const *)RadarAnim, 40, Point2D(RadX, RadY), SidebarSurface->Get_Rect());
+	Draw_Shape(*SidebarSurface, *SidebarDrawer, UI_Art_Shape((ShapeSet const *)RadarAnim), 40, Point2D(RadX, RadY), SidebarSurface->Get_Rect());
 
-	y = RadY + RadOffY+(2);
+	y = RadY + RadOffY + UI_Art(2);
 
 	Fancy_Text_Print(TXT_NAME_COLON, *SidebarSurface, SidebarSurface->Get_Rect(), Point2D(RadX + RadOffX, y), Fetch_Scheme_By_Name(DEFAULT_GADGET_SCHEME), TBLACK, TextPrintType(TPF_EFNT | TPF_NOSHADOW));
-	Fancy_Text_Print(TXT_KILLS_COLON, *SidebarSurface, SidebarSurface->Get_Rect(), Point2D(RadX + RadOffX + RadIWidth - 2, y), Fetch_Scheme_By_Name(DEFAULT_GADGET_SCHEME), TBLACK, TextPrintType(TPF_RIGHT | TPF_EFNT | TPF_NOSHADOW));
-	y += 6+1;
+	Fancy_Text_Print(TXT_KILLS_COLON, *SidebarSurface, SidebarSurface->Get_Rect(), Point2D(RadX + RadOffX + RadIWidth - UI_Art(2), y), Fetch_Scheme_By_Name(DEFAULT_GADGET_SCHEME), TBLACK, TextPrintType(TPF_RIGHT | TPF_EFNT | TPF_NOSHADOW));
+	y += UI_Art(6+1);
 
-	SidebarSurface->Draw_Line(Point2D(RadX + RadOffX, y), Point2D(RadX + RadOffX + RadIWidth - 1, y), SidebarDrawer->Convert_Pixel(LTGREY));
-	y += 2*2/*RESFACTOR*/;
+	SidebarSurface->Draw_Line(Point2D(RadX + RadOffX, y), Point2D(RadX + RadOffX + RadIWidth - UI_Art(1), y), SidebarDrawer->Convert_Pixel(LTGREY));
+	y += UI_Art(2*2/*RESFACTOR*/);
 
 	for (house = HOUSE_FIRST; house < Houses.Count(); house++) {
 		ptr = Houses[house];
@@ -835,10 +827,37 @@ void RadarClass::Draw_Names(void)
 			kills += ptr->BuildingsKilled[h];
 		}
 		sprintf(txt, "%2d", kills);
-		Fancy_Text_Print(txt, *SidebarSurface, SidebarSurface->Get_Rect(), Point2D(RadX + RadOffX + RadIWidth - 2, y), color, TBLACK, TextPrintType(style | TPF_RIGHT));
+		Fancy_Text_Print(txt, *SidebarSurface, SidebarSurface->Get_Rect(), Point2D(RadX + RadOffX + RadIWidth - UI_Art(2), y), color, TBLACK, TextPrintType(style | TPF_RIGHT));
 
-		y += 8+1;
+		y += UI_Art(8+1);
 
+	}
+}
+
+
+/// <summary>
+/// Measures the radar pane in the pixels the sidebar surface is drawn in, which are the
+/// artwork's rather than the classic ones. It is measured again whenever the sidebar is
+/// repositioned, since the scale the artwork is drawn at follows the frame.
+/// </summary>
+void RadarClass::Set_Radar_Geometry(void)
+{
+	int const washeight = RadHeight;
+
+	RadX				 = 0;
+	RadY				 = UI_Art(8 * 2/*RESFACTOR*/);
+	RadWidth			 = SidebarSurface != NULL ? SidebarSurface->Get_Width() : UI_Art(UI_SIDEBAR_WIDTH);
+	RadHeight			 = UI_Art(70 * 2/*RESFACTOR*/);
+	RadOffX				 = UI_Art(15);
+	RadOffY				 = UI_Art(12);
+	RadPWidth			 = UI_Art(70 * 2/*RESFACTOR*/);
+	RadPHeight			 = UI_Art(54 * 2/*RESFACTOR*/);
+	RadIWidth			 = UI_Art(70 * 2/*RESFACTOR*/);
+	RadIHeight			 = UI_Art(54 * 2/*RESFACTOR*/);
+
+	// The map picture was resampled to fit the pane it no longer matches.
+	if (washeight != 0 && washeight != RadHeight && BackgroundSurface != NULL) {
+		Compute_Radar_Image();
 	}
 }
 
@@ -851,6 +870,7 @@ void RadarClass::Draw_Names(void)
 void RadarClass::Reposition_Sidebar(void)
 {
 	BASECLASS::Reposition_Sidebar();
+	Set_Radar_Geometry();
 	Rect pane = Sidebar_To_Frame(Rect(RadX, RadY, RadWidth, RadHeight));
 	RadarButton.Set_Position(pane.X, pane.Y);
 	RadarButton.Set_Size(pane.Width, pane.Height);
@@ -949,14 +969,17 @@ void RadarClass::Compute_Radar_Image(void)
 	RadarRect.Width = BackgroundSurface->Get_Width();
 	RadarRect.Height = BackgroundSurface->Get_Height();
 
+	int const panewidth = UI_Art(140);
+	int const paneheight = UI_Art(108);
+
 	RadarRect.X = RadX + RadOffX;
-	if (RadarRect.Width < 140) {
-		RadarRect.X += (140 - RadarRect.Width) / 2;
+	if (RadarRect.Width < panewidth) {
+		RadarRect.X += (panewidth - RadarRect.Width) / 2;
 	}
 
 	RadarRect.Y = RadY + RadOffY;
-	if (RadarRect.Height < 108) {
-		RadarRect.Y += (108 - RadarRect.Height) / 2;
+	if (RadarRect.Height < paneheight) {
+		RadarRect.Y += (paneheight - RadarRect.Height) / 2;
 	}
 
 	if (RadarSurface != NULL) {
@@ -1022,24 +1045,27 @@ Rect RadarClass::Compute_Background(Rect const & cell_rect, Rect & update_rect, 
 		/*
 		 * If the drawing surface does not exist, calculate zoom and surface size.
 		 */
-		zoom_scale = 140 / (float)rect1_width;
+		int const panewidth = UI_Art(140);
+		int const paneheight = UI_Art(108);
+
+		zoom_scale = panewidth / (float)rect1_width;
 		float scaled_height = cell_rect.Height * zoom_scale;
-		if (scaled_height < 108) {
+		if (scaled_height < paneheight) {
 
 			/*
 			 * Height fits within limit.
 			 */
-			surface_width = 140;
+			surface_width = panewidth;
 			surface_height = scaled_height;
 		} else {
 
 			/*
 			 * Otherwise scale to fit height and adjust width.
 			 */
-			zoom_scale = 108 / (float)cell_rect.Height;
+			zoom_scale = paneheight / (float)cell_rect.Height;
 			float scaled_width = rect1_width * zoom_scale;
 			surface_width = scaled_width;
-			surface_height = 108;
+			surface_height = paneheight;
 		}
 		ZoomFactor = zoom_scale;
 
@@ -2232,7 +2258,7 @@ void RadarClass::Render_Radar(void)
 		if (is_tactical) {
 			if (FullRedraw) {
 				LastDrawRect = RadarRect;
-				Draw_Shape(*SidebarSurface, *SidebarDrawer, (ShapeSet const *)RadarAnim, MAX_RADAR_FRAMES, Point2D(RadX, RadY), SidebarSurface->Get_Rect());
+				Draw_Shape(*SidebarSurface, *SidebarDrawer, UI_Art_Shape((ShapeSet const *)RadarAnim), MAX_RADAR_FRAMES, Point2D(RadX, RadY), SidebarSurface->Get_Rect());
 			}
 
 			if (LastDrawRect.Is_Valid()) {
@@ -2285,7 +2311,7 @@ void RadarClass::Play_Movie(void)
 	}
 
 	if (FullRedraw == true) {
-		Draw_Shape(*SidebarSurface, *SidebarDrawer, (ShapeSet const *)RadarAnim, MAX_RADAR_FRAMES, Point2D(RadX, RadY), SidebarSurface->Get_Rect());
+		Draw_Shape(*SidebarSurface, *SidebarDrawer, UI_Art_Shape((ShapeSet const *)RadarAnim), MAX_RADAR_FRAMES, Point2D(RadX, RadY), SidebarSurface->Get_Rect());
 		LastDrawRect = Rect(RadX, RadY, RadWidth, RadHeight);
 		DebugString("Radar: Movie full redrawn\n");
 	}

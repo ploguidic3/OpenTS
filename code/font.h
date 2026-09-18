@@ -52,6 +52,10 @@ class FontClass
 		virtual void String_Pixel_Bounds(const char * string, Rect & bounds) const = 0;
 		virtual int Get_Width(void) const = 0;
 		virtual int Get_Height(void) const = 0;
+
+		// Pixels the glyphs carry per classic pixel. A font drawn at this scale needs no
+		// magnification where the interface is drawn at the same one.
+		virtual int Get_Scale(void) const {return(1);}
 		virtual Point2D Print(char const * string, Surface & surface, Rect const & cliprect, Point2D const & point, ConvertClass const & converter, unsigned char const * remap=NULL) const = 0;
 
 		virtual int Set_XSpacing(int x) = 0;

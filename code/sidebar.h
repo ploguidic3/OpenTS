@@ -109,6 +109,7 @@ class SidebarClass : public PowerClass
 		virtual void Init_IO(void) override;                        // Inits button list
 		virtual void Init_For_House(void) override;
 		void Reload_Sidebar(void);							// Loads house-specific sidebar art
+		void Report_Classic_Sidebar_Art(void);				// Logs artwork an HD pack left classic
 		void Toggle_Cameo_Text(bool on);
 
 		virtual void AI(KeyNumType & input, Point2D const & xy) override;

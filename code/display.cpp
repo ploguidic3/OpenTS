@@ -113,6 +113,7 @@
 #include "conquer.h"
 #include "convert.h"
 #include "data.h"
+#include "dialog.h"
 #include "dbgprint.h"
 #include "dsurface.h"
 #include "effects.h"
@@ -423,9 +424,9 @@ void DisplayClass::Set_View_Dimensions(Rect const & dimensions)
 		0,                                  /// enable edit overflow
 		20,                                 // min,
 		MAX_MESSAGE_LENGTH - 14,            // max for trimming overflow
-		TacticalRect.Width / UI_Scale());   // Width in pixels of buffer
+		TacticalRect.Width / UI_Text_Factor(Font_From_TPF(TPF_6POINT)));   // Width in pixels of buffer
 
-	Session.Messages.Set_Width(TacticalRect.Width / UI_Scale());
+	Session.Messages.Set_Width(TacticalRect.Width / UI_Text_Factor(Font_From_TPF(TPF_6POINT)));
 
 	DebugString("Set_View_Dimensions(exit)\n");
 }

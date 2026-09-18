@@ -358,30 +358,31 @@ void PowerClass::Draw_It(bool complete)
 			Map.IsToBlitSidebar = true;
 
 			Rect rect = SidebarSurface->Get_Rect();
-			int x = POWER_X;
-			int y = int(SidebarClass::SIDE_Y) + POWER_Y;
+			ShapeSet const * pip = UI_Art_Shape((ShapeSet const *)PowerPipShape);
+			int x = UI_Art(POWER_X);
+			int y = UI_Art(int(SidebarClass::SIDE_Y) + POWER_Y);
 
 			int num = Max_Power_Height() - RedPipCount - YellowPipCount - GreenPipCount;
 
 			int index;
 			for (index = 0; index < num; index++) {
-				Draw_Shape(*SidebarSurface, *SidebarDrawer, (ShapeSet const *)PowerPipShape, POWER_PIP_EMPTY, Point2D(x,y), rect, SHAPE_WIN_REL);
-				y += POWER_PIP_HEIGHT;
+				Draw_Shape(*SidebarSurface, *SidebarDrawer, pip, POWER_PIP_EMPTY, Point2D(x,y), rect, SHAPE_WIN_REL);
+				y += UI_Art(POWER_PIP_HEIGHT);
 			}
 
 			index = 0;
 			if (FlashCount > 0) {
 				if ((FlashCount % 2) == 0) {
-					Draw_Shape(*SidebarSurface, *SidebarDrawer, (ShapeSet const *)PowerPipShape, POWER_PIP_WHITE, Point2D(x,y), rect, SHAPE_WIN_REL);
-					y += POWER_PIP_HEIGHT;
+					Draw_Shape(*SidebarSurface, *SidebarDrawer, pip, POWER_PIP_WHITE, Point2D(x,y), rect, SHAPE_WIN_REL);
+					y += UI_Art(POWER_PIP_HEIGHT);
 					index++;
 				}
 			}
 
 			if (GreenPipCount > 0) {
 				while (index < GreenPipCount) {
-					Draw_Shape(*SidebarSurface, *SidebarDrawer, (ShapeSet const *)PowerPipShape, POWER_PIP_GREEN, Point2D(x,y), rect, SHAPE_WIN_REL);
-					y += POWER_PIP_HEIGHT;
+					Draw_Shape(*SidebarSurface, *SidebarDrawer, pip, POWER_PIP_GREEN, Point2D(x,y), rect, SHAPE_WIN_REL);
+					y += UI_Art(POWER_PIP_HEIGHT);
 					index++;
 				}
 				index = 0;
@@ -389,8 +390,8 @@ void PowerClass::Draw_It(bool complete)
 
 			if (YellowPipCount > 0) {
 				while (index < YellowPipCount) {
-					Draw_Shape(*SidebarSurface, *SidebarDrawer, (ShapeSet const *)PowerPipShape, POWER_PIP_YELLOW, Point2D(x,y), rect, SHAPE_WIN_REL);
-					y += POWER_PIP_HEIGHT;
+					Draw_Shape(*SidebarSurface, *SidebarDrawer, pip, POWER_PIP_YELLOW, Point2D(x,y), rect, SHAPE_WIN_REL);
+					y += UI_Art(POWER_PIP_HEIGHT);
 					index++;
 				}
 				index = 0;
@@ -398,8 +399,8 @@ void PowerClass::Draw_It(bool complete)
 
 			if (RedPipCount > 0) {
 				while (index < RedPipCount) {
-					Draw_Shape(*SidebarSurface, *SidebarDrawer, (ShapeSet const *)PowerPipShape, POWER_PIP_RED, Point2D(x,y), rect, SHAPE_WIN_REL);
-					y += POWER_PIP_HEIGHT;
+					Draw_Shape(*SidebarSurface, *SidebarDrawer, pip, POWER_PIP_RED, Point2D(x,y), rect, SHAPE_WIN_REL);
+					y += UI_Art(POWER_PIP_HEIGHT);
 					index++;
 				}
 				index = 0;
@@ -584,7 +585,7 @@ void PowerClass::Reposition_Sidebar(void)
 		ToolTip tt;
 		tt.Text = TXT_NONE;
 		tt.ID = GADGET_POWER;
-		tt.Region = Sidebar_To_Frame(Rect(POWER_X, int(SidebarClass::SIDE_Y) + POWER_Y, POWER_WIDTH, (SidebarClass::StripClass::SideBarGeneralEnums::OBJECT_HEIGHT) * Map.Max_Visible()));
+		tt.Region = Sidebar_To_Frame(Rect(UI_Art(POWER_X), UI_Art(int(SidebarClass::SIDE_Y) + POWER_Y), UI_Art(POWER_WIDTH), UI_Art((SidebarClass::StripClass::SideBarGeneralEnums::OBJECT_HEIGHT)) * Map.Max_Visible()));
 
 		ToolTips->Remove(tt.ID);
 		ToolTips->Add(&tt);

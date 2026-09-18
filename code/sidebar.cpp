@@ -116,6 +116,7 @@
 #include "suprtype.h"
 #include "surface.h"
 #include "techtype.h"
+#include "shapehd.h"
 #include "uilayout.h"
 #include "voc.h"
 #include "utf8.h"
@@ -126,6 +127,7 @@
 
 #include <algorithm>
 #include <compare>
+#include <string>
 
 ShapeSet const * SidebarClass::SidebarShape = NULL;
 ShapeSet const * SidebarClass::SidebarMiddleShape = NULL;
@@ -517,6 +519,9 @@ void SidebarClass::Init_For_House(void)
 		pal[i] = RGBClass(pal[i].Get_Red() * 4, pal[i].Get_Green() * 4, pal[i].Get_Blue() * 4);
 	}
 
+	// The enlarged copies were made from the artwork this routine is about to replace.
+	Scaled_Shape_Reset();
+
 	if (SidebarDrawer != NULL) {
 		delete SidebarDrawer;
 		SidebarDrawer = NULL;
@@ -543,6 +548,51 @@ void SidebarClass::Init_For_House(void)
 		StripClass::UpButton[i].ShapeDrawer = SidebarDrawer;
 		StripClass::DownButton[i].Set_Shape((ShapeSet *)Fetch_Shape("R-DN.SHP"));
 		StripClass::DownButton[i].ShapeDrawer = SidebarDrawer;
+	}
+
+	Report_Classic_Sidebar_Art();
+}
+
+
+// Names the sidebar artwork an HD pack left at the classic size; each of those is enlarged
+// as it is drawn, so the interface still lays out as one picture.
+void SidebarClass::Report_Classic_Sidebar_Art(void)
+{
+	if (UI_Art_Scale() <= 1) {
+		return;
+	}
+
+	struct Named
+	{
+		char const * Name;
+		ShapeSet const * Shape;
+	};
+
+	Named const art[] = {
+		{"SIDE1.SHP", SidebarShape},
+		{"SIDE2.SHP", SidebarMiddleShape},
+		{"SIDE3.SHP", SidebarBottomShape},
+		{"ADDON.SHP", SidebarAddonShape},
+		{"SELL.SHP", Upgrade.Get_Shape_Data()},
+		{"POWER.SHP", Power.Get_Shape_Data()},
+		{"WAYP.SHP", Waypoint.Get_Shape_Data()},
+		{"REPAIR.SHP", Repair.Get_Shape_Data()},
+		{"R-UP.SHP", StripClass::UpButton[0].Get_Shape_Data()},
+		{"R-DN.SHP", StripClass::DownButton[0].Get_Shape_Data()},
+	};
+
+	std::string classic;
+	for (Named const & entry : art) {
+		if (entry.Shape != NULL && Shape_Scale(entry.Shape) < UI_Art_Scale()) {
+			if (!classic.empty()) {
+				classic += ", ";
+			}
+			classic += entry.Name;
+		}
+	}
+
+	if (!classic.empty()) {
+		DebugString("[Sidebar] the pack draws at %d but %s are the classic artwork, enlarged as drawn\n", UI_Art_Scale(), classic.c_str());
 	}
 }
 
@@ -945,21 +995,26 @@ void SidebarClass::Draw_It(bool complete)
 	if (IsSidebarActive && (IsToRedraw || complete) && !Debug_Map) {
 		if (complete || Column[0].IsToRedraw || Column[1].IsToRedraw) {
 
-			int y = SIDE_Y;
+			int y = UI_Art(SIDE_Y);
+
+			ShapeSet const * top = UI_Art_Shape(SidebarShape);
+			ShapeSet const * middle = UI_Art_Shape(SidebarMiddleShape);
+			ShapeSet const * bottom = UI_Art_Shape(SidebarBottomShape);
+			ShapeSet const * addon = UI_Art_Shape(SidebarAddonShape);
 
 			/*
 			**	The sidebar shape is too big in 640x400 so it needs to be drawn in three chunks.
 			*/
-			Draw_Shape(*SidebarSurface, *SidebarDrawer, SidebarShape, 0, Point2D(0, y), window, SHAPE_WIN_REL);
-			y += SidebarClass::SidebarShape->Get_Height();
+			Draw_Shape(*SidebarSurface, *SidebarDrawer, top, 0, Point2D(0, y), window, SHAPE_WIN_REL);
+			y += top->Get_Height();
 
 			for (int i = 0; i < Max_Visible(); i++) {
-				Draw_Shape(*SidebarSurface, *SidebarDrawer, SidebarMiddleShape, 0, Point2D(0, y), window, SHAPE_WIN_REL);
-				y += SidebarMiddleShape->Get_Height();
+				Draw_Shape(*SidebarSurface, *SidebarDrawer, middle, 0, Point2D(0, y), window, SHAPE_WIN_REL);
+				y += middle->Get_Height();
 			}
 
-			Draw_Shape(*SidebarSurface, *SidebarDrawer, SidebarBottomShape, 0, Point2D(0, y), window, SHAPE_WIN_REL);
-			Draw_Shape(*SidebarSurface, *SidebarDrawer, SidebarAddonShape, 0, Point2D(0, y + SidebarBottomShape->Get_Height()), window, SHAPE_WIN_REL);
+			Draw_Shape(*SidebarSurface, *SidebarDrawer, bottom, 0, Point2D(0, y), window, SHAPE_WIN_REL);
+			Draw_Shape(*SidebarSurface, *SidebarDrawer, addon, 0, Point2D(0, y + bottom->Get_Height()), window, SHAPE_WIN_REL);
 
 			Column[0].IsToRedraw = true;
 			Column[1].IsToRedraw = true;
@@ -1023,7 +1078,7 @@ void SidebarClass::Blit_Sidebar(bool complete)
 			IsToBlitSidebar = false;
 			if (Map.LastDrawRect == RECT_NONE) {
 				if (IsToRedrawCredits) {
-					Rect credits(0, 0, SIDE_WIDTH, CREDITS_HEIGHT);
+					Rect credits(0, 0, UI_Art(SIDE_WIDTH), UI_Art(CREDITS_HEIGHT));
 					VisibleSurface->Blit_From(Sidebar_To_Frame(credits), *SidebarSurface, credits, false, true);
 					IsToRedrawCredits = false;
 				}
@@ -1035,8 +1090,8 @@ void SidebarClass::Blit_Sidebar(bool complete)
 		}
 
 		if (Map.LastDrawRect == RECT_NONE && !complete) {
-			Rect credits(0, 0, SIDE_WIDTH, CREDITS_HEIGHT);
-			Rect body(0, SIDE_BODY_Y, SIDE_WIDTH, SidebarSurface->Get_Height() - SIDE_BODY_Y);
+			Rect credits(0, 0, UI_Art(SIDE_WIDTH), UI_Art(CREDITS_HEIGHT));
+			Rect body(0, UI_Art(SIDE_BODY_Y), UI_Art(SIDE_WIDTH), SidebarSurface->Get_Height() - UI_Art(SIDE_BODY_Y));
 			VisibleSurface->Blit_From(Sidebar_To_Frame(credits), *SidebarSurface, credits);
 			VisibleSurface->Blit_From(Sidebar_To_Frame(body), *SidebarSurface, body);
 		} else if (!IsToBlitSidebar) {
@@ -1857,7 +1912,7 @@ void SidebarClass::StripClass::Draw_It(bool complete)
 	if (IsToRedraw || complete) {
 		IsToRedraw = false;
 		IsToBlitSidebar = true;
-		Rect cliprect(0, SIDE_Y, SIDE_WIDTH, SidebarSurface->Get_Height() - SIDE_Y);
+		Rect cliprect(0, UI_Art(SIDE_Y), UI_Art(SIDE_WIDTH), SidebarSurface->Get_Height() - UI_Art(SIDE_Y));
 
 		/*
 		**	Redraw the scroll buttons.
@@ -1873,8 +1928,8 @@ void SidebarClass::StripClass::Draw_It(bool complete)
 			ShapeSet const * shapefile = NULL;
 
 			int index = i+TopIndex;
-			int x = X;
-			int y = COLUMN_ONE_Y + i * OBJECT_HEIGHT;
+			int x = UI_Art(X);
+			int y = UI_Art(COLUMN_ONE_Y + i * OBJECT_HEIGHT);
 
 			bool production = false;
 			bool completed = false;
@@ -1888,7 +1943,7 @@ void SidebarClass::StripClass::Draw_It(bool complete)
 			**	If the strip is scrolling, then the offset is adjusted accordingly.
 			*/
 			if (IsScrolling) {
-				y -= OBJECT_HEIGHT - Slid;
+				y -= UI_Art(OBJECT_HEIGHT - Slid);
 			}
 
 			char const * name = NULL;
@@ -1990,7 +2045,7 @@ void SidebarClass::StripClass::Draw_It(bool complete)
 			if (shapefile != LogoShapes) {
 
 				if (shapefile != NULL) {
-					Draw_Shape(*SidebarSurface, *CameoDrawer, shapefile, 0, Point2D(x, y), cliprect, ShapeFlags_Type(SHAPE_WIN_REL));
+					Draw_Shape(*SidebarSurface, *CameoDrawer, UI_Art_Shape(shapefile), 0, Point2D(x, y), cliprect, ShapeFlags_Type(SHAPE_WIN_REL));
 				}
 
 				/*
@@ -1998,12 +2053,12 @@ void SidebarClass::StripClass::Draw_It(bool complete)
 				**	unavailable.
 				*/
 				if (darken) {
-					Draw_Shape(*SidebarSurface, *SidebarDrawer, DarkenShapes, 0, Point2D(x, y), cliprect, ShapeFlags_Type(SHAPE_WIN_REL|SHAPE_DARKEN));
+					Draw_Shape(*SidebarSurface, *SidebarDrawer, UI_Art_Shape(DarkenShapes), 0, Point2D(x, y), cliprect, ShapeFlags_Type(SHAPE_WIN_REL|SHAPE_DARKEN));
 				}
 			}
 
 			if (name != NULL) {
-				Print_Cameo_Text(name, Point2D(x, y + CAMEO_TEXT_Y_OFFSET), cliprect, OBJECT_WIDTH-2);
+				Print_Cameo_Text(name, Point2D(x, y + UI_Art(CAMEO_TEXT_Y_OFFSET)), cliprect, UI_Art(OBJECT_WIDTH-2));
 			}
 
 			bool hasqueuecount = false;
@@ -2013,7 +2068,7 @@ void SidebarClass::StripClass::Draw_It(bool complete)
 				if (factory != NULL) {
 					int total = factory->Total(obj);
 					if (total > 1 || total > 0 && !factory->Is_Currently_Producing(obj)) {
-						Fancy_Text_Print("%d", *SidebarSurface, cliprect, Point2D(x + QUEUE_COUNT_X_OFFSET, y + TEXT_Y_OFFSET), Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_RIGHT|TPF_FULLSHADOW|TPF_8POINT), total);
+						Fancy_Text_Print("%d", *SidebarSurface, cliprect, Point2D(x + UI_Art(QUEUE_COUNT_X_OFFSET), y + UI_Art(TEXT_Y_OFFSET)), Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_RIGHT|TPF_FULLSHADOW|TPF_8POINT), total);
 						hasqueuecount = true;
 					}
 				}
@@ -2029,15 +2084,15 @@ void SidebarClass::StripClass::Draw_It(bool complete)
 				**	Display text showing that the object is ready to place.
 				*/
 				if (state != NULL) {
-					Fancy_Text_Print(state, *SidebarSurface, cliprect, Point2D(x + TEXT_X_OFFSET, y + TEXT_Y_OFFSET), Fetch_Scheme_By_Name("LightBlue"), TBLACK, TextPrintType(TPF_CENTER|TPF_FULLSHADOW|TPF_8POINT));
+					Fancy_Text_Print(state, *SidebarSurface, cliprect, Point2D(x + UI_Art(TEXT_X_OFFSET), y + UI_Art(TEXT_Y_OFFSET)), Fetch_Scheme_By_Name("LightBlue"), TBLACK, TextPrintType(TPF_CENTER|TPF_FULLSHADOW|TPF_8POINT));
 				}
 
 				if (!completed) {
 
 					if (!isready) {
-						Draw_Shape(*SidebarSurface, *SidebarDrawer, ClockShapes, stage + 1, Point2D(x, y), cliprect, ShapeFlags_Type(SHAPE_WIN_REL|SHAPE_TRANSLUCENT50));
+						Draw_Shape(*SidebarSurface, *SidebarDrawer, UI_Art_Shape(ClockShapes), stage + 1, Point2D(x, y), cliprect, ShapeFlags_Type(SHAPE_WIN_REL|SHAPE_TRANSLUCENT50));
 					} else {
-						Draw_Shape(*SidebarSurface, *SidebarDrawer, RechargeClockShapes, stage + 1, Point2D(x, y), cliprect, ShapeFlags_Type(SHAPE_WIN_REL|SHAPE_TRANSLUCENT50));
+						Draw_Shape(*SidebarSurface, *SidebarDrawer, UI_Art_Shape(RechargeClockShapes), stage + 1, Point2D(x, y), cliprect, ShapeFlags_Type(SHAPE_WIN_REL|SHAPE_TRANSLUCENT50));
 					}
 
 					/*
@@ -2045,9 +2100,9 @@ void SidebarClass::StripClass::Draw_It(bool complete)
 					*/
 					if (factory && !factory->Is_Building()) {
 						if (!hasqueuecount) {
-							Fancy_Text_Print(TXT_HOLD, *SidebarSurface, cliprect, Point2D(x + TEXT_X_OFFSET, y + TEXT_Y_OFFSET), Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_CENTER|TPF_FULLSHADOW|TPF_8POINT));
+							Fancy_Text_Print(TXT_HOLD, *SidebarSurface, cliprect, Point2D(x + UI_Art(TEXT_X_OFFSET), y + UI_Art(TEXT_Y_OFFSET)), Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_CENTER|TPF_FULLSHADOW|TPF_8POINT));
 						} else {
-							Fancy_Text_Print(TXT_HOLD, *SidebarSurface, cliprect, Point2D(x, y + TEXT_Y_OFFSET), Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_FULLSHADOW|TPF_8POINT));
+							Fancy_Text_Print(TXT_HOLD, *SidebarSurface, cliprect, Point2D(x, y + UI_Art(TEXT_Y_OFFSET)), Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_FULLSHADOW|TPF_8POINT));
 						}
 					}
 				}
@@ -2746,7 +2801,7 @@ void SidebarClass::Reposition_Sidebar(void)
 		button.Flag_To_Redraw();
 	};
 
-	Point2D first = Sidebar_To_Frame(Point2D(BUTTON_ONE_X, SIDE_Y + BUTTON_ONE_Y));
+	Point2D first = Sidebar_To_Frame(Point2D(UI_Art(BUTTON_ONE_X), UI_Art(SIDE_Y + BUTTON_ONE_Y)));
 	Repair.Set_Position(first.X, first.Y);
 	Repair.DrawOffsetY = BUTTON_DRAW_Y * scale;
 	fit(Repair);
@@ -2778,16 +2833,16 @@ void SidebarClass::Reposition_Sidebar(void)
 
 		for (int col = 0; col < COLUMNS; col++) {
 
-			Point2D up = Sidebar_To_Frame(Point2D(Column[col].X + StripClass::UP_X_OFFSET, arrowy));
+			Point2D up = Sidebar_To_Frame(Point2D(UI_Art(Column[col].X + StripClass::UP_X_OFFSET), UI_Art(arrowy)));
 			StripClass::UpButton[col].Set_Position(up.X, up.Y);
 			fit(StripClass::UpButton[col]);
 
-			Point2D down = Sidebar_To_Frame(Point2D(Column[col].X + StripClass::DOWN_X_OFFSET, arrowy));
+			Point2D down = Sidebar_To_Frame(Point2D(UI_Art(Column[col].X + StripClass::DOWN_X_OFFSET), UI_Art(arrowy)));
 			StripClass::DownButton[col].Set_Position(down.X, down.Y);
 			fit(StripClass::DownButton[col]);
 
 			for (int i = 0; i < Map.Max_Visible(); i++) {
-				Rect slot = Sidebar_To_Frame(Rect(Column[col].X, SIDE_Y + Column[col].Y + (StripClass::OBJECT_HEIGHT * i), StripClass::OBJECT_WIDTH, StripClass::OBJECT_HEIGHT));
+				Rect slot = Sidebar_To_Frame(Rect(UI_Art(Column[col].X), UI_Art(SIDE_Y + Column[col].Y + (StripClass::OBJECT_HEIGHT * i)), UI_Art(StripClass::OBJECT_WIDTH), UI_Art(StripClass::OBJECT_HEIGHT)));
 				StripClass::SelectButton[col][i].Set_Position(slot.X, slot.Y);
 				StripClass::SelectButton[col][i].Set_Size(slot.Width, slot.Height);
 				StripClass::SelectButton[col][i].Flag_To_Redraw();
@@ -2869,8 +2924,8 @@ const char * SidebarClass::Help_Text(int id)
 int SidebarClass::Max_Visible(void)
 {
 	if (SidebarSurface != NULL && SidebarShape != NULL) {
-		int height = SidebarSurface->Get_Height() - SIDE_Y;
-		int fits = (height - SidebarBottomShape->Get_Height() - SidebarShape->Get_Height()) / SidebarMiddleShape->Get_Height();
+		int height = SidebarSurface->Get_Height() - UI_Art(SIDE_Y);
+		int fits = (height - UI_Art_Shape(SidebarBottomShape)->Get_Height() - UI_Art_Shape(SidebarShape)->Get_Height()) / UI_Art_Shape(SidebarMiddleShape)->Get_Height();
 		return(std::min(fits, int(StripClass::MAX_SLOTS)));
 	}
 	return(StripClass::MAX_VISIBLE);

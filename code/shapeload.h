@@ -28,6 +28,10 @@ ShapeSource Fetch_Shape_Source(char const * name);
 // The scale a fetched shape was recognised at; 1 for an archived or unknown shape.
 int Shape_Scale(ShapeSet const * shape);
 
+// The scale an HD pack in the searched folders declares for the interface, or 1 when no pack
+// declares one or the overrides are switched off. Read from the first HDPACK.INI found.
+int Pack_UI_Scale(void);
+
 // Whether loose files are looked for at all. On until the AssetOverrides setting says otherwise.
 void Enable_Shape_Overrides(bool enabled);
 bool Shape_Overrides_Enabled(void);
