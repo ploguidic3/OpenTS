@@ -108,11 +108,17 @@ class ShapeCodec(unittest.TestCase):
                 self.assertEqual(big.pixels[y * big.width + x],
                                  frame.pixels[(y // 2) * frame.width + (x // 2)])
 
-    def test_a_frame_too_large_to_describe_is_refused(self):
+    def test_a_frame_too_large_to_describe_records_zero(self):
         huge = shp.Shape(400, 400, 0)
         huge.frames.append(shp.Frame(0, 0, 400, 400, 0, (0, 0, 0), bytes(400 * 400)))
-        with self.assertRaises(shp.ShapeError):
-            shp.write(huge)
+
+        written = shp.write(huge)
+        size = struct.unpack_from("<H", written, shp.HEADER_SIZE + 10)[0]
+        offset = struct.unpack_from("<i", written, shp.HEADER_SIZE + shp.DATA_OFFSET)[0]
+
+        self.assertEqual(size, 0)
+        self.assertNotEqual(offset, 0)
+        self.assertEqual(shp.read(written).frames[0].pixels, huge.frames[0].pixels)
 
 
 class FontCodec(unittest.TestCase):

@@ -44,4 +44,17 @@ SIDE1.SHP=2
 
 The scale is recorded with the shape. On its own it changes nothing; the interface artwork is the one place it is acted on, as [`HDPACK.INI`](/formats/hdpack-ini/) describes. A theater or a side that mounts and drops its own archives changes nothing here: a loose file is found regardless of what is mounted, and is not released when a theater's archives are.
 
+## The size a frame record states
+
+Each frame record carries the size of its own data in a sixteen-bit field. A frame of more
+than 65535 bytes cannot be stated in it, which artwork at twice the original size reaches:
+an enlarged sidebar backdrop is opaque, so run-encoding it saves nothing, and it is four
+times the bytes of the artwork it came from.
+
+The engine finds a frame by the offset in its record and decodes it by the width and height
+beside it; it never reads the size. Packs built by the interface artwork pipeline therefore
+state zero for a frame too large to describe, rather than a truncated number that would read
+as a valid size. A reader that trusts the field will see zero for those frames and should
+fall back to the offset, as the engine does.
+
 For a BuildingType, `Image=` in `art.ini [<Image ID>]` selects the basename of the main SHP. It does not change the building's Image ID or the section used by other building art keys.

@@ -150,15 +150,13 @@ def write(shape: Shape) -> bytes:
     offset = HEADER_SIZE + count * RECORD_SIZE
 
     for frame, body in zip(shape.frames, encoded):
-        # The record stores the size unsigned, which is how it is read back above. The
-        # engine never consults it; its blitter walks the rows by their own prefixes.
-        if len(body) > 0xFFFF:
-            raise ShapeError(
-                f"a frame of {frame.width}x{frame.height} encodes to {len(body)} bytes, "
-                "which its record cannot describe"
-            )
+        # The field is sixteen bits, which an enlarged backdrop outgrows. The engine finds
+        # a frame by its offset and never reads the size, so one too large to describe
+        # records zero rather than a truncated number that would read as valid.
+        described = len(body) if len(body) <= 0xFFFF else 0
+
         out += struct.pack("<hhhhhH", frame.x, frame.y, frame.width, frame.height,
-                           frame.flags, len(body))
+                           frame.flags, described)
         out += bytes(frame.color[:3]).ljust(3, b"\0")
         out += b"\0" * 5
         out += struct.pack("<i", offset if body else 0)
