@@ -50,12 +50,17 @@ def make_shape(frames: int = 2, width: int = 6, height: int = 4, rle: bool = Tru
     return shape
 
 
+# The shipped fonts draw with indices spread across the sixteen rather than the lowest few:
+# one uses 0 to 3, another 0, 1 and 11, another 0, 2, 3 and 11 to 15.
+FONT_LEVELS = (0, 1, 2, 3, 11, 12, 15)
+
+
 def make_font(glyphs: int = 20) -> fnt.Font:
     font = fnt.Font(max_width=6, max_height=8)
     for index in range(glyphs):
         width = 3 + index % 4
         height = 2 + index % 3
-        pixels = bytes((1 + (x + y + index) % 4) if (x + y) % 2 == 0 else 0
+        pixels = bytes(FONT_LEVELS[(x + y + index) % len(FONT_LEVELS)] if (x + y) % 2 == 0 else 0
                        for y in range(height) for x in range(width))
         font.glyphs.append(fnt.Glyph(width, index % 3, height, pixels))
     return font
@@ -281,6 +286,25 @@ class FontSheets(unittest.TestCase):
                 for x in range(after.width):
                     self.assertEqual(after.pixels[y * after.width + x],
                                      before.pixels[(y // 2) * before.width + (x // 2)])
+
+    def test_the_indices_a_font_draws_with_survive(self):
+        original = make_font(glyphs=32)
+        used = sorted({value for glyph in original.glyphs for value in glyph.pixels})
+
+        with TemporaryDirectory() as scratch:
+            work = Path(scratch)
+            source = work / "TEST.FNT"
+            source.write_bytes(fnt.write(original))
+
+            folder = work / "sheet"
+            fnt2png.export(source, folder)
+            sheet = folder / "sheet.png"
+            sheet.write_bytes(png.write(upscale_ui.repeat(png.read(sheet.read_bytes()), 2)))
+
+            built = png2fnt.build(folder, 2)
+
+        self.assertIn(15, used)
+        self.assertEqual(sorted({value for glyph in built.glyphs for value in glyph.pixels}), used)
 
     def test_the_written_font_reads_back_as_a_font(self):
         original = make_font(glyphs=8)

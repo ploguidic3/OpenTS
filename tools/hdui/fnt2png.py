@@ -55,6 +55,9 @@ def metadata(font: fnt.Font, name: str) -> dict:
         "rows": rows,
         "cell_width": cell_width,
         "cell_height": cell_height,
+        # A font draws with a handful of the sixteen indices, and which ones is particular
+        # to it. The encoder snaps an enlarged sheet back to these rather than to a guess.
+        "levels": sorted({value for glyph in font.glyphs for value in glyph.pixels}) or [0],
         "glyphs": [
             {"width": glyph.width, "first_row": glyph.first_row, "height": glyph.height}
             for glyph in font.glyphs

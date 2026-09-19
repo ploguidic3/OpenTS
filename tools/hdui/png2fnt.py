@@ -24,10 +24,13 @@ def _snap(value: int, levels: tuple[int, ...]) -> int:
     return min(levels, key=lambda level: abs(level - value))
 
 
-def build(folder: Path, scale: int, levels: tuple[int, ...] = (0, 1, 2, 3, 4)) -> fnt.Font:
+def build(folder: Path, scale: int, levels: tuple[int, ...] | None = None) -> fnt.Font:
     folder = Path(folder)
     record = json.loads((folder / "font.json").read_text())
     sheet = png.read((folder / "sheet.png").read_bytes())
+
+    if levels is None:
+        levels = tuple(record.get("levels") or (0, 1, 2, 3, 4))
 
     cell_width = record["cell_width"] * scale
     cell_height = record["cell_height"] * scale
