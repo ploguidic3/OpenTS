@@ -3,6 +3,12 @@
 Build: `fork/hud-scale`. Needs a retail install under `Run/` and a 2× artwork folder built
 with `tools/hdui`. Run the Debug build with `-WIN` so the debug log is readable.
 
+Most of an installed game's archives sit inside `TIBSUN.MIX` rather than beside it, and the
+sidebar's palette is in the cached per-side archive rather than the one that shares its
+name. `tools/hdui/README.md` gives the extraction the pack build needs first; a build that
+reports no fonts, or stops on `SIDEBAR.PAL is in none of the archives given`, has been
+handed too few archives.
+
 Put the pack in a folder the game searches, with `SearchPaths=HD,INI,MIX,Maps` under
 `[Paths]` in `OPENTS.INI`, and `HDPACK.INI` in that folder carrying:
 

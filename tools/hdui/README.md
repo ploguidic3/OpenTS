@@ -23,16 +23,48 @@ smears six-pixel type. Name one with `OPENTS_XBRZ`; it is called as
 `<program> -s <scale> <in.png> <out.png>`. Without one the glyph pixels are
 repeated, which stays readable and exactly on the grid.
 
+## Unpack the archives first
+
+An installed game keeps few of its archives loose. `TIBSUN.MIX` carries others
+inside it, and the reader here opens a file rather than a member, so the nested
+ones are extracted before a pack is built:
+
+```powershell
+python mixextract.py raw --mix Run\TIBSUN.MIX --name CONQUER.MIX --name LOCAL.MIX --name CACHE.MIX
+python mixextract.py raw --mix Run\SIDECD01.MIX --mix Run\TIBSUN.MIX --mix raw\CONQUER.MIX --name SIDEC01.MIX
+```
+
+`SIDEC01.MIX` is the archive to take the sidebar from. The engine mounts two
+per-side families -- `SIDECD%02d.MIX` and `SIDEC%02d.MIX` -- and caches only the
+second (`code/init.cpp:6355`), which is the one `MFCD::Retrieve` can answer from,
+so `SIDEBAR.PAL` and the sidebar shapes come from there. `01` is GDI and `02`
+Nod. With Firestorm enabled the engine reads `E%02dSCD%02d.MIX` instead.
+
+`mixextract.py` reports which names it found, so it doubles as the way to ask an
+archive what it holds. The index stores a checksum rather than a name, so a name
+can be tested but the members cannot be listed.
+
 ## Build a pack
 
 ```powershell
-python build_hdui_pack.py HD --mix Run\TIBSUN.MIX --mix Run\CONQUER.MIX --scale 2
+python build_hdui_pack.py HD --mix raw\SIDEC01.MIX --mix raw\CACHE.MIX --mix raw\LOCAL.MIX --mix Run\TIBSUN.MIX --mix raw\CONQUER.MIX --scale 2
 ```
 
 The archives are searched in the order given and the first holding a name answers
-for it, as the engine mounts them. Names it cannot find are listed at the end and
-left out of the manifest. `--cameo GACNST.SHP` adds a cameo; the engine takes a
-pack that carries only some of them and enlarges the rest as it draws.
+for it, as the engine mounts them. `SIDEC01.MIX` goes first so the sidebar
+artwork and its palette answer before anything else carrying those names; the
+fonts come from `CACHE.MIX` or `LOCAL.MIX`. Names it cannot find are listed at
+the end and left out of the manifest. `--cameo GACNST.SHP` adds a cameo; the
+engine takes a pack that carries only some of them and enlarges the rest as it
+draws.
+
+`SIDEGDI1.SHP`, `SIDEGDI2.SHP` and `SIDEGDI3.SHP` are reported missing and should
+be. They are a fallback the engine reaches for only when the sidebar shape is
+absent (`code/sidebar.cpp:2784`); `SIDE1.SHP` and its two companions are what it
+draws.
+
+A pack built from `SIDEC01.MIX` holds GDI's sidebar. A loose file answers whoever
+is playing, so that artwork is drawn for Nod as well.
 
 Useful flags:
 
