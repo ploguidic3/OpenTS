@@ -83,6 +83,18 @@ class ShapeCodec(unittest.TestCase):
         again = shp.read(shp.write(original))
         self.assertEqual(again.frames[1].pixels, b"")
 
+    def test_a_frame_past_the_signed_bound_round_trips(self):
+        # An enlarged sidebar backdrop is the case: opaque, so RLE buys nothing, and four
+        # times the pixels of the artwork it came from.
+        original = shp.Shape(width=336, height=102, flags=0)
+        pixels = bytes((index % 255) + 1 for index in range(336 * 102))
+        original.frames.append(shp.Frame(0, 0, 336, 102, 0, (1, 2, 3), pixels))
+
+        again = shp.read(shp.write(original))
+
+        self.assertEqual(len(pixels), 34272)
+        self.assertEqual(again.frames[0].pixels, pixels)
+
     def test_magnify_doubles_offsets_and_pixels(self):
         original = make_shape(frames=1, width=3, height=2)
         grown = shp.magnify(original, 2)

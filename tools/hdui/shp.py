@@ -150,7 +150,9 @@ def write(shape: Shape) -> bytes:
     offset = HEADER_SIZE + count * RECORD_SIZE
 
     for frame, body in zip(shape.frames, encoded):
-        if len(body) > 0x7FFF:
+        # The record stores the size unsigned, which is how it is read back above. The
+        # engine never consults it; its blitter walks the rows by their own prefixes.
+        if len(body) > 0xFFFF:
             raise ShapeError(
                 f"a frame of {frame.width}x{frame.height} encodes to {len(body)} bytes, "
                 "which its record cannot describe"
