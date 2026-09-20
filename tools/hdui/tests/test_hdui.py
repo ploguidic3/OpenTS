@@ -149,6 +149,24 @@ class FontCodec(unittest.TestCase):
         self.assertLess(offsets, widths)
         self.assertLess(widths, heights)
 
+    def test_the_header_states_the_packing_the_pixels_use(self):
+        """The engine branches on the compression byte to decide how to read a row, so a
+        font labelled one way while packed the other draws as garbage."""
+        for compress, per_row in ((0, lambda w: (w + 1) // 2), (fnt.COMPRESS_NEW, lambda w: w)):
+            with self.subTest(compress=compress):
+                font = fnt.Font(max_width=6, max_height=4, compress=compress)
+                font.glyphs.append(fnt.Glyph(5, 1, 2, bytes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])))
+
+                data = fnt.write(font)
+
+                self.assertEqual(data[2], compress)
+                data_block = struct.unpack_from("<H", data, 10)[0]
+                self.assertEqual(len(data) - data_block, per_row(5) * 2)
+
+                again = fnt.read(data)
+                self.assertEqual(again.compress, compress)
+                self.assertEqual(again.glyphs[0].pixels, font.glyphs[0].pixels)
+
     def test_magnify_doubles_the_metrics(self):
         original = make_font(glyphs=4)
         grown = fnt.magnify(original, 2)

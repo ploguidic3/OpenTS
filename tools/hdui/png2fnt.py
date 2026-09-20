@@ -43,7 +43,8 @@ def build(folder: Path, scale: int, levels: tuple[int, ...] | None = None) -> fn
     if sheet.mode not in (png.GREY, png.RGB, png.RGBA):
         raise EncodeError(f"a {sheet.mode} sheet cannot be read as glyph values")
 
-    font = fnt.Font(record["max_width"] * scale, record["max_height"] * scale)
+    font = fnt.Font(record["max_width"] * scale, record["max_height"] * scale,
+                    record.get("compress", 0))
 
     for index, entry in enumerate(record["glyphs"]):
         glyph = fnt.Glyph(entry["width"] * scale, entry["first_row"] * scale,

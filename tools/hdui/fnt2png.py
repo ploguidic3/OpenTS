@@ -51,6 +51,7 @@ def metadata(font: fnt.Font, name: str) -> dict:
         "name": name,
         "max_width": font.max_width,
         "max_height": font.max_height,
+        "compress": font.compress,
         "columns": COLUMNS,
         "rows": rows,
         "cell_width": cell_width,

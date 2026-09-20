@@ -3,8 +3,12 @@
 The layout is the one ``WWFontClass`` reads (``code/wwfont.h``, ``Print`` in
 ``code/wwfont.cpp``): a sixteen byte header naming four blocks, then a glyph
 offset, a width, a height pair and the packed pixels for each glyph. A glyph's
-pixels are palette indices packed two to a byte, low nibble first, with
-``(width + 1) // 2`` bytes per row and only the rows that carry ink.
+pixels are palette indices and only the rows that carry ink are stored. How they
+are stored depends on the header's compression byte, which ``Print`` branches on:
+mode 2 gives a byte per pixel, anything else packs two to a byte, low nibble
+first, with ``(width + 1) // 2`` bytes per row. A font keeps the mode it came in
+with, because the two are read by different code and a font labelled as one while
+holding the other draws as garbage.
 """
 
 from __future__ import annotations
@@ -36,11 +40,12 @@ class Glyph:
 class Font:
     max_width: int = 0
     max_height: int = 0
+    compress: int = 0            # Header byte; 2 means a byte per pixel.
     glyphs: list[Glyph] = dataclasses.field(default_factory=list)
 
 
-def _unpack_rows(data: bytes, offset: int, width: int, height: int) -> bytes:
-    stride = (width + 1) // 2
+def _unpack_rows(data: bytes, offset: int, width: int, height: int, nibble: bool) -> bytes:
+    stride = (width + 1) // 2 if nibble else width
     out = bytearray(width * height)
 
     for y in range(height):
@@ -48,13 +53,19 @@ def _unpack_rows(data: bytes, offset: int, width: int, height: int) -> bytes:
         if start + stride > len(data):
             raise FontError("a glyph's pixels run past the end of the file")
         for x in range(width):
-            packed = data[start + (x >> 1)]
-            out[y * width + x] = (packed & 0x0F) if (x & 1) == 0 else (packed >> 4)
+            if nibble:
+                packed = data[start + (x >> 1)]
+                out[y * width + x] = (packed & 0x0F) if (x & 1) == 0 else (packed >> 4)
+            else:
+                out[y * width + x] = data[start + x]
 
     return bytes(out)
 
 
-def _pack_rows(pixels: bytes, width: int, height: int) -> bytes:
+def _pack_rows(pixels: bytes, width: int, height: int, nibble: bool) -> bytes:
+    if not nibble:
+        return bytes(pixels)
+
     stride = (width + 1) // 2
     out = bytearray(stride * height)
 
@@ -84,7 +95,8 @@ def read(data: bytes) -> Font:
         raise FontError("the information block is outside the file")
 
     font = Font(max_width=data[info_offset + INFO_MAX_WIDTH],
-                max_height=data[info_offset + INFO_MAX_HEIGHT])
+                max_height=data[info_offset + INFO_MAX_HEIGHT],
+                compress=compress)
 
     for index in range(count):
         offset = struct.unpack_from("<H", data, offset_block + index * 2)[0]
@@ -98,7 +110,7 @@ def read(data: bytes) -> Font:
 
         glyph = Glyph(width, first_row, height)
         if width > 0 and height > 0:
-            glyph.pixels = _unpack_rows(data, offset, width, height)
+            glyph.pixels = _unpack_rows(data, offset, width, height, compress != COMPRESS_NEW)
         font.glyphs.append(glyph)
 
     return font
@@ -115,12 +127,15 @@ def write(font: Font) -> bytes:
     height_block = width_block + count
     data_block = height_block + count * 2
 
+    nibble = font.compress != COMPRESS_NEW
+
     bodies = []
     offsets = []
     position = 0
     for glyph in font.glyphs:
-        offsets.append(position)
-        body = _pack_rows(glyph.pixels, glyph.width, glyph.height) if glyph.pixels else b""
+        # Mode 2 states an offset from the glyph data, anything else from the file.
+        offsets.append(position if not nibble else data_block + position)
+        body = _pack_rows(glyph.pixels, glyph.width, glyph.height, nibble) if glyph.pixels else b""
         bodies.append(body)
         position += len(body)
 
@@ -129,7 +144,7 @@ def write(font: Font) -> bytes:
         raise FontError(f"the font would be {total} bytes, which its header cannot describe")
 
     out = bytearray(total)
-    struct.pack_into("<HBBHHHHH", out, 0, total, COMPRESS_NEW, 2, info_offset,
+    struct.pack_into("<HBBHHHHH", out, 0, total, font.compress, 2, info_offset,
                      offset_block, width_block, data_block, height_block)
 
     info = bytearray(INFO_SIZE)
@@ -162,7 +177,7 @@ def magnify(font: Font, factor: int) -> Font:
     if factor == 1:
         return font
 
-    grown = Font(font.max_width * factor, font.max_height * factor)
+    grown = Font(font.max_width * factor, font.max_height * factor, font.compress)
 
     for glyph in font.glyphs:
         big = Glyph(glyph.width * factor, glyph.first_row * factor, glyph.height * factor)
