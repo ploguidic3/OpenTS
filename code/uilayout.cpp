@@ -14,6 +14,8 @@
 #include "_rect.h"
 #include "_surface.h"
 #include "dbgprint.h"
+#include "data.h"
+#include "dialog.h"
 #include "dsurface.h"
 #include "font.h"
 #include "goptions.h"
@@ -76,6 +78,85 @@ int UI_Text_Factor(FontClass const * font)
 	int const factor = _Scale / (scale > 0 ? scale : 1);
 
 	return(factor < 1 ? 1 : factor);
+}
+
+
+/// <summary>
+/// How far text drawn into the HUD's own surfaces has to be magnified to match the artwork
+/// around it. A font already drawn for the artwork's scale needs none.
+/// </summary>
+int UI_Art_Text_Factor(FontClass const * font)
+{
+	int const scale = font != nullptr ? font->Get_Scale() : 1;
+	int const factor = _ArtScale / (scale > 0 ? scale : 1);
+
+	return(factor < 1 ? 1 : factor);
+}
+
+
+namespace
+{
+
+char const * Text_String_For(char const * text) { return(text); }
+char const * Text_String_For(int text) { return(Fetch_String(text)); }
+
+
+/*
+ * The scratch draws from its own corner, so the alignment flags would centre the text on
+ * that rather than on the point the caller named. They are resolved here and the text is
+ * drawn plainly.
+ */
+template<class Text>
+Point2D Art_Text_Print(Text text, Surface & surface, Rect const & rect, Point2D const & point,
+	ColorScheme * fore, int back, TextPrintType style)
+{
+	FontClass * font = Font_From_TPF(style);
+	int const factor = UI_Art_Text_Factor(font);
+
+	if (factor <= 1 || font == nullptr) {
+		return(Fancy_Text_Print(text, surface, rect, point, fore, back, style));
+	}
+
+	char const * string = Text_String_For(text);
+	if (string == nullptr) {
+		return(point);
+	}
+
+	int const width = font->String_Pixel_Width(string) + 2;
+	int const height = font->Get_Height() + 2;
+
+	Point2D corner = point;
+	if ((style & TPF_CENTER) != 0) {
+		corner.X -= (width * factor) / 2;
+	} else if ((style & TPF_RIGHT) != 0) {
+		corner.X -= width * factor;
+	}
+
+	TextPrintType const plain = TextPrintType(style & ~(TPF_CENTER | TPF_RIGHT));
+
+	auto print = [&](Surface & target, Point2D const & at) {
+		Fancy_Text_Print(string, target, target.Get_Rect(), at, fore, back, plain);
+	};
+
+	UI_Draw_Scaled(surface, corner, width, height, true, factor, print);
+
+	return(Point2D(corner.X + width * factor, corner.Y));
+}
+
+}
+
+
+Point2D UI_Art_Text_Print(char const * text, Surface & surface, Rect const & rect, Point2D const & point,
+	ColorScheme * fore, int back, TextPrintType style)
+{
+	return(Art_Text_Print(text, surface, rect, point, fore, back, style));
+}
+
+
+Point2D UI_Art_Text_Print(int text, Surface & surface, Rect const & rect, Point2D const & point,
+	ColorScheme * fore, int back, TextPrintType style)
+{
+	return(Art_Text_Print(text, surface, rect, point, fore, back, style));
 }
 
 

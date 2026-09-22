@@ -2069,7 +2069,9 @@ void SidebarClass::StripClass::Draw_It(bool complete)
 				if (factory != NULL) {
 					int total = factory->Total(obj);
 					if (total > 1 || total > 0 && !factory->Is_Currently_Producing(obj)) {
-						Fancy_Text_Print("%d", *SidebarSurface, cliprect, Point2D(x + UI_Art(QUEUE_COUNT_X_OFFSET), y + UI_Art(TEXT_Y_OFFSET)), Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_RIGHT|TPF_FULLSHADOW|TPF_8POINT), total);
+						char count[16];
+						snprintf(count, sizeof(count), "%d", total);
+						UI_Art_Text_Print(count, *SidebarSurface, cliprect, Point2D(x + UI_Art(QUEUE_COUNT_X_OFFSET), y + UI_Art(TEXT_Y_OFFSET)), Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_RIGHT|TPF_FULLSHADOW|TPF_8POINT));
 						hasqueuecount = true;
 					}
 				}
@@ -2085,7 +2087,7 @@ void SidebarClass::StripClass::Draw_It(bool complete)
 				**	Display text showing that the object is ready to place.
 				*/
 				if (state != NULL) {
-					Fancy_Text_Print(state, *SidebarSurface, cliprect, Point2D(x + UI_Art(TEXT_X_OFFSET), y + UI_Art(TEXT_Y_OFFSET)), Fetch_Scheme_By_Name("LightBlue"), TBLACK, TextPrintType(TPF_CENTER|TPF_FULLSHADOW|TPF_8POINT));
+					UI_Art_Text_Print(state, *SidebarSurface, cliprect, Point2D(x + UI_Art(TEXT_X_OFFSET), y + UI_Art(TEXT_Y_OFFSET)), Fetch_Scheme_By_Name("LightBlue"), TBLACK, TextPrintType(TPF_CENTER|TPF_FULLSHADOW|TPF_8POINT));
 				}
 
 				if (!completed) {
@@ -2101,9 +2103,9 @@ void SidebarClass::StripClass::Draw_It(bool complete)
 					*/
 					if (factory && !factory->Is_Building()) {
 						if (!hasqueuecount) {
-							Fancy_Text_Print(TXT_HOLD, *SidebarSurface, cliprect, Point2D(x + UI_Art(TEXT_X_OFFSET), y + UI_Art(TEXT_Y_OFFSET)), Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_CENTER|TPF_FULLSHADOW|TPF_8POINT));
+							UI_Art_Text_Print(TXT_HOLD, *SidebarSurface, cliprect, Point2D(x + UI_Art(TEXT_X_OFFSET), y + UI_Art(TEXT_Y_OFFSET)), Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_CENTER|TPF_FULLSHADOW|TPF_8POINT));
 						} else {
-							Fancy_Text_Print(TXT_HOLD, *SidebarSurface, cliprect, Point2D(x, y + UI_Art(TEXT_Y_OFFSET)), Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_FULLSHADOW|TPF_8POINT));
+							UI_Art_Text_Print(TXT_HOLD, *SidebarSurface, cliprect, Point2D(x, y + UI_Art(TEXT_Y_OFFSET)), Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_FULLSHADOW|TPF_8POINT));
 						}
 					}
 				}
@@ -3002,7 +3004,7 @@ void Print_Cameo_Text(char const * string, Point2D const & point, Rect const & c
 					len++;
 				}
 
-				Fancy_Text_Print(&buffer[len], *SidebarSurface, cliprect, drawpoint, Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_FULLSHADOW|TPF_EFNT));
+				UI_Art_Text_Print(&buffer[len], *SidebarSurface, cliprect, drawpoint, Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_FULLSHADOW|TPF_EFNT));
 				buffer[len] = '\0';
 				drawpoint.Y -= font->Get_Height();
 				w = font->String_Pixel_Width(buffer);
@@ -3015,7 +3017,7 @@ void Print_Cameo_Text(char const * string, Point2D const & point, Rect const & c
 			finish:;
 		}
 
-		Fancy_Text_Print(string, *SidebarSurface, cliprect, drawpoint, Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_FULLSHADOW|TPF_EFNT));
+		UI_Art_Text_Print(string, *SidebarSurface, cliprect, drawpoint, Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_FULLSHADOW|TPF_EFNT));
 	}
 }
 

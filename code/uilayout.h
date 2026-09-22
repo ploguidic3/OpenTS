@@ -9,10 +9,12 @@
 
 #pragma once
 
+#include "dialog.hh"
 #include "point.h"
 #include "rect.h"
 #include "surface.h"
 
+class ColorScheme;
 class FontClass;
 class ShapeSet;
 
@@ -36,6 +38,17 @@ ShapeSet const * UI_Art_Shape(ShapeSet const * shape);
 
 // What text drawn in this font is magnified by to reach the frame.
 int UI_Text_Factor(FontClass const * font);
+
+// How far text has to be magnified to match the artwork on the HUD's own surfaces, which a
+// pack at the artwork's scale leaves at one.
+int UI_Art_Text_Factor(FontClass const * font);
+
+// Fancy_Text_Print into a HUD surface, magnified to the artwork around it. The point means
+// what it does there, alignment included.
+Point2D UI_Art_Text_Print(char const * text, Surface & surface, Rect const & rect, Point2D const & point,
+	ColorScheme * fore, int back, TextPrintType style);
+Point2D UI_Art_Text_Print(int text, Surface & surface, Rect const & rect, Point2D const & point,
+	ColorScheme * fore, int back, TextPrintType style);
 
 // Resolves the HUD scale from the video settings. Call it before the surfaces are
 // allocated for a resolution, since the layout below follows it.
