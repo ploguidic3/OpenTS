@@ -305,6 +305,33 @@ class FontSheets(unittest.TestCase):
                     self.assertEqual(after.pixels[y * after.width + x],
                                      before.pixels[(y // 2) * before.width + (x // 2)])
 
+    def test_an_enlarged_font_is_packed_to_fit_its_offsets(self):
+        """A glyph offset is sixteen bits, so a font that states a byte per pixel is still
+        built two to a byte once enlarged; the wider form outgrows the field."""
+        original = make_font(glyphs=64)
+        original.compress = fnt.COMPRESS_NEW
+
+        with TemporaryDirectory() as scratch:
+            work = Path(scratch)
+            source = work / "TEST.FNT"
+            source.write_bytes(fnt.write(original))
+
+            folder = work / "sheet"
+            fnt2png.export(source, folder)
+            sheet = folder / "sheet.png"
+            sheet.write_bytes(png.write(upscale_ui.repeat(png.read(sheet.read_bytes()), 2)))
+
+            built = png2fnt.build(folder, 2)
+            data = fnt.write(built)
+
+        self.assertNotEqual(built.compress, fnt.COMPRESS_NEW)
+
+        wanted = fnt.magnify(original, 2)
+        again = fnt.read(data)
+        for expected, after in zip(wanted.glyphs, again.glyphs):
+            self.assertEqual((after.width, after.height), (expected.width, expected.height))
+            self.assertEqual(after.pixels, expected.pixels)
+
     def test_the_indices_a_font_draws_with_survive(self):
         original = make_font(glyphs=32)
         used = sorted({value for glyph in original.glyphs for value in glyph.pixels})

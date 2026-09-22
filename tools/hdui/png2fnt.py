@@ -43,8 +43,10 @@ def build(folder: Path, scale: int, levels: tuple[int, ...] | None = None) -> fn
     if sheet.mode not in (png.GREY, png.RGB, png.RGBA):
         raise EncodeError(f"a {sheet.mode} sheet cannot be read as glyph values")
 
-    font = fnt.Font(record["max_width"] * scale, record["max_height"] * scale,
-                    record.get("compress", 0))
+    # A glyph offset is sixteen bits, so an enlarged font is packed two indices to a byte
+    # whatever the font it came from used: a byte per pixel outgrows the field at twice the
+    # size, and the sixteen indices a font draws with lose nothing to the narrower form.
+    font = fnt.Font(record["max_width"] * scale, record["max_height"] * scale, compress=0)
 
     for index, entry in enumerate(record["glyphs"]):
         glyph = fnt.Glyph(entry["width"] * scale, entry["first_row"] * scale,

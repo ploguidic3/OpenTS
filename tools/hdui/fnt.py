@@ -66,6 +66,9 @@ def _pack_rows(pixels: bytes, width: int, height: int, nibble: bool) -> bytes:
     if not nibble:
         return bytes(pixels)
 
+    if any(value > 0x0F for value in pixels):
+        raise FontError("a glyph draws with an index a nibble cannot hold")
+
     stride = (width + 1) // 2
     out = bytearray(stride * height)
 
