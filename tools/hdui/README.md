@@ -63,6 +63,8 @@ be. They are a fallback the engine reaches for only when the sidebar shape is
 absent (`code/sidebar.cpp:2784`); `SIDE1.SHP` and its two companions are what it
 draws.
 
+Each shape is taken to colour and back through the palette the engine draws it with: `MOUSEPAL.PAL` for `MOUSE.SHP`, `CAMEO.PAL` for a cameo named with `--cameo`, and `SIDEBAR.PAL` for the rest. A shape whose palette is in none of the archives is reported missing rather than built through the wrong one.
+
 A pack built from `SIDEC01.MIX` holds GDI's sidebar. A loose file answers whoever
 is playing, so that artwork is drawn for Nod as well.
 

@@ -435,6 +435,7 @@ class PackBuild(unittest.TestCase):
             work = Path(scratch)
             pal.save(work / "SIDEBAR.PAL")
             members["SIDEBAR.PAL"] = (work / "SIDEBAR.PAL").read_bytes()
+            members["MOUSEPAL.PAL"] = members["SIDEBAR.PAL"]
 
             archive = work / "TEST.MIX"
             mixreader.write_mix(archive, members)
@@ -460,6 +461,49 @@ class PackBuild(unittest.TestCase):
 
             font = fnt.read((out / "8POINT.FNT").read_bytes())
             self.assertEqual(font.max_height, fnt.read(members["8POINT.FNT"]).max_height * 2)
+
+    def test_the_pointer_goes_through_its_own_palette(self):
+        """The engine draws MOUSE.SHP through MOUSEPAL.PAL. Quantised through the sidebar's
+        palette instead, any index sharing a colour there comes back as a different one."""
+        fine = make_palette()
+        coarse = palette_module.Palette([fine.colors[(index // 8) * 8] for index in range(256)])
+        source = make_shape(frames=2)
+
+        with TemporaryDirectory() as scratch:
+            work = Path(scratch)
+            coarse.save(work / "SIDEBAR.PAL")
+            fine.save(work / "MOUSEPAL.PAL")
+            members = {
+                "MOUSE.SHP": shp.write(source),
+                "SIDEBAR.PAL": (work / "SIDEBAR.PAL").read_bytes(),
+                "MOUSEPAL.PAL": (work / "MOUSEPAL.PAL").read_bytes(),
+            }
+            archive = work / "TEST.MIX"
+            mixreader.write_mix(archive, members)
+
+            built = build_hdui_pack.build([archive], work / "HD", scale=2, upscale=False)
+            self.assertIn("MOUSE.SHP", built["shapes"])
+
+            grown = shp.read((work / "HD" / "MOUSE.SHP").read_bytes())
+            wanted = shp.magnify(source, 2)
+            for after, expected in zip(grown.frames, wanted.frames):
+                self.assertEqual(after.pixels, expected.pixels)
+
+    def test_a_shape_without_its_palette_is_left_out(self):
+        with TemporaryDirectory() as scratch:
+            work = Path(scratch)
+            make_palette().save(work / "SIDEBAR.PAL")
+            members = {
+                "MOUSE.SHP": shp.write(make_shape(frames=1)),
+                "SIDEBAR.PAL": (work / "SIDEBAR.PAL").read_bytes(),
+            }
+            archive = work / "TEST.MIX"
+            mixreader.write_mix(archive, members)
+
+            built = build_hdui_pack.build([archive], work / "HD", scale=2, upscale=False)
+
+        self.assertNotIn("MOUSE.SHP", built["shapes"])
+        self.assertIn("MOUSE.SHP (no MOUSEPAL.PAL)", built["missing"])
 
     def test_a_destination_inside_run_is_refused(self):
         with TemporaryDirectory() as scratch:

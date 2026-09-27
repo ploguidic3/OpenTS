@@ -40,6 +40,22 @@ FONTS = ("12METFNT.FNT", "KIA6PT.FNT", "6POINT.FNT", "8POINT.FNT", "GRAD6FNT.FNT
 
 PALETTE_NAME = "SIDEBAR.PAL"
 
+# The engine draws the pointer and the cameos through palettes of their own
+# (code/init.cpp loads MOUSEPAL.PAL and CAMEO.PAL beside SIDEBAR.PAL). A frame has to be
+# turned into colour and back through the palette it is drawn with, or an upscaler's
+# blended edges come back as indices that mean something else on screen.
+MOUSE_PALETTE = "MOUSEPAL.PAL"
+CAMEO_PALETTE = "CAMEO.PAL"
+
+
+def palette_for(name: str, cameo: bool = False) -> str:
+    """Names the palette the engine draws a shape through."""
+    if cameo:
+        return CAMEO_PALETTE
+    if name.upper() == "MOUSE.SHP":
+        return MOUSE_PALETTE
+    return PALETTE_NAME
+
 
 class BuildError(RuntimeError):
     pass
@@ -93,7 +109,7 @@ def build(archives, out_dir: Path, scale: int = 2, cameos=(), upscale: bool = Tr
         raise BuildError("the destination is inside Run/, which holds the retail data")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    names = list(SHAPES) + list(cameos) + list(FONTS) + [PALETTE_NAME]
+    names = list(SHAPES) + list(cameos) + list(FONTS) + [PALETTE_NAME, MOUSE_PALETTE, CAMEO_PALETTE]
 
     with tempfile.TemporaryDirectory() as scratch:
         work = Path(work_dir) if work_dir else Path(scratch)
@@ -102,11 +118,13 @@ def build(archives, out_dir: Path, scale: int = 2, cameos=(), upscale: bool = Tr
 
         if PALETTE_NAME not in found:
             raise BuildError(f"{PALETTE_NAME} is in none of the archives given")
-        pal = palette_module.Palette.load(found[PALETTE_NAME])
+        palettes = {name: palette_module.Palette.load(found[name])
+                    for name in (PALETTE_NAME, MOUSE_PALETTE, CAMEO_PALETTE) if name in found}
 
         built = {"shapes": [], "fonts": [], "missing": []}
 
-        wanted = [name for name in list(SHAPES) + list(cameos) + list(FONTS) if name in found]
+        wanted = [name for name in list(SHAPES) + list(cameos) + list(FONTS)
+                  if name in found and (name in FONTS or palette_for(name, name in cameos) in palettes)]
         done = 0
 
         def report(name: str) -> None:
@@ -115,8 +133,9 @@ def build(archives, out_dir: Path, scale: int = 2, cameos=(), upscale: bool = Tr
 
         for name in list(SHAPES) + list(cameos):
             source = found.get(name)
-            if source is None:
-                built["missing"].append(name)
+            pal = palettes.get(palette_for(name, name in cameos))
+            if source is None or pal is None:
+                built["missing"].append(name if source is None else f"{name} (no {palette_for(name, name in cameos)})")
                 continue
             report(name)
             build_shape(source, out_dir / name, pal, scale, work / "shapes", upscale, model, gpu)
