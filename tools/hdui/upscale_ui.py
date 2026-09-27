@@ -59,7 +59,13 @@ def esrgan(source: Path, dest: Path, factor: int = 2, model: str = "realesr-gene
             f"{program} is not on PATH; install it or set OPENTS_REALESRGAN to its full path"
         )
 
-    dest.parent.mkdir(parents=True, exist_ok=True)
+    # Given a folder, the program writes into an existing folder and otherwise takes the
+    # output for a file name, refusing it for want of an image extension.
+    if Path(source).is_dir():
+        dest.mkdir(parents=True, exist_ok=True)
+    else:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+
     command = [program, "-i", str(source), "-o", str(dest), "-s", str(factor),
                "-n", model, "-f", "png", "-g", str(gpu)]
     result = subprocess.run(command, capture_output=True, text=True)

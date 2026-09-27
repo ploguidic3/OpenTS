@@ -7,6 +7,7 @@ cover is the upscaler itself, which is a separate program and a GPU.
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import os
 import struct
 import sys
 import unittest
@@ -364,6 +365,49 @@ class FontSheets(unittest.TestCase):
 
         again = fnt.read(data)
         self.assertEqual(again.max_width, original.max_width * 2)
+
+
+FAKE_ESRGAN = """#!/usr/bin/env python3
+# Behaves as realesrgan-ncnn-vulkan does about its output: a folder in needs a folder out
+# that already exists, and anything else is taken for a file name.
+import sys, shutil, pathlib
+args = dict(zip(sys.argv[1::2], sys.argv[2::2]))
+source, dest = pathlib.Path(args["-i"]), pathlib.Path(args["-o"])
+if source.is_dir():
+    if not dest.is_dir():
+        sys.stderr.write("invalid outputpath extension type")
+        sys.exit(255)
+    sys.path.insert(0, %r)
+    import png, upscale_ui
+    for image in source.glob("*.png"):
+        grown = upscale_ui.repeat(png.read(image.read_bytes()), int(args["-s"]))
+        (dest / image.name).write_bytes(png.write(grown))
+"""
+
+
+@unittest.skipIf(os.name == "nt", "the stand-in upscaler is a script run by its shebang")
+class Upscaling(unittest.TestCase):
+    def test_a_folder_of_frames_goes_through_the_upscaler(self):
+        with TemporaryDirectory() as scratch:
+            work = Path(scratch)
+            program = work / "fake-esrgan"
+            program.write_text(FAKE_ESRGAN % str(Path(upscale_ui.__file__).parent))
+            program.chmod(0o755)
+
+            frames = work / "frames"
+            frames.mkdir()
+            image = png.new(3, 2, png.RGB)
+            (frames / "frame0000.png").write_bytes(png.write(image))
+
+            original = upscale_ui.ESRGAN
+            upscale_ui.ESRGAN = str(program)
+            try:
+                self.assertEqual(upscale_ui.frames(frames, 2, "any-model", 0), 1)
+            finally:
+                upscale_ui.ESRGAN = original
+
+            grown = png.read((frames / "frame0000.png").read_bytes())
+            self.assertEqual((grown.width, grown.height), (6, 4))
 
 
 class Extraction(unittest.TestCase):
