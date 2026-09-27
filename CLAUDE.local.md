@@ -27,6 +27,11 @@ changes below. When they conflict, this file wins.
 - Never touch `Run/` (retail game data) and never commit anything from it.
 - Tests may not read retail assets. Synthesise bytes in the harness, as `tests/voxeldraw`
   and `tests/gamedirs` do.
+- Long-running work reports progress, above all anything run on the user's own machine
+  (GPU upscales, pack builds, extraction). Print a line per unit of work with a running
+  count, such as `[3/17] RADAR.SHP`, and flush it, so a slow step can be told from a hung
+  one. A tool that captures a child program's output replaces it with progress of its
+  own rather than going silent.
 
 ## Knowledge base
 
