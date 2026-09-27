@@ -440,7 +440,12 @@ class PackBuild(unittest.TestCase):
             mixreader.write_mix(archive, members)
 
             out = work / "HD"
-            built = build_hdui_pack.build([archive], out, scale=2, upscale=False)
+            lines = []
+            built = build_hdui_pack.build([archive], out, scale=2, upscale=False,
+                                          progress=lines.append)
+            total = len(built["shapes"]) + len(built["fonts"])
+            self.assertEqual(len(lines), total)
+            self.assertTrue(lines[-1].startswith(f"[{total}/{total}] "))
 
             self.assertEqual(built["missing"], [])
             self.assertEqual(len(built["shapes"]), len(build_hdui_pack.SHAPES))

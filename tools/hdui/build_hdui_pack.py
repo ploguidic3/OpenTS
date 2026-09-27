@@ -86,7 +86,8 @@ def build_font(source: Path, dest: Path, scale: int, work: Path, upscale: bool) 
 
 
 def build(archives, out_dir: Path, scale: int = 2, cameos=(), upscale: bool = True,
-          model: str = "realesr-general-x4v3", gpu: int = 0, work_dir: Path | None = None) -> dict:
+          model: str = "realesr-general-x4v3", gpu: int = 0, work_dir: Path | None = None,
+          progress=None) -> dict:
     out_dir = Path(out_dir)
     if any(part.lower() == "run" for part in out_dir.resolve().parts):
         raise BuildError("the destination is inside Run/, which holds the retail data")
@@ -105,21 +106,32 @@ def build(archives, out_dir: Path, scale: int = 2, cameos=(), upscale: bool = Tr
 
         built = {"shapes": [], "fonts": [], "missing": []}
 
+        wanted = [name for name in list(SHAPES) + list(cameos) + list(FONTS) if name in found]
+        done = 0
+
+        def report(name: str) -> None:
+            if progress is not None:
+                progress(f"[{done + 1}/{len(wanted)}] {name}")
+
         for name in list(SHAPES) + list(cameos):
             source = found.get(name)
             if source is None:
                 built["missing"].append(name)
                 continue
+            report(name)
             build_shape(source, out_dir / name, pal, scale, work / "shapes", upscale, model, gpu)
             built["shapes"].append(name)
+            done += 1
 
         for name in FONTS:
             source = found.get(name)
             if source is None:
                 built["missing"].append(name)
                 continue
+            report(name)
             build_font(source, out_dir / name, scale, work / "fonts", upscale)
             built["fonts"].append(name)
+            done += 1
 
     (out_dir / "HDPACK.INI").write_text(manifest(scale, built["shapes"], built["fonts"]))
     return built
@@ -141,7 +153,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     built = build(args.mix, args.out_dir, args.scale, args.cameo, not args.no_upscale,
-                  args.model, args.gpu, args.work_dir)
+                  args.model, args.gpu, args.work_dir,
+                  progress=lambda line: print(line, flush=True))
 
     print(f"{len(built['shapes'])} shapes and {len(built['fonts'])} fonts at {args.scale}x "
           f"in {args.out_dir}")
