@@ -44,7 +44,6 @@
 #include "_mixfile.h"
 #include "_rules.h"
 #include "_surface.h"
-#include "data.h"
 #include "dialog.h"
 #include "draw.h"
 #include "goptions.h"
@@ -59,8 +58,6 @@
 #include "shapeset.h"
 #include "surface.h"
 #include "uilayout.h"
-
-#include <cstdio>
 
 ShapeSet const * TabClass::TabShape = NULL;
 
@@ -150,7 +147,7 @@ void TabClass::Draw_It(bool complete)
 			Draw_Shape(*tab, *SidebarDrawer, strip, 0, Point2D(sidex, 0), tab->Get_Rect());
 			Draw_Credits_Tab();
 			tab->Draw_Line(Point2D(0, tab_height - UI_Art(1 * 2)), Point2D(rightx, tab_height - UI_Art(1 * 2/*RESFACTOR*/)), TBLACK);
-			UI_Art_Text_Print(TXT_TAB_BUTTON_CONTROLS, *tab, tab->Get_Rect(), Point2D(sidex + UI_Art((EVA_WIDTH/2) * 2/*RESFACTOR*/), 0), ColorSchemes[0], TBLACK, TextPrintType(TPF_USE_GRAD_PAL | TPF_CENTER | TPF_METAL12));
+			Fancy_Text_Print(TXT_TAB_BUTTON_CONTROLS, *tab, tab->Get_Rect(), Point2D(sidex + UI_Art((EVA_WIDTH/2) * 2/*RESFACTOR*/), 0), ColorSchemes[0], TBLACK, TextPrintType(TPF_USE_GRAD_PAL | TPF_CENTER | TPF_METAL12));
 
 			UI_Present_Tab_Strip();
 		}
@@ -192,16 +189,15 @@ void TabClass::Draw_Credits_Tab(void)
 		seconds = seconds % 60;
 		minutes = minutes % 60;
 
-		char elapsed[32];
 		if (hours != 0) {
-			snprintf(elapsed, sizeof(elapsed), Fetch_String(TXT_TIME_FORMAT_HOURS), hours, minutes, seconds);
+			Fancy_Text_Print(TXT_TIME_FORMAT_HOURS, *tab, tab->Get_Rect(),
+				Point2D(tab->Get_Width() - strip->Get_Width() / 2, 0), ColorSchemes[0], TBLACK,
+				TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL), hours, minutes, seconds);
 		} else {
-			snprintf(elapsed, sizeof(elapsed), Fetch_String(TXT_TIME_FORMAT_NO_HOURS), minutes, seconds);
+			Fancy_Text_Print(TXT_TIME_FORMAT_NO_HOURS, *tab, tab->Get_Rect(),
+				Point2D(tab->Get_Width() - strip->Get_Width() / 2, 0), ColorSchemes[0], TBLACK,
+				TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL), minutes, seconds);
 		}
-
-		UI_Art_Text_Print(elapsed, *tab, tab->Get_Rect(),
-			Point2D(tab->Get_Width() - strip->Get_Width() / 2, 0), ColorSchemes[0], TBLACK,
-			TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL));
 		UI_Present_Tab_Strip(Rect(tab->Get_Width() - strip->Get_Width(), 0, strip->Get_Width(), tab->Get_Height()));
 	}
 	BASECLASS::IsToBlitSidebar = true;
@@ -237,7 +233,7 @@ void TabClass::Hilite_Tab(int tab)
 	}
 
 	Draw_Shape(*strip, *SidebarDrawer, UI_Art_Shape(TabShape), 1, Point2D(xpos, 0), strip->Get_Rect());
-	UI_Art_Text_Print(text, *strip, strip->Get_Rect(), Point2D(xpos + textx, 0), ColorSchemes[0], TBLACK, TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL));
+	Fancy_Text_Print(text, *strip, strip->Get_Rect(), Point2D(xpos + textx, 0), ColorSchemes[0], TBLACK, TextPrintType(TPF_METAL12 | TPF_CENTER | TPF_USE_GRAD_PAL));
 	UI_Present_Tab_Strip();
 }
 
