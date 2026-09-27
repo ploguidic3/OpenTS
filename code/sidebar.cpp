@@ -2954,6 +2954,11 @@ void Print_Cameo_Text(char const * string, Point2D const & point, Rect const & c
 		FontClass * font = Font_From_TPF(TextPrintType(TPF_6POINT|TPF_METAL12|TPF_FULLSHADOW));
 		Point2D drawpoint = point;
 
+		// The font measures in its own pixels while the width comes in the artwork's, and a
+		// line lands that many times taller than the font reports.
+		int const factor = UI_Art_Text_Factor(font);
+		maxlinelen /= factor;
+
 		if (font->String_Pixel_Width(string) > maxlinelen) {
 			int len = strlen(string);
 			strcpy(buffer, string);
@@ -3006,7 +3011,7 @@ void Print_Cameo_Text(char const * string, Point2D const & point, Rect const & c
 
 				UI_Art_Text_Print(&buffer[len], *SidebarSurface, cliprect, drawpoint, Fetch_Scheme_By_Name("LightGrey"), TBLACK, TextPrintType(TPF_FULLSHADOW|TPF_EFNT));
 				buffer[len] = '\0';
-				drawpoint.Y -= font->Get_Height();
+				drawpoint.Y -= font->Get_Height() * factor;
 				w = font->String_Pixel_Width(buffer);
 
 			} while (len > 0 && w > maxlinelen);
