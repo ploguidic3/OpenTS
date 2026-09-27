@@ -68,6 +68,16 @@ Expected resolution of the scale, with a complete 2× pack:
 - [ ] Change resolution in the options dialog during a game, from 1440p to 640×480 and back: the minimap is rebuilt at the new pane size rather than staying at the old zoom.
 
 ## Fonts
+
+Known state, parked: leave the `.FNT` files out of the pack. With them in, HUD text draws
+as garbage even though `tools/hdui/fntcheck.py` finds them faithful to their sources and to
+the header rules `WWFontClass::Print` reads by, so the fault is in the engine and has not
+been traced. Without them, text is the classic font at its classic size and reads correctly,
+but is half the size of the artwork around it: the sidebar and tab surfaces are at the
+pack's scale and presented as they are, and nothing magnifies the text drawn into them.
+Routing those prints through `UI_Draw_Scaled` enlarged the text but misplaced the cameo
+captions, and was reverted. The checks below apply once either is fixed.
+
 - [ ] Cameo captions and cost text are sharp 2× text, wrapped within the cameo.
 - [ ] The credits readout and the mission timer are sharp and centred in the tab.
 - [ ] Chat text over the tactical view is sharp, wraps at the same place as before, and the edit cursor sits at the end of the typed line.
