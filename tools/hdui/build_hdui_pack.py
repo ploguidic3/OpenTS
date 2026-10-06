@@ -14,6 +14,7 @@ import argparse
 from pathlib import Path
 import tempfile
 
+import artini
 import fnt
 import fnt2png
 import mixextract
@@ -101,19 +102,39 @@ def build_font(source: Path, dest: Path, scale: int, work: Path, upscale: bool) 
     return dest
 
 
+def art_cameos(archives, art_files, raw: Path, progress=None) -> list[str]:
+    """Names the cameos the art files list. A file not on disk is taken from the archives."""
+    names: list[str] = []
+    for art in art_files:
+        path = Path(art)
+        if not path.is_file():
+            found = mixextract.extract(archives, [path.name.upper()], raw / "art")
+            if not found:
+                raise BuildError(f"{art} is neither a file nor in any archive given")
+            path = next(iter(found.values()))
+        listed = artini.cameo_names(artini.read_text(path.read_bytes()))
+        if progress is not None:
+            progress(f"{Path(art).name}: {len(listed)} cameos named")
+        names += [name for name in listed if name not in names]
+    return names
+
+
 def build(archives, out_dir: Path, scale: int = 2, cameos=(), upscale: bool = True,
           model: str = "realesr-general-x4v3", gpu: int = 0, work_dir: Path | None = None,
-          progress=None) -> dict:
+          progress=None, cameos_from=()) -> dict:
     out_dir = Path(out_dir)
     if any(part.lower() == "run" for part in out_dir.resolve().parts):
         raise BuildError("the destination is inside Run/, which holds the retail data")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    names = list(SHAPES) + list(cameos) + list(FONTS) + [PALETTE_NAME, MOUSE_PALETTE, CAMEO_PALETTE]
-
     with tempfile.TemporaryDirectory() as scratch:
         work = Path(work_dir) if work_dir else Path(scratch)
         raw = work / "raw"
+
+        cameos = [name.upper() for name in cameos]
+        cameos += [name for name in art_cameos(archives, cameos_from, raw, progress)
+                   if name not in cameos]
+        names = list(SHAPES) + cameos + list(FONTS) + [PALETTE_NAME, MOUSE_PALETTE, CAMEO_PALETTE]
         found = mixextract.extract(archives, names, raw)
 
         if PALETTE_NAME not in found:
@@ -121,11 +142,13 @@ def build(archives, out_dir: Path, scale: int = 2, cameos=(), upscale: bool = Tr
         palettes = {name: palette_module.Palette.load(found[name])
                     for name in (PALETTE_NAME, MOUSE_PALETTE, CAMEO_PALETTE) if name in found}
 
-        built = {"shapes": [], "fonts": [], "missing": []}
+        built = {"shapes": [], "fonts": [], "missing": [], "cameos": []}
 
         wanted = [name for name in list(SHAPES) + list(cameos) + list(FONTS)
                   if name in found and (name in FONTS or palette_for(name, name in cameos) in palettes)]
         done = 0
+        if progress is not None and cameos:
+            progress(f"{sum(1 for name in cameos if name in found)} of {len(cameos)} cameos found")
 
         def report(name: str) -> None:
             if progress is not None:
@@ -140,6 +163,8 @@ def build(archives, out_dir: Path, scale: int = 2, cameos=(), upscale: bool = Tr
             report(name)
             build_shape(source, out_dir / name, pal, scale, work / "shapes", upscale, model, gpu)
             built["shapes"].append(name)
+            if name in cameos:
+                built["cameos"].append(name)
             done += 1
 
         for name in FONTS:
@@ -163,7 +188,10 @@ def main(argv: list[str] | None = None) -> int:
                         help="an archive to search, earliest first; repeat for more")
     parser.add_argument("--scale", type=int, default=2)
     parser.add_argument("--cameo", action="append", default=[],
-                        help="an extra shape name to include, such as GACNST.SHP")
+                        help="a cameo to include, such as GACNSTICON.SHP")
+    parser.add_argument("--cameos-from", action="append", default=[], metavar="ART.INI",
+                        help="include every cameo an art file names; a name not on disk "
+                             "is taken from the archives")
     parser.add_argument("--model", default="realesr-general-x4v3")
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--no-upscale", action="store_true",
@@ -173,10 +201,10 @@ def main(argv: list[str] | None = None) -> int:
 
     built = build(args.mix, args.out_dir, args.scale, args.cameo, not args.no_upscale,
                   args.model, args.gpu, args.work_dir,
-                  progress=lambda line: print(line, flush=True))
+                  progress=lambda line: print(line, flush=True), cameos_from=args.cameos_from)
 
-    print(f"{len(built['shapes'])} shapes and {len(built['fonts'])} fonts at {args.scale}x "
-          f"in {args.out_dir}")
+    print(f"{len(built['shapes'])} shapes, {len(built['cameos'])} of them cameos, and "
+          f"{len(built['fonts'])} fonts at {args.scale}x in {args.out_dir}")
     if built["missing"]:
         print("not in any archive given: " + ", ".join(built["missing"]))
     return 0

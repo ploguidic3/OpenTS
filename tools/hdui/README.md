@@ -54,19 +54,52 @@ The archives are searched in the order given and the first holding a name answer
 for it, as the engine mounts them. `SIDEC01.MIX` goes first so the sidebar
 artwork and its palette answer before anything else carrying those names; the
 fonts come from `CACHE.MIX` or `LOCAL.MIX`. Names it cannot find are listed at
-the end and left out of the manifest. `--cameo GACNST.SHP` adds a cameo; the
-engine takes a pack that carries only some of them and enlarges the rest as it
-draws.
+the end and left out of the manifest.
 
 `SIDEGDI1.SHP`, `SIDEGDI2.SHP` and `SIDEGDI3.SHP` are reported missing and should
 be. They are a fallback the engine reaches for only when the sidebar shape is
 absent (`code/sidebar.cpp:2784`); `SIDE1.SHP` and its two companions are what it
 draws.
 
-Each shape is taken to colour and back through the palette the engine draws it with: `MOUSEPAL.PAL` for `MOUSE.SHP`, `CAMEO.PAL` for a cameo named with `--cameo`, and `SIDEBAR.PAL` for the rest. A shape whose palette is in none of the archives is reported missing rather than built through the wrong one.
+Each shape is taken to colour and back through the palette the engine draws it with: `MOUSEPAL.PAL` for `MOUSE.SHP`, `CAMEO.PAL` for a cameo, and `SIDEBAR.PAL` for the rest. A shape whose palette is in none of the archives is reported missing rather than built through the wrong one.
 
 A pack built from `SIDEC01.MIX` holds GDI's sidebar. A loose file answers whoever
 is playing, so that artwork is drawn for Nod as well.
+
+## Add the cameos
+
+The engine takes each cameo's name from the `Cameo=` entries in `ART.INI`, and
+from `ARTFS.INI` when Firestorm is installed, and draws `XXICON.SHP` for a type
+with none. `--cameos-from` reads every such entry, so the whole set is built
+without naming each shape:
+
+```powershell
+python build_hdui_pack.py HD --mix raw\SIDEC01.MIX --mix raw\CACHE.MIX --mix raw\LOCAL.MIX --mix Run\TIBSUN.MIX --mix raw\CONQUER.MIX --cameos-from ART.INI
+```
+
+An art file named on the command line is read from disk when it is there and
+otherwise taken from the archives. For Firestorm add `--cameos-from ARTFS.INI`,
+with the archive holding Firestorm's cameos ahead of the others, since the
+engine mounts the expansion caches first. `--cameo GACNSTICON.SHP` adds one
+cameo by name.
+
+A cameo is loaded as a shape, so the engine serves it only from a cached
+archive (`CACHE.MIX`, `CONQUER.MIX`, `SIDEC%02d.MIX`, `ECACHE%02d.MIX`). Which
+of them holds the cameos and `CAMEO.PAL` is not recorded here; ask the
+archives:
+
+```powershell
+python mixextract.py probe --mix raw\SIDEC01.MIX --mix raw\CACHE.MIX --mix raw\LOCAL.MIX --mix Run\TIBSUN.MIX --mix raw\CONQUER.MIX --name ART.INI --name CAMEO.PAL --name XXICON.SHP --name E1ICON.SHP
+python mixextract.py probe --mix Run\EXPAND01.MIX --name ARTFS.INI --name ECACHE01.MIX
+```
+
+Many `Cameo=` entries name shapes the game never shipped. They are listed as
+missing at the end of the run and the build goes on. Before the shapes are
+built the run prints how many cameos each art file names and how many the
+archives hold, then one line per shape. A pack carrying only some cameos
+works: the engine enlarges the rest as it draws.
+
+`python artini.py ART.INI` prints the list without building anything.
 
 Useful flags:
 
@@ -110,6 +143,7 @@ indices, since a font carries only sixteen.
 | --- | --- |
 | `mixreader.py`, `blowfish.py`, `mixcrypt.py` | Reads MIX archives, encrypted index included. Copied from `tools/cutscenes`; the two copies are identical and can be merged when both land. |
 | `mixextract.py` | Pulls named members out of archives. |
+| `artini.py` | Lists the cameos an art file names. |
 | `png.py` | Eight-bit PNG, no interlacing. |
 | `shp.py`, `fnt.py` | The SHP and FNT formats, read, write and nearest-neighbour enlargement. |
 | `palette.py` | `.PAL` loading and nearest-colour matching in L\*a\*b\*. |
@@ -125,5 +159,6 @@ python -m unittest discover -s tests
 
 Every input is synthesised, so the tests need no game data and no GPU. They cover
 the codecs, the palette match, both sheet round trips, extraction from an archive
-the test writes, and a whole pack build with the upscaler stood down. The
+the test writes, the cameo list read from an art file, and a whole pack build
+with the upscaler stood down. The
 upscaler itself is not covered: it is a separate program.

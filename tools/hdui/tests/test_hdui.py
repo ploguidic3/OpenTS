@@ -15,6 +15,7 @@ import unittest
 TOOLS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOLS))
 
+import artini
 import build_hdui_pack
 import fnt
 import fnt2png
@@ -425,6 +426,31 @@ class Extraction(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in written.values()), ["SIDE1.SHP", "TABS.SHP"])
 
 
+ART_INI = """; Synthesised for the tests
+[GACNST]
+Cameo=GACNSTICON ; the construction yard
+Remapable=yes
+
+[E1]
+cameo=e1icon
+
+[GAPOWR]
+Cameo=GACNSTICON
+
+[NOCAMEO]
+Image=GAPILE
+; Cameo=COMMENTED
+"""
+
+
+class ArtCameos(unittest.TestCase):
+    def test_every_cameo_entry_is_named_once_with_the_fallback(self):
+        self.assertEqual(artini.cameo_names(ART_INI), ["XXICON.SHP", "GACNSTICON.SHP", "E1ICON.SHP"])
+
+    def test_an_empty_entry_names_nothing(self):
+        self.assertEqual(artini.cameo_names("[X]\nCameo=\n"), ["XXICON.SHP"])
+
+
 class PackBuild(unittest.TestCase):
     def test_a_pack_is_built_from_an_archive_without_a_gpu(self):
         pal = make_palette()
@@ -504,6 +530,65 @@ class PackBuild(unittest.TestCase):
 
         self.assertNotIn("MOUSE.SHP", built["shapes"])
         self.assertIn("MOUSE.SHP (no MOUSEPAL.PAL)", built["missing"])
+
+    def _cameo_archive(self, work: Path, extra=None) -> tuple[Path, dict]:
+        """An archive whose sidebar and cameo palettes differ, holding two of the three cameos."""
+        fine = make_palette()
+        coarse = palette_module.Palette([fine.colors[(index // 8) * 8] for index in range(256)])
+        coarse.save(work / "SIDEBAR.PAL")
+        fine.save(work / "CAMEO.PAL")
+        cameos = {"XXICON.SHP": make_shape(frames=1), "GACNSTICON.SHP": make_shape(frames=1)}
+        members = {name: shp.write(shape) for name, shape in cameos.items()}
+        members["SIDEBAR.PAL"] = (work / "SIDEBAR.PAL").read_bytes()
+        members["CAMEO.PAL"] = (work / "CAMEO.PAL").read_bytes()
+        members.update(extra or {})
+        archive = work / "TEST.MIX"
+        mixreader.write_mix(archive, members)
+        return archive, cameos
+
+    def _check_cameos(self, built: dict, out: Path, cameos: dict) -> None:
+        self.assertEqual(built["cameos"], ["XXICON.SHP", "GACNSTICON.SHP"])
+        self.assertIn("E1ICON.SHP", built["missing"])
+
+        manifest = (out / "HDPACK.INI").read_text()
+        self.assertIn("GACNSTICON.SHP=2", manifest)
+        self.assertIn("XXICON.SHP=2", manifest)
+        self.assertNotIn("E1ICON", manifest)
+
+        # Quantised through SIDEBAR.PAL, the indices sharing a colour there would change.
+        grown = shp.read((out / "GACNSTICON.SHP").read_bytes())
+        for after, expected in zip(grown.frames, shp.magnify(cameos["GACNSTICON.SHP"], 2).frames):
+            self.assertEqual(after.pixels, expected.pixels)
+
+    def test_cameos_are_built_from_an_art_file_on_disk(self):
+        with TemporaryDirectory() as scratch:
+            work = Path(scratch)
+            archive, cameos = self._cameo_archive(work)
+            art = work / "ART.INI"
+            art.write_text(ART_INI)
+
+            lines = []
+            built = build_hdui_pack.build([archive], work / "HD", scale=2, upscale=False,
+                                          progress=lines.append, cameos_from=[art])
+            self._check_cameos(built, work / "HD", cameos)
+            self.assertIn("ART.INI: 3 cameos named", lines)
+            self.assertIn("2 of 3 cameos found", lines)
+
+    def test_cameos_are_built_from_an_art_file_in_an_archive(self):
+        with TemporaryDirectory() as scratch:
+            work = Path(scratch)
+            archive, cameos = self._cameo_archive(work, {"ART.INI": ART_INI.encode("latin-1")})
+
+            built = build_hdui_pack.build([archive], work / "HD", scale=2, upscale=False,
+                                          cameos_from=[work / "absent" / "ART.INI"])
+            self._check_cameos(built, work / "HD", cameos)
+
+    def test_an_art_file_found_nowhere_is_an_error(self):
+        with TemporaryDirectory() as scratch:
+            work = Path(scratch)
+            archive, _ = self._cameo_archive(work)
+            with self.assertRaises(build_hdui_pack.BuildError):
+                build_hdui_pack.build([archive], work / "HD", upscale=False, cameos_from=["ARTFS.INI"])
 
     def test_a_destination_inside_run_is_refused(self):
         with TemporaryDirectory() as scratch:
