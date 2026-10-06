@@ -78,23 +78,30 @@ python build_hdui_pack.py HD --mix raw\SIDEC01.MIX --mix raw\CACHE.MIX --mix raw
 ```
 
 An art file named on the command line is read from disk when it is there and
-otherwise taken from the archives. For Firestorm add `--cameos-from ARTFS.INI`,
-with the archive holding Firestorm's cameos ahead of the others, since the
-engine mounts the expansion caches first. `--cameo GACNSTICON.SHP` adds one
-cameo by name.
+otherwise taken from the archives. `--cameo GACNSTICON.SHP` adds one cameo by
+name.
 
-A cameo is loaded as a shape, so the engine serves it only from a cached
-archive (`CACHE.MIX`, `CONQUER.MIX`, `SIDEC%02d.MIX`, `ECACHE%02d.MIX`). Which
-of them holds the cameos and `CAMEO.PAL` is not recorded here; ask the
-archives:
+`ART.INI`, `CAMEO.PAL` and the base game's cameos are in the archives above.
+Firestorm keeps `ARTFS.INI`, `ECACHE01.MIX`, `E01SC01.MIX` and `E01SC02.MIX`
+inside `EXPAND01.MIX`; the last two hold its side-specific cameos, such as
+`MWARICON.SHP` and `LIMPICON.SHP`. Unpack them and list them after
+`SIDEC01.MIX`, which must stay first for the sidebar palette:
 
 ```powershell
-python mixextract.py probe --mix raw\SIDEC01.MIX --mix raw\CACHE.MIX --mix raw\LOCAL.MIX --mix Run\TIBSUN.MIX --mix raw\CONQUER.MIX --name ART.INI --name CAMEO.PAL --name XXICON.SHP --name E1ICON.SHP
-python mixextract.py probe --mix Run\EXPAND01.MIX --name ARTFS.INI --name ECACHE01.MIX
+python mixextract.py raw --mix Run\EXPAND01.MIX --name ARTFS.INI --name ECACHE01.MIX --name E01SC01.MIX --name E01SC02.MIX
+python build_hdui_pack.py HD --mix raw\SIDEC01.MIX --mix raw\ECACHE01.MIX --mix raw\E01SC01.MIX --mix raw\E01SC02.MIX --mix raw\CACHE.MIX --mix raw\LOCAL.MIX --mix Run\TIBSUN.MIX --mix raw\CONQUER.MIX --cameos-from ART.INI --cameos-from raw\ARTFS.INI
 ```
 
-Many `Cameo=` entries name shapes the game never shipped. They are listed as
-missing at the end of the run and the build goes on. Before the shapes are
+With these archives every cameo the two art files name is found: 83 from
+`ART.INI` and 8 from `ARTFS.INI`, 89 shapes once shared names are counted once.
+`mixextract.py probe` tests whether other names are present:
+
+```powershell
+python mixextract.py probe --mix raw\SIDEC01.MIX --mix raw\CACHE.MIX --name CAMEO.PAL --name E1ICON.SHP
+```
+
+A cameo the archives lack is listed as missing at the end of the run and the
+build goes on. Before the shapes are
 built the run prints how many cameos each art file names and how many the
 archives hold, then one line per shape. A pack carrying only some cameos
 works: the engine enlarges the rest as it draws.
