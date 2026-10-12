@@ -38,9 +38,9 @@ improvement; only the power plant cameo looks smeared, which is the upscaling mo
 output rather than a pipeline fault. The production clock and darkening cover HD
 cameos exactly, and a cameo removed from the pack draws enlarged in its place.
 
-Not yet run: the Mixed pack removals of `RCLOCK2.SHP`, `DARKEN.SHP` and `SIDE2.SHP`;
-`CursorScale=2` against 1; sidebar tooltip placement; the radar view outline and event
-flashes. 4K and multiplayer checks need hardware the user does not have.
+Also passed: removing `RCLOCK2.SHP`, `DARKEN.SHP` or `SIDE2.SHP` from the pack leaves a
+working sidebar; `CursorScale=2` against 1; sidebar tooltips; the radar view outline and
+event flashes. Not run: 4K and multiplayer, which need hardware the user does not have.
 
 ## Parked
 
