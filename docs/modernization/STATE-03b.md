@@ -35,7 +35,8 @@ Without cameos the visible gain was small. Prompt 03c added them: the pack built
 command in `tools/hdui/README.md`, with Firestorm's `ECACHE01.MIX`, `E01SC01.MIX` and
 `E01SC02.MIX`, holds all 89 cameos the two art files name. The user judged it a large
 improvement; only the power plant cameo looks smeared, which is the upscaling model's
-output rather than a pipeline fault.
+output rather than a pipeline fault. The production clock and darkening cover HD
+cameos exactly, and a cameo removed from the pack draws enlarged in its place.
 
 Not yet run: the Mixed pack removals of `RCLOCK2.SHP`, `DARKEN.SHP` and `SIDE2.SHP`;
 `CursorScale=2` against 1; sidebar tooltip placement; the radar view outline and event
