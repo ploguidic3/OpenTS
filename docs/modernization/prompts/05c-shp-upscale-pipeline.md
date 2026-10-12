@@ -6,6 +6,36 @@ Context to load: `@docs/modernization/kb/04-assets-and-tactical.md`,
 Depends on 02 and 05b (a 2× SHP dropped into `HD/` is tagged scale 2 and drawn 1:1 at
 `AssetScale=2`). Reuses `shp2png.py`/`png2shp.py` from 03b.
 
+## Starting point
+
+- Branch `fork/hd-assets`, created from `fork/voxel-scale` (the 05b engine) with
+  `fork/hud-scale` merged in (the `tools/hdui` modules). Neither branch contains the
+  other; resolve the merge before planning and say what conflicted.
+- `AssetScale=2` still draws objects over buildings they stand against
+  (`docs/modernization/REVISIT-05b-depth-sorting.md`). Do not fix it here. Judge art
+  from the comparison sheets; play-test items that depend on depth order are recorded
+  as blocked by 05b, not as failures.
+- Reuse `tools/hdui` (`shp.py`, `palette.py`, `png.py`, `mixextract.py`,
+  `upscale_ui.py`, `artini.py`) by import rather than copying. `shp.py` already writes
+  0 for a frame whose body exceeds the 16-bit size field; the engine never reads it.
+- Lessons from 03b and 03c (`docs/modernization/STATE-03b.md`):
+  - Build each shape through the palette the engine draws it with, taken from the
+    engine source. 03b broke the cursor by using the sidebar palette for it.
+  - Test the output against what the engine reads, from the engine source, not only
+    against the pipeline's own reader. The 2× fonts pass every round-trip test and
+    still draw as garbage.
+  - Many archives are nested and only cached ones answer `MFCD::Retrieve`. Find
+    shapes and palettes with `mixextract.py probe`; MIX indexes cannot be listed.
+    Known so far: `CONQUER.MIX`, `LOCAL.MIX`, `CACHE.MIX` inside `TIBSUN.MIX`;
+    `SIDEC01.MIX` in `SIDECD01.MIX`; `ECACHE01.MIX`, `E01SC01.MIX`, `E01SC02.MIX` and
+    `ARTFS.INI` in `EXPAND01.MIX`. Theater archives are not yet located.
+  - The user's `realesrgan-ncnn-vulkan` has 2× weights only for `realesr-animevideov3`.
+    List the models folder before naming another; a 4× model scaled down to 2× is the
+    alternative worth evaluating on the proof set.
+  - Print `[i/n] NAME` progress per shape and per GPU batch, flushed.
+- The user's setup and build commands are in `STATE-03b.md`. Present design choices
+  as options with a recommendation.
+
 ## Goal
 
 `tools/hdassets/` — a pipeline that turns the game's 8-bit SHP sprites into 2× SHPs on
