@@ -31,8 +31,11 @@ the cursor is sharp, the right size in menus and play, and hits at a unit's edge
 dialogs and the main menu are unchanged; `AssetOverrides=no` returns the classic look and
 a single save loads either way.
 
-The visible gain is small. The pack covers the frame, buttons, clocks, radar frame, tabs
-and cursor; the cameos, which fill most of the sidebar, are not in it.
+Without cameos the visible gain was small. Prompt 03c added them: the pack built from the
+command in `tools/hdui/README.md`, with Firestorm's `ECACHE01.MIX`, `E01SC01.MIX` and
+`E01SC02.MIX`, holds all 89 cameos the two art files name. The user judged it a large
+improvement; only the power plant cameo looks smeared, which is the upscaling model's
+output rather than a pipeline fault.
 
 Not yet run: the Mixed pack removals of `RCLOCK2.SHP`, `DARKEN.SHP` and `SIDE2.SHP`;
 `CursorScale=2` against 1; sidebar tooltip placement; the radar view outline and event

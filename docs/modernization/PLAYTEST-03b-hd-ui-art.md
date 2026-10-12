@@ -48,7 +48,7 @@ Expected resolution of the scale, with a complete 2× pack:
 - [ ] `AssetOverrides=no` in `[Video]` returns to the 03a look at every resolution above, with no other difference.
 
 ## Mixed pack
-- [ ] With a pack built with `--cameos-from ART.INI`, every cameo in a full strip looks upscaled rather than blocky. Compare against `AssetOverrides=no`, where every cameo is the classic one enlarged.
+- [x] With a pack built with `--cameos-from ART.INI`, every cameo in a full strip looks upscaled rather than blocky. Compare against `AssetOverrides=no`, where every cameo is the classic one enlarged.
 - [ ] An item in production on an HD cameo shows the clock over exactly the cameo's picture, with no strip of the cameo left uncovered at any edge.
 - [ ] An unavailable HD cameo is darkened over its whole picture and nothing outside it.
 - [ ] Remove one cameo (`XXICON.SHP` for a unit, or a built one such as `GACNSTICON.SHP`) from the pack. It draws at the right size in the strip, enlarged and blocky, beside the HD cameos, with the strip layout unchanged.
